@@ -1,3 +1,5 @@
 process connect connect://ubuntu20.orb.local:1234
+target stop-hook add -o "register read t0 t1 t2 a0 -fd"
 b *0x50000000
 b halt
+c

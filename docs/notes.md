@@ -202,7 +202,7 @@ ELF Header:
 
 ---
 
-## Task1:
+## Task0:
 
 ```
 .global main
@@ -240,4 +240,35 @@ halt:
 
 `0x5ffffffc` 可写，所以RAM加载的地址范围是 `[0x50000000, 0x60000000)`
 
- 
+---
+
+## Task1
+
+> [!assignment] Task1
+> 判断1到200的每个数字是否为质数，要求用函数调用实现，函数参数为数字，返回值为是否是质数。
+
+发现一个问题：一定要把main放在文件开头，不然main代码不会放到 `0x50000000`?
+
+```
+(lldb) b *0x50000000
+Breakpoint 1: where = task1`_ftext, address = 0x0000000050000000
+(lldb) b halt
+Breakpoint 2: where = task1`halt + 2, address = 0x0000000050000024
+(lldb) c
+Process 1 resuming
+Process 1 stopped
+* thread #1, stop reason = breakpoint 1.1
+    frame #0: 0x0000000050000000 task1`_ftext at task1.S:7
+   4    /*
+   5     *  (n: a0:int) -> is_prime: a0:int
+   6     */
+-> 7        li t0, 1          # is_prime = 1
+   8        li t1, 2          # i = 2
+   9        mv t2, a0         # n = a0
+   10   loop_cond:
+(lldb) image lookup -n main
+1 match found in /Users/task1/Source/Courses/os-lab/source/task1:
+        Address: task1[0x000000005000001c] (task1.PT_LOAD[0]..text + 28)
+        Summary: task1`main
+(lldb) 
+```

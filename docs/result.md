@@ -62,3 +62,44 @@ halt:
 $ ls
 Makefile  README.md  build/  result.md  riscv.lds  ycp*  ycp.S
 ```
+
+```
+(lldb) process connect connect://ubuntu20.orb.local:1234
+Process 1 stopped
+* thread #1, stop reason = signal SIGTRAP
+    frame #0: 0x0000000000001000
+->  0x1000: auipc  t0, 0x0
+    0x1004: addi   a2, t0, 0x28
+    0x1008: csrr   a0, mhartid
+    0x100c: ld     a1, 0x20(t0)
+(lldb) b *0x50000000
+Breakpoint 1: where = ycp`_ftext, address = 0x0000000050000000
+(lldb) b halt
+Breakpoint 2: where = ycp`halt + 2, address = 0x0000000050000024
+(lldb) c
+Process 1 resuming
+Process 1 stopped
+* thread #1, stop reason = breakpoint 1.1
+    frame #0: 0x0000000050000000 ycp`_ftext at ycp.S:4
+   1    .global main
+   2   
+   3    main:
+-> 4        li t1, 1      # i = 1
+   5        li t2, 0      # sum = 0
+   6        li t3, 50
+   7        j start
+(lldb) c
+Process 1 resuming
+Process 1 stopped
+* thread #1, stop reason = breakpoint 2.1
+    frame #0: 0x0000000050000024 ycp`halt at ycp.S:22
+   19  
+   20   halt:
+   21       nop
+-> 22       j halt
+   23  
+   24   .section data
+   25   .equ retval_addr, 0x5ffffffc
+(lldb) print *(int*)0x5ffffffc
+(int) 1275
+```

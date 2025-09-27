@@ -41,7 +41,7 @@ USER_ENTRYPOINT			= 0x50000000
 # UCAS-OS User Source Files
 # -----------------------------------------------------------------------
 
-SRC_USER	= test.S
+SRC_USER	= ycp.S
 ELF_USER	= $(patsubst %.S, %, $(SRC_USER))
 
 # -----------------------------------------------------------------------
@@ -57,10 +57,13 @@ clean:
 gdb:
 	$(GDB) $(ELF_USER) -ex "target remote:1234"
 
+lldb:
+	lldb $(ELF_USER) -s .lldbinit
+
 run:
 	$(QEMU) $(QEMU_OPTS)
 
 debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
 
-.PHONY: all clean gdb run debug
+.PHONY: all clean gdb run debug lldb

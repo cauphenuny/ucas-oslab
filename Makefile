@@ -122,6 +122,9 @@ asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 gdb:
 	$(GDB) $(ELF_MAIN) -ex "target remote:1234"
 
+lldb:
+	lldb $(ELF_MAIN) -s .lldbinit
+
 run:
 	$(QEMU) $(QEMU_OPTS)
 

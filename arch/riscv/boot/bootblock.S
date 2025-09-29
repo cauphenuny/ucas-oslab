@@ -9,6 +9,8 @@
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
 
+.equ bios_putstr, 9
+
 .text
 .global main
 
@@ -17,6 +19,9 @@ main:
 	fence
 
 	// TODO: [p1-task1] call BIOS to print string "It's bootblock!"
+	la a7, bios_putstr
+	la a0, msg
+	jal bios_func_entry
 
 
 	// TODO: [p1-task2] call BIOS to read kernel in SD card
@@ -37,5 +42,5 @@ stop:
 
 .data
 
-msg: .string "It's a bootloader...\n\r"
+msg: .string "It's ycp's bootloader...\n\r"
 

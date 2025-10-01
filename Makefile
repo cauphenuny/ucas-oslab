@@ -141,16 +141,16 @@ minicom:
 # -----------------------------------------------------------------------
 
 $(ELF_BOOT): $(SRC_BOOT) riscv.lds
-	$(CC) $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
+	$(CC) -g $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
 
 $(ELF_MAIN): $(SRC_MAIN) riscv.lds
-	$(CC) $(KERNEL_CFLAGS) -o $@ $(SRC_MAIN)
+	$(CC) -g $(KERNEL_CFLAGS) -o $@ $(SRC_MAIN)
 
 $(OBJ_CRT0): $(SRC_CRT0)
-	$(CC) $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
+	$(CC) -g $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
 
 $(DIR_BUILD)/%: $(DIR_TEST_PROJ)/%.c $(OBJ_CRT0) riscv.lds
-	$(CC) $(USER_CFLAGS) -o $@ $(OBJ_CRT0) $< -Wl,--defsym=TEXT_START=$(USER_ENTRYPOINT) -T riscv.lds
+	$(CC) -g $(USER_CFLAGS) -o $@ $(OBJ_CRT0) $< -Wl,--defsym=TEXT_START=$(USER_ENTRYPOINT) -T riscv.lds
 	$(eval USER_ENTRYPOINT := $(shell python3 -c "print(hex(int('$(USER_ENTRYPOINT)', 16) + int('0x10000', 16)))"))
 
 elf: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)

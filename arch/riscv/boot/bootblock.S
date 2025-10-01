@@ -10,6 +10,7 @@
 .equ bios_func_entry, 0x50150000
 
 .equ bios_putstr, 9
+.equ bios_sdread, 11
 
 .text
 .global main
@@ -25,12 +26,22 @@ main:
 
 
 	// TODO: [p1-task2] call BIOS to read kernel in SD card
+	// a0: mem_addr
+	// a1: num_of_blocks
+	// a2: block_id
+	// a7: bios_sdread
+	la a0, kernel
+	la t0, os_size_loc
+	lh a1, 0(t0)
+	la a7, bios_sdread
+	jal bios_func_entry
 
 
 	// TODO: [p1-task4] load task-related arguments and pass them to kernel
 
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
+	j kernel
 
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */

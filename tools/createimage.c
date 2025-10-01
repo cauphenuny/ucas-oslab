@@ -7,13 +7,13 @@
 #include <string.h>
 
 #define IMAGE_FILE "./image"
-#define ARGS "[--extended] [--vm] <bootblock> <executable-file> ..."
+#define ARGS       "[--extended] [--vm] <bootblock> <executable-file> ..."
 
-#define SECTOR_SIZE 512
+#define SECTOR_SIZE            512
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
-#define OS_SIZE_LOC (BOOT_LOADER_SIG_OFFSET - 2)
-#define BOOT_LOADER_SIG_1 0x55
-#define BOOT_LOADER_SIG_2 0xaa
+#define OS_SIZE_LOC            (BOOT_LOADER_SIG_OFFSET - 2)
+#define BOOT_LOADER_SIG_1      0x55
+#define BOOT_LOADER_SIG_2      0xaa
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
@@ -32,35 +32,32 @@ static struct {
 } options;
 
 /* prototypes of local functions */
-static void create_image(int nfiles, char *files[]);
-static void error(char *fmt, ...);
-static void read_ehdr(Elf64_Ehdr *ehdr, FILE *fp);
-static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
+static void create_image(int nfiles, char* files[]);
+static void error(char* fmt, ...);
+static void read_ehdr(Elf64_Ehdr* ehdr, FILE* fp);
+static void read_phdr(Elf64_Phdr* phdr, FILE* fp, int ph, Elf64_Ehdr ehdr);
 static uint64_t get_entrypoint(Elf64_Ehdr ehdr);
 static uint32_t get_filesz(Elf64_Phdr phdr);
 static uint32_t get_memsz(Elf64_Phdr phdr);
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr);
-static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
-static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE *img);
+static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr);
+static void write_padding(FILE* img, int* phyaddr, int new_phyaddr);
+static void write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img);
 
-int main(int argc, char **argv)
-{
-    char *progname = argv[0];
+int main(int argc, char** argv) {
+    char* progname = argv[0];
 
     /* process command line options */
     options.vm = 0;
     options.extended = 0;
     while ((argc > 1) && (argv[1][0] == '-') && (argv[1][1] == '-')) {
-        char *option = &argv[1][2];
+        char* option = &argv[1][2];
 
         if (strcmp(option, "vm") == 0) {
             options.vm = 1;
         } else if (strcmp(option, "extended") == 0) {
             options.extended = 1;
         } else {
-            error("%s: invalid option\nusage: %s %s\n", progname,
-                  progname, ARGS);
+            error("%s: invalid option\nusage: %s %s\n", progname, progname, ARGS);
         }
         argc--;
         argv++;
@@ -77,8 +74,7 @@ int main(int argc, char **argv)
 }
 
 /* TODO: [p1-task4] assign your task_info_t somewhere in 'create_image' */
-static void create_image(int nfiles, char *files[])
-{
+static void create_image(int nfiles, char* files[]) {
     int tasknum = nfiles - 2;
     int nbytes_kernel = 0;
     int phyaddr = 0;
@@ -139,8 +135,7 @@ static void create_image(int nfiles, char *files[])
     fclose(img);
 }
 
-static void read_ehdr(Elf64_Ehdr * ehdr, FILE * fp)
-{
+static void read_ehdr(Elf64_Ehdr* ehdr, FILE* fp) {
     int ret;
 
     ret = fread(ehdr, sizeof(*ehdr), 1, fp);
@@ -150,9 +145,7 @@ static void read_ehdr(Elf64_Ehdr * ehdr, FILE * fp)
     assert(ehdr->e_ident[EI_MAG3] == 'F');
 }
 
-static void read_phdr(Elf64_Phdr * phdr, FILE * fp, int ph,
-                      Elf64_Ehdr ehdr)
-{
+static void read_phdr(Elf64_Phdr* phdr, FILE* fp, int ph, Elf64_Ehdr ehdr) {
     int ret;
 
     fseek(fp, ehdr.e_phoff + ph * ehdr.e_phentsize, SEEK_SET);
@@ -167,23 +160,13 @@ static void read_phdr(Elf64_Phdr * phdr, FILE * fp, int ph,
     }
 }
 
-static uint64_t get_entrypoint(Elf64_Ehdr ehdr)
-{
-    return ehdr.e_entry;
-}
+static uint64_t get_entrypoint(Elf64_Ehdr ehdr) { return ehdr.e_entry; }
 
-static uint32_t get_filesz(Elf64_Phdr phdr)
-{
-    return phdr.p_filesz;
-}
+static uint32_t get_filesz(Elf64_Phdr phdr) { return phdr.p_filesz; }
 
-static uint32_t get_memsz(Elf64_Phdr phdr)
-{
-    return phdr.p_memsz;
-}
+static uint32_t get_memsz(Elf64_Phdr phdr) { return phdr.p_memsz; }
 
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
-{
+static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr) {
     if (phdr.p_memsz != 0 && phdr.p_type == PT_LOAD) {
         /* write the segment itself */
         /* NOTE: expansion of .bss should be done by kernel or runtime env! */
@@ -198,8 +181,7 @@ static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
     }
 }
 
-static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
-{
+static void write_padding(FILE* img, int* phyaddr, int new_phyaddr) {
     if (options.extended == 1 && *phyaddr < new_phyaddr) {
         printf("\t\twrite 0x%04x bytes for padding\n", new_phyaddr - *phyaddr);
     }
@@ -210,16 +192,13 @@ static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
     }
 }
 
-static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE * img)
-{
+static void write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img) {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
 }
 
 /* print an error message and exit */
-static void error(char *fmt, ...)
-{
+static void error(char* fmt, ...) {
     va_list args;
 
     va_start(args, fmt);

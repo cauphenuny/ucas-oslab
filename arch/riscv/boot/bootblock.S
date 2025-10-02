@@ -2,6 +2,7 @@
 
 // os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
 .equ os_size_loc, 0x502001fc
+.equ task_num_loc, 0x502001fe
 
 // kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50201000
@@ -41,6 +42,8 @@ main:
 
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
+	la t0, task_num_loc
+	lh a0, 0(t0)
 	j kernel
 
 	/************************************************************/

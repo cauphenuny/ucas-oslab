@@ -11,6 +11,7 @@ uint64_t load_task_img(int taskid) {
      */
 
     int dest = TASK_MEM_BASE + taskid * TASK_SIZE;
+    // task0: kernel&main, task1: user-task0, task2: user-task1
     int src_bytes = TASK_SIZE * (taskid + 1);
     int src_block = src_bytes / SECTOR_SIZE;
     int nblocks = TASK_SIZE / SECTOR_SIZE;

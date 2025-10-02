@@ -13,7 +13,6 @@ char buf[VERSION_BUF];
 
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
-const short task_num = 10;  // TODO:
 
 static int bss_check(void) {
     for (int i = 0; i < VERSION_BUF; ++i) {
@@ -51,20 +50,40 @@ static int blocked_bios_getchar() {
     }
 }
 
+static int echoed_bios_getchar() {
+    int ch = blocked_bios_getchar();
+    bios_putchar(ch);
+    if (ch == '\r') bios_putchar('\n');
+    return ch;
+}
+
 static int isdigit(char c) { return c >= '0' && c <= '9'; }
 
-static int blocked_bios_getint() {
-    char c = blocked_bios_getchar();
-    while (!isdigit(c)) c = blocked_bios_getchar();
+static int readint() {
+    char c = echoed_bios_getchar();
+    while (!isdigit(c)) c = echoed_bios_getchar();
     int val = 0;
     while (isdigit(c)) {
         val = val * 10 + (c - '0');
-        c = blocked_bios_getchar();
+        c = echoed_bios_getchar();
     }
     return val;
 }
 
-int main(void) {
+static void writeint(int val) {
+    if (val == 0)
+        bios_putchar('0');
+    else {
+        if (val / 10) writeint(val / 10);
+        bios_putchar('0' + val % 10);
+    }
+}
+
+int main(int argc, char** argv) {
+    // INFO:
+    // argc: task_num (in p1-task3)
+    const int task_num = argc;
+
     // Check whether .bss section is set to zero
     int check = bss_check();
 
@@ -92,23 +111,28 @@ int main(void) {
     bios_putstr(buf);
 
     // while (true) {
-    //     int c = blocked_bios_getchar();
-    //     bios_putchar(c);
-    //     // bios_putchar('\n');
+    // int _ = echoed_bios_getchar();
+    // bios_putchar(c);
+    // bios_putchar('\n');
     // }
 
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
 
     while (1) {
-        bios_putstr("Input task id:");
-        int taskid = blocked_bios_getint();
+        bios_putstr("Input task id: ");
+        int taskid = readint();
         if (taskid < 0 || taskid >= task_num) {
             bios_putstr("Invalid task id!\n\r");
+            continue;
+        } else {
+            bios_putstr("Running task #");
+            writeint(taskid);
+            bios_putstr(":\n");
         }
         void (*task)() = (void (*)())(load_task_img(taskid));
         task();
-        break;
+        bios_putstr("Task completed.\n");
     }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)

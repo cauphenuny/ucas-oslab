@@ -19,14 +19,23 @@ ENTRY(_start)
     addi t2, t2, 4
     blt t2, t1, .clear
 
+.setup:
     // setup stack
     la sp, USER_STACK_TOP
 
 
     /* TODO: [p1-task3] enter main function */
+.enter:
+    addi sp, sp, -4
+    sw ra, 0(sp)
+    jal main
 
 
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
+.ret:
+    lw ra, 0(sp)
+    addi sp, sp, 4
+    ret
 
     /************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */

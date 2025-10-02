@@ -128,7 +128,7 @@ static void create_image(int nfiles, char* files[]) {
         if (strcmp(*files, "bootblock") == 0) {
             write_padding(img, &phyaddr, SECTOR_SIZE);
         } else {
-            write_padding(img, &phyaddr, (taskidx + 1) * TASK_SIZE);
+            write_padding(img, &phyaddr, fidx * TASK_SIZE);
         }
 
         fclose(fp);
@@ -186,7 +186,11 @@ static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr) {
 }
 
 static void write_padding(FILE* img, int* phyaddr, int new_phyaddr) {
-    assert(*phyaddr <= new_phyaddr);
+    if (*phyaddr > new_phyaddr) {
+        error(
+            "%s:%d: phyaddr %d > new_phyaddr %d, can not pad\n", __FILE__, __LINE__, *phyaddr,
+            new_phyaddr);
+    }
 
     if (options.extended == 1 && *phyaddr < new_phyaddr) {
         printf("\t\twrite 0x%04x bytes for padding\n", new_phyaddr - *phyaddr);

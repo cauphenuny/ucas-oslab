@@ -34,6 +34,7 @@ main:
 	la a0, kernel
 	la t0, os_size_loc
 	lh a1, 0(t0)
+	li a2, 1
 	la a7, bios_sdread
 	jal bios_func_entry
 

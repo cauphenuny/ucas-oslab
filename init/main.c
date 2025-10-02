@@ -8,11 +8,12 @@
 
 #define VERSION_BUF 50
 
-int version = 2;  // version must between 0 and 9
+int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
 
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
+const short task_num = 10;  // TODO:
 
 static int bss_check(void) {
     for (int i = 0; i < VERSION_BUF; ++i) {
@@ -41,13 +42,26 @@ static void init_task_info(void) {
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/
 
-int blocked_bios_getchar() {
+static int blocked_bios_getchar() {
     while (1) {
         int ch = bios_getchar();
         if (ch != -1) {
             return ch;
         }
     }
+}
+
+static int isdigit(char c) { return c >= '0' && c <= '9'; }
+
+static int blocked_bios_getint() {
+    char c = blocked_bios_getchar();
+    while (!isdigit(c)) c = blocked_bios_getchar();
+    int val = 0;
+    while (isdigit(c)) {
+        val = val * 10 + (c - '0');
+        c = blocked_bios_getchar();
+    }
+    return val;
 }
 
 int main(void) {
@@ -77,14 +91,25 @@ int main(void) {
     bios_putstr("Hello OS!\n\r");
     bios_putstr(buf);
 
-    while (true) {
-        int c = blocked_bios_getchar();
-        bios_putchar(c);
-        // bios_putchar('\n');
-    }
+    // while (true) {
+    //     int c = blocked_bios_getchar();
+    //     bios_putchar(c);
+    //     // bios_putchar('\n');
+    // }
 
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
+
+    while (1) {
+        bios_putstr("Input task id:");
+        int taskid = blocked_bios_getint();
+        if (taskid < 0 || taskid >= task_num) {
+            bios_putstr("Invalid task id!\n\r");
+        }
+        void (*task)() = (void (*)())(load_task_img(taskid));
+        task();
+        break;
+    }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     while (1) {

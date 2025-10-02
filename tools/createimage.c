@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define IMAGE_FILE "./image"
 #define ARGS       "[--extended] [--vm] <bootblock> <executable-file> ..."
@@ -23,6 +24,7 @@ typedef struct {
 } task_info_t;
 
 #define TASK_MAXNUM 16
+#define TASK_SIZE   0x10000
 static task_info_t taskinfo[TASK_MAXNUM];
 
 /* structure to store command line options */
@@ -48,7 +50,7 @@ int main(int argc, char** argv) {
 
     /* process command line options */
     options.vm = 0;
-    options.extended = 0;
+    options.extended = 0;  // echo debug message?
     while ((argc > 1) && (argv[1][0] == '-') && (argv[1][1] == '-')) {
         char* option = &argv[1][2];
 
@@ -125,6 +127,8 @@ static void create_image(int nfiles, char* files[]) {
          */
         if (strcmp(*files, "bootblock") == 0) {
             write_padding(img, &phyaddr, SECTOR_SIZE);
+        } else {
+            write_padding(img, &phyaddr, (taskidx + 1) * TASK_SIZE);
         }
 
         fclose(fp);
@@ -182,6 +186,8 @@ static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr) {
 }
 
 static void write_padding(FILE* img, int* phyaddr, int new_phyaddr) {
+    assert(*phyaddr <= new_phyaddr);
+
     if (options.extended == 1 && *phyaddr < new_phyaddr) {
         printf("\t\twrite 0x%04x bytes for padding\n", new_phyaddr - *phyaddr);
     }
@@ -195,6 +201,13 @@ static void write_padding(FILE* img, int* phyaddr, int new_phyaddr) {
 static void write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img) {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
+    assert(sizeof(tasknum) == 2);
+
+    // write 2-byte size to OS_SIZE_LOC
+    uint16_t nsectors_kernel = NBYTES2SEC(nbytes_kernel);
+    fseek(img, OS_SIZE_LOC, SEEK_SET);
+    fwrite(&nsectors_kernel, sizeof(nsectors_kernel), 1, img);
+    fwrite(&tasknum, sizeof(tasknum), 1, img);
 }
 
 /* print an error message and exit */

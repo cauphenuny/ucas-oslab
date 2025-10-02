@@ -1,9 +1,26 @@
 #include <asm.h>
 
+.extern __bss_start
+.extern __BSS_END__
+
+.equ USER_STACK_TOP, 0x60000000
+
 .section ".entry_function","ax"
 ENTRY(_start)
 
     /* TODO: [p1-task3] setup C runtime environment for the user program */
+
+    // clear bss
+    la t0, __bss_start
+    la t1, __BSS_END__
+    mv t2, t0
+.clear:
+    sw zero, 0(t2)
+    addi t2, t2, 4
+    blt t2, t1, .clear
+
+    // setup stack
+    la sp, USER_STACK_TOP
 
 
     /* TODO: [p1-task3] enter main function */

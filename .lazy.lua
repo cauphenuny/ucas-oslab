@@ -1,6 +1,7 @@
 -- local lspconfig = require("lspconfig")
 local port = 2057
 local verbose = false
+local last = nil
 
 local job_id = vim.fn.jobstart({
 	"orb",
@@ -14,14 +15,17 @@ local job_id = vim.fn.jobstart({
 		if verbose then
 			vim.notify(table.concat(data), vim.log.levels.INFO)
 		end
+		last = table.concat(data)
 	end,
 	on_stderr = function(chan, data, name)
 		if verbose then
 			vim.notify(table.concat(data), vim.log.levels.TRACE)
 		end
+		last = table.concat(data)
 	end,
 	on_exit = function(chan, exit_code, name)
 		vim.notify("Remote clangd exited with code: " .. exit_code, vim.log.levels.WARN)
+		vim.notify("Last message: " .. last, vim.log.levels.WARN)
 	end,
 })
 

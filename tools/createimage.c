@@ -25,7 +25,7 @@
 typedef struct {
     char name[16];
     int phyaddr_start, phyaddr_end;
-    int entrance;
+    uint64_t entrance;
 } task_info_t;
 
 #define TASK_MAXNUM 16

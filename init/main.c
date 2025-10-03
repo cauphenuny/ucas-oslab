@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
             }
         }
         if (!task_info) {
-            bios_putstr("Invalid name!");
+            bios_putstr("Invalid name!\n");
         } else {
             void (*task)() = (void (*)())(load_task_img(*task_info));
             bios_putstr("Loaded.\n");

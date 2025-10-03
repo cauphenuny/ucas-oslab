@@ -3,7 +3,7 @@
 .extern __bss_start
 .extern __BSS_END__
 
-.equ USER_STACK_TOP, 0x60000000
+.equ USER_STACK_TOP, 0x5f000000
 
 .section ".entry_function","ax"
 ENTRY(_start)

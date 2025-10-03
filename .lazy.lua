@@ -1,5 +1,31 @@
 -- local lspconfig = require("lspconfig")
 local port = 2057
+local verbose = false
+
+local job_id = vim.fn.jobstart({
+	"orb",
+	"-m",
+	"ubuntu20",
+	"socat",
+	string.format("tcp-listen:%d,reuseaddr", port),
+	"exec:'clangd --background-index'",
+}, {
+	on_stdout = function(chan, data, name)
+		if verbose then
+			vim.notify(table.concat(data), vim.log.levels.INFO)
+		end
+	end,
+	on_stderr = function(chan, data, name)
+		if verbose then
+			vim.notify(table.concat(data), vim.log.levels.TRACE)
+		end
+	end,
+	on_exit = function(chan, exit_code, name)
+		vim.notify("Remote clangd exited with code: " .. exit_code, vim.log.levels.WARN)
+	end,
+})
+
+vim.notify("Started remote clangd with job id: " .. job_id, vim.log.levels.INFO)
 
 return {
 	{

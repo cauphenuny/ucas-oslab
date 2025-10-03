@@ -14,7 +14,9 @@
 
 /* TODO: [p1-task4] implement your own task_info_t! */
 typedef struct {
-
+    char name[16];
+    int phyaddr_start, phyaddr_end;
+    int entrance;
 } task_info_t;
 
 extern task_info_t tasks[TASK_MAXNUM];

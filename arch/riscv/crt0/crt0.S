@@ -26,15 +26,15 @@ ENTRY(_start)
 
     /* TODO: [p1-task3] enter main function */
 .enter:
-    addi sp, sp, -4
-    sw ra, 0(sp)
+    addi sp, sp, -8
+    sd ra, 0(sp)
     jal main
 
 
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
 .ret:
-    lw ra, 0(sp)
-    addi sp, sp, 4
+    ld ra, 0(sp)
+    addi sp, sp, 8
     ret
 
     /************************************************************/

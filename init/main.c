@@ -12,6 +12,7 @@ int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
 
 // Task info array
+int task_num;
 task_info_t tasks[TASK_MAXNUM];
 
 static int bss_check(void) {
@@ -41,7 +42,7 @@ static void init_task_info(void) {
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/
 
-static int blocked_bios_getchar() {
+static int getchar() {
     while (1) {
         int ch = bios_getchar();
         if (ch != -1) {
@@ -50,8 +51,8 @@ static int blocked_bios_getchar() {
     }
 }
 
-static int echoed_bios_getchar() {
-    int ch = blocked_bios_getchar();
+static int echoed_getchar() {
+    int ch = getchar();
     bios_putchar(ch);
     if (ch == '\r') bios_putchar('\n');
     return ch;
@@ -60,14 +61,27 @@ static int echoed_bios_getchar() {
 static int isdigit(char c) { return c >= '0' && c <= '9'; }
 
 static int readint() {
-    char c = echoed_bios_getchar();
-    while (!isdigit(c)) c = echoed_bios_getchar();
+    char c = echoed_getchar();
+    while (!isdigit(c)) c = echoed_getchar();
     int val = 0;
     while (isdigit(c)) {
         val = val * 10 + (c - '0');
-        c = echoed_bios_getchar();
+        c = echoed_getchar();
     }
     return val;
+}
+
+static int readline(char* buffer, int size) {
+    int count = 0;
+    while (count < size - 1) {
+        char c = echoed_getchar();
+        if (c == '\n' || c == '\r') {
+            break;
+        }
+        buffer[count++] = c;
+    }
+    buffer[count] = 0;
+    return count;
 }
 
 static void writeint(int val) {
@@ -81,8 +95,10 @@ static void writeint(int val) {
 
 int main(int argc, char** argv) {
     // INFO:
-    // argc: task_num (in p1-task3)
-    const int task_num = argc;
+    // argc: int task_num (in p1-task3, p1-task4)
+    // argv: task_info_t* task_info (in p1-task4)
+    task_num = argc;
+    memcpy((void*)tasks, (void*)argv, sizeof(task_info_t) * task_num);
 
     // Check whether .bss section is set to zero
     int check = bss_check();
@@ -120,19 +136,29 @@ int main(int argc, char** argv) {
     //   and then execute them.
 
     while (1) {
-        bios_putstr("Input task id: ");
-        int taskid = readint();
-        if (taskid < 0 || taskid >= task_num) {
-            bios_putstr("Invalid task id!\n\r");
-            continue;
-        } else {
-            bios_putstr("Running task #");
-            writeint(taskid);
-            bios_putstr(":\n");
+        for (int i = 0; i < task_num; i++) {
+            bios_putstr("Task #"), writeint(i), bios_putstr(":\t");
+            bios_putstr(tasks[i].name), bios_putstr("\n");
         }
-        void (*task)() = (void (*)())(load_task_img(taskid));
-        task();
-        bios_putstr("Task completed.\n");
+        bios_putstr("Input task name: ");
+        char name[16] = {0};
+        bzero(name, 16);
+        readline(name, sizeof(name));
+        task_info_t* task_info = NULL;
+        for (int i = 0; i < task_num; i++) {
+            if (strcmp(tasks[i].name, name) == 0) {
+                task_info = tasks + i;
+                break;
+            }
+        }
+        if (!task_info) {
+            bios_putstr("Invalid name!");
+        } else {
+            void (*task)() = (void (*)())(load_task_img(*task_info));
+            bios_putstr("Loaded.\n");
+            task();
+            bios_putstr("Task completed.\n");
+        }
     }
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)

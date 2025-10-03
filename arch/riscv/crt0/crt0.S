@@ -21,20 +21,22 @@ ENTRY(_start)
 
 .setup:
     // setup stack
-    la sp, USER_STACK_TOP
+    la t0, USER_STACK_TOP
+	addi t0, t0, -16
+	sd ra, 0(t0)
+	sd sp, 8(t0)
+	mv sp, t0
 
 
     /* TODO: [p1-task3] enter main function */
 .enter:
-    addi sp, sp, -8
-    sd ra, 0(sp)
     jal main
 
 
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
 .ret:
     ld ra, 0(sp)
-    addi sp, sp, 8
+	ld sp, 8(sp)
     ret
 
     /************************************************************/

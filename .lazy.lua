@@ -1,5 +1,5 @@
 -- local lspconfig = require("lspconfig")
-local port = 2057
+local port = 2058
 local verbose = false
 local last = nil
 

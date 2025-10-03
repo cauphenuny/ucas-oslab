@@ -32,7 +32,7 @@ MINICOM         = minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
@@ -47,6 +47,8 @@ QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -drive if=none,format=raw,id=image,file=${ELF_IMAGE} \
                      -device virtio-blk-device,drive=image \
                      -monitor telnet::45454,server,nowait -serial mon:stdio
+QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
+QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin
 QEMU_DEBUG_OPT  = -s -S
 
 # -----------------------------------------------------------------------
@@ -120,7 +122,7 @@ asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	for elffile in $^; do $(OBJDUMP) -d $$elffile > $(notdir $$elffile).txt; done
 
 gdb:
-	$(GDB) $(ELF_MAIN) -ex "target remote:1234"
+	$(GDB) $(ELF_MAIN) -ex "target remote:1234" -s .gdbinit
 
 lldb:
 	lldb $(ELF_MAIN) -s .lldbinit
@@ -128,13 +130,22 @@ lldb:
 run:
 	$(QEMU) $(QEMU_OPTS)
 
+run-record:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_RECORD)
+
 debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
+
+debug-record:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_RECORD)
+
+debug-replay:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_REPLAY)
 
 minicom:
 	sudo $(MINICOM) -D $(TTYUSB1)
 
-.PHONY: all dirs clean floppy asm gdb run debug minicom
+.PHONY: all dirs clean floppy asm gdb run debug minicom lldb debug-record
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules

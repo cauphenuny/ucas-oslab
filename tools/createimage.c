@@ -16,6 +16,7 @@
 #define TASKINFO_START_LOC     (BOOT_LOADER_SIG_OFFSET - 4)
 #define TASKINFO_SIZE_LOC      (BOOT_LOADER_SIG_OFFSET - 6)
 #define TASKINFO_TASKNUM_LOC   (BOOT_LOADER_SIG_OFFSET - 8)
+#define BATCH_FILE_LOC         (BOOT_LOADER_SIG_OFFSET - 10)
 #define BOOT_LOADER_SIG_1      0x55
 #define BOOT_LOADER_SIG_2      0xaa
 
@@ -235,6 +236,14 @@ write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* im
         printf("\ntaskinfo: \t%d bytes, starts at #%d sector\n", taskinfo_bytes, taskinfo_start);
     }
 
+    // preserve batch_file sector
+    write_align_padding(img, phyaddr);
+    short batch_file_sector = (*phyaddr) / SECTOR_SIZE;
+    if (options.extended) {
+        printf("batch_file: \treserved at #%d sector\n", batch_file_sector);
+    }
+    write_padding(img, phyaddr, *phyaddr + SECTOR_SIZE);
+
     // write 2-byte taskinfo_start to TASKINFO_START_LOC
     fseek(img, TASKINFO_START_LOC, SEEK_SET);
     fwrite(&taskinfo_start, sizeof(taskinfo_start), 1, img);
@@ -251,12 +260,21 @@ write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* im
             "taskinfo_bytes:\t%d,\t%lu bytes at 0x%08x\n", taskinfo_bytes, sizeof(taskinfo_bytes),
             TASKINFO_SIZE_LOC);
 
+    // write 2-byte tasknum to TASKINFO_TASKNUM_LOC
     fseek(img, TASKINFO_TASKNUM_LOC, SEEK_SET);
     fwrite(&tasknum, sizeof(tasknum), 1, img);
     if (options.extended)
         printf(
             "tasknum: \t%d,\t%lu bytes at 0x%08x\n", tasknum, sizeof(tasknum),
             TASKINFO_TASKNUM_LOC);
+
+    // write 2-byte batch_file_sector to BATCH_FILE_LOC
+    fseek(img, BATCH_FILE_LOC, SEEK_SET);
+    fwrite(&batch_file_sector, sizeof(batch_file_sector), 1, img);
+    if (options.extended)
+        printf(
+            "batch_file_loc: %d,\t%lu bytes at 0x%08x\n", batch_file_sector,
+            sizeof(batch_file_sector), BATCH_FILE_LOC);
 
     // write 2-byte size to OS_SIZE_LOC
     fseek(img, OS_SIZE_LOC, SEEK_SET);

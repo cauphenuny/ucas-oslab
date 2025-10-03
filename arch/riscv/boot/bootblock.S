@@ -5,9 +5,11 @@
 .equ task_start_loc, 0x502001fa
 .equ task_size_loc, 0x502001f8
 .equ task_num_loc, 0x502001f6
+.equ batchfile_loc, 0x502001f4
 
 // kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50201000
+.equ kernel_args, 0x50700000
 
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
@@ -16,6 +18,7 @@
 .equ bios_sdread, 11
 
 .equ temp, 0x50600000
+.equ taskinfo, 0x50600000
 .extern tasks
 
 .text
@@ -64,7 +67,7 @@ main:
 	lh t1, 0(t0) // tasks bytes
 	add a1, t1, 511
 	sra a1, a1, 9
-	la a0, temp
+	la a0, taskinfo
 	la a7, bios_sdread
 	jal bios_func_entry
 
@@ -77,10 +80,18 @@ main:
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
 .start_kernel:
+    la t1, kernel_args
 	la t0, task_num_loc
-	lh a0, 0(t0)
-	la a1, temp
-	j kernel
+	lh t0, 0(t0)
+    sd t0, 0(t1) // t1+0: task_num
+    la t0, taskinfo
+    sd t0, 8(t1) // t1+8: taskinfo
+    la t0, batchfile_loc
+    lh t0, 0(t0)
+    sd t0, 16(t1) // t1+16: batchfile
+    li a0, 3 // argc
+    mv a1, t1 // argv
+	jal kernel
 
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */

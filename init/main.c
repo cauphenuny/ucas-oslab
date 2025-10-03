@@ -8,6 +8,8 @@
 
 #define VERSION_BUF 50
 
+#define TASK_RESULT 0x5ffffff0
+
 int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
 
@@ -31,6 +33,7 @@ static void init_jmptab(void) {
     jmptab[CONSOLE_PUTCHAR] = (volatile long (*)())port_write_ch;
     jmptab[CONSOLE_GETCHAR] = (volatile long (*)())port_read_ch;
     jmptab[SD_READ] = (volatile long (*)())sd_read;
+    jmptab[SD_WRITE] = (volatile long (*)())sd_write;
 }
 
 static void init_task_info(void) {
@@ -41,6 +44,31 @@ static void init_task_info(void) {
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/
+
+static void writeint(int val) {
+    if (val == 0)
+        bios_putchar('0');
+    else {
+        if (val / 10) writeint(val / 10);
+        bios_putchar('0' + val % 10);
+    }
+}
+
+static void writeptr(void* ptr) {
+    bios_putstr("0x");
+    uint64_t val = (uint64_t)ptr;
+    int started = 0;
+    for (int i = 64; i >= 0; i -= 4) {
+        int digit = (val >> i) & 0xf;
+        if (digit || started || i == 0) {
+            started = 1;
+            if (digit < 10)
+                bios_putchar('0' + digit);
+            else
+                bios_putchar('a' + (digit - 10));
+        }
+    }
+}
 
 static int getchar() {
     while (1) {
@@ -54,11 +82,15 @@ static int getchar() {
 static int echoed_getchar() {
     int ch = getchar();
     bios_putchar(ch);
+    if (ch == 127) bios_putstr("\b \b");
+    // writeint(ch);
     if (ch == '\r') bios_putchar('\n');
     return ch;
 }
 
 static int isdigit(char c) { return c >= '0' && c <= '9'; }
+
+static int isalpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 
 static int readint() {
     char c = echoed_getchar();
@@ -78,27 +110,54 @@ static int readline(char* buffer, int size) {
         if (c == '\n' || c == '\r') {
             break;
         }
+        if (c == 127) {
+            if (count > 0) {
+                buffer[--count] = 0;
+            }
+            continue;
+        }
         buffer[count++] = c;
     }
     buffer[count] = 0;
     return count;
 }
 
-static void writeint(int val) {
-    if (val == 0)
-        bios_putchar('0');
-    else {
-        if (val / 10) writeint(val / 10);
-        bios_putchar('0' + val % 10);
+static void run_task(char* name) {
+    task_info_t* task_info = NULL;
+    for (int i = 0; i < task_num; i++) {
+        if (strcmp(tasks[i].name, name) == 0) {
+            task_info = tasks + i;
+            break;
+        }
+    }
+    if (!task_info) {
+        bios_putstr("Invalid name!\n");
+    } else {
+        void (*task)() = (void (*)())(load_task_img(*task_info));
+        bios_putstr("Loaded task.\n");
+        task();
+        bios_putstr("Task completed.\n");
     }
 }
 
+void write_batchfile(char* cmd, int location) { bios_sd_write((unsigned int)cmd, 1, location); }
+void read_batchfile(char* cmd, int location) { bios_sd_read((unsigned int)cmd, 1, location); }
+
 int main(int argc, char** argv) {
     // INFO:
-    // argc: int task_num (in p1-task3, p1-task4)
-    // argv: task_info_t* task_info (in p1-task4)
-    task_num = argc;
-    memcpy((void*)tasks, (void*)argv, sizeof(task_info_t) * task_num);
+    // argc: argc
+    // argv+0: int task_num
+    // argv+8: task_info_t* task_info
+    // argv+16: int batchfile_location
+    if (argc != 3) {
+        bios_putstr("Invalid argc!\n");
+        return -1;
+    }
+    uint64_t* args = (void*)argv;
+    task_num = args[0];
+    task_info_t* task_info = (task_info_t*)args[1];
+    memcpy((void*)tasks, (void*)task_info, sizeof(task_info_t) * task_num);
+    int batchfile_location = args[2];
 
     // Check whether .bss section is set to zero
     int check = bss_check();
@@ -125,6 +184,10 @@ int main(int argc, char** argv) {
 
     bios_putstr("Hello OS!\n\r");
     bios_putstr(buf);
+    bios_putstr("OS kernel arguments: \n");
+    bios_putstr("task_num: "), writeint(task_num), bios_putstr("\n");
+    bios_putstr("task_info: "), writeptr(task_info), bios_putstr("\n");
+    bios_putstr("batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
 
     // while (true) {
     // int _ = echoed_bios_getchar();
@@ -135,29 +198,53 @@ int main(int argc, char** argv) {
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
 
+    char cmd[SECTOR_SIZE] = {0};
+
     while (1) {
         for (int i = 0; i < task_num; i++) {
             bios_putstr("Task #"), writeint(i), bios_putstr(":\t");
             bios_putstr(tasks[i].name), bios_putstr("\n");
         }
-        bios_putstr("Input task name: ");
-        char name[16] = {0};
-        bzero(name, 16);
+        bios_putstr("Input task name (batch for batch-mode): ");
+        char name[16];
+        bzero(name, sizeof(name));
         readline(name, sizeof(name));
-        task_info_t* task_info = NULL;
-        for (int i = 0; i < task_num; i++) {
-            if (strcmp(tasks[i].name, name) == 0) {
-                task_info = tasks + i;
-                break;
-            }
-        }
-        if (!task_info) {
-            bios_putstr("Invalid name!\n");
+        if (strcmp(name, "batch") != 0) {
+            run_task(name);
         } else {
-            void (*task)() = (void (*)())(load_task_img(*task_info));
-            bios_putstr("Loaded.\n");
-            task();
-            bios_putstr("Task completed.\n");
+            bios_putstr("Load, store, or run: ");
+            char buffer[16] = {0};
+            readline(buffer, sizeof(buffer));
+            if (strcmp(buffer, "load") == 0) {
+                bzero(cmd, sizeof(cmd));
+                read_batchfile(cmd, batchfile_location);
+                bios_putstr("Loaded batchfile: "), bios_putstr(cmd), bios_putstr("\n");
+            } else if (strcmp(buffer, "store") == 0) {
+                bios_putstr("Input batch command: ");
+                bzero(cmd, sizeof(cmd));
+                readline(cmd, sizeof(cmd));
+                write_batchfile(cmd, batchfile_location);
+            } else if (strcmp(buffer, "run") == 0) {
+                for (int i = 0; i < sizeof(cmd); i++) {
+                    if (!isdigit(cmd[i]) && !isalpha(cmd[i])) {
+                        cmd[i] = 0;
+                    }
+                }
+                for (int i = 0; i < sizeof(cmd); i++) {
+                    if (cmd[i]) {
+                        bios_putstr("\nRun: "), bios_putstr(cmd + i), bios_putstr("\n");
+                        run_task(cmd + i);
+                        bios_putstr("Result: ");
+                        int result = *(int*)TASK_RESULT;
+                        writeint(result);
+                        bios_putstr("\n");
+                        while (cmd[i]) i++;
+                    }
+                }
+            } else {
+                bios_putstr("Invalid command!\n");
+            }
+            // save_batchfile(cmd);
         }
     }
 

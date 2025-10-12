@@ -1,3 +1,6 @@
 **/.DS_Store
 build/
 ycp
+compile_commands.json
+.cache/
+.clangd/

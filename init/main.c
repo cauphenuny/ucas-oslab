@@ -201,30 +201,29 @@ int main(int argc, char** argv) {
     char cmd[SECTOR_SIZE] = {0};
 
     while (1) {
-        for (int i = 0; i < task_num; i++) {
-            bios_putstr("Task #"), writeint(i), bios_putstr(":\t");
-            bios_putstr(tasks[i].name), bios_putstr("\n");
-        }
-        bios_putstr("Input task name (batch for batch-mode): ");
+        bios_putstr("(main) ");
         char name[16];
         bzero(name, sizeof(name));
         readline(name, sizeof(name));
-        if (strcmp(name, "batch") != 0) {
+        if (strncmp(name, "/list", 5) == 0) {
+            for (int i = 0; i < task_num; i++) {
+                bios_putstr("Task #"), writeint(i), bios_putstr(":\t");
+                bios_putstr(tasks[i].name), bios_putstr("\n");
+            }
+        } else if (strncmp(name, "/batch", 6) != 0) {
             run_task(name);
         } else {
-            bios_putstr("Load, store, or run: ");
-            char buffer[16] = {0};
-            readline(buffer, sizeof(buffer));
-            if (strcmp(buffer, "load") == 0) {
+            char* subcmd = name + 7;
+            if (strcmp(subcmd, "load") == 0) {
                 bzero(cmd, sizeof(cmd));
                 read_batchfile(cmd, batchfile_location);
                 bios_putstr("Loaded batchfile: "), bios_putstr(cmd), bios_putstr("\n");
-            } else if (strcmp(buffer, "store") == 0) {
-                bios_putstr("Input batch command: ");
+            } else if (strcmp(subcmd, "store") == 0) {
+                bios_putstr("(store-batch) ");
                 bzero(cmd, sizeof(cmd));
                 readline(cmd, sizeof(cmd));
                 write_batchfile(cmd, batchfile_location);
-            } else if (strcmp(buffer, "run") == 0) {
+            } else if (strcmp(subcmd, "run") == 0) {
                 for (int i = 0; i < sizeof(cmd); i++) {
                     if (!isdigit(cmd[i]) && !isalpha(cmd[i])) {
                         cmd[i] = 0;

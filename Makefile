@@ -9,8 +9,10 @@ PROJECT_IDX	= 1
 # -----------------------------------------------------------------------
 
 SHELL       = /bin/sh
-DISK        = /dev/sdb
-TTYUSB1     = /dev/ttyUSB1
+# DISK        = /dev/sdb
+DISK        = /dev/disk6
+# TTYUSB1     = /dev/ttyUSB1
+TTYUSB1     = /dev/tty.usbserial-1234_tul1
 DIR_OSLAB   = $(HOME)/OSLab-RISC-V
 DIR_QEMU    = $(DIR_OSLAB)/qemu
 DIR_UBOOT   = $(DIR_OSLAB)/u-boot
@@ -115,8 +117,8 @@ clean:
 	rm -rf $(DIR_BUILD)
 
 floppy:
-	sudo fdisk -l $(DISK)
-	sudo dd if=$(DIR_BUILD)/image of=$(DISK)3 conv=notrunc
+	# sudo fdisk -l $(DISK)
+	sudo dd if=$(DIR_BUILD)/image of=$(DISK)s3 conv=notrunc
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	for elffile in $^; do $(OBJDUMP) -d $$elffile > $(notdir $$elffile).txt; done

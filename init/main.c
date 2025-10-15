@@ -1,9 +1,20 @@
 #include <asm.h>
+#include <asm/unistd.h>
+#include <assert.h>
 #include <common.h>
+#include <csr.h>
+#include <os/irq.h>
 #include <os/kernel.h>
 #include <os/loader.h>
+#include <os/lock.h>
+#include <os/mm.h>
+#include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
+#include <os/time.h>
+#include <printk.h>
+#include <screen.h>
+#include <sys/syscall.h>
 #include <type.h>
 
 #define VERSION_BUF 50
@@ -12,6 +23,8 @@
 
 int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
+
+extern void ret_from_exception();
 
 // Task info array
 int task_num;
@@ -34,6 +47,17 @@ static void init_jmptab(void) {
     jmptab[CONSOLE_GETCHAR] = (volatile long (*)())port_read_ch;
     jmptab[SD_READ] = (volatile long (*)())sd_read;
     jmptab[SD_WRITE] = (volatile long (*)())sd_write;
+    jmptab[QEMU_LOGGING] = (volatile long (*)())qemu_logging;
+    jmptab[SET_TIMER] = (volatile long (*)())set_timer;
+    jmptab[READ_FDT] = (volatile long (*)())read_fdt;
+    jmptab[MOVE_CURSOR] = (volatile long (*)())screen_move_cursor;
+    jmptab[PRINT] = (volatile long (*)())printk;
+    jmptab[YIELD] = (volatile long (*)())do_scheduler;
+    jmptab[MUTEX_INIT] = (volatile long (*)())do_mutex_lock_init;
+    jmptab[MUTEX_ACQ] = (volatile long (*)())do_mutex_lock_acquire;
+    jmptab[MUTEX_RELEASE] = (volatile long (*)())do_mutex_lock_release;
+
+    // TODO: [p2-task1] (S-core) initialize system call table.
 }
 
 static void init_task_info(void) {
@@ -42,7 +66,31 @@ static void init_task_info(void) {
 }
 
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t* pcb) {
+    /* TODO: [p2-task3] initialization of registers on kernel stack
+     * HINT: sp, ra, sepc, sstatus
+     * NOTE: To run the task in user mode, you should set corresponding bits
+     *     of sstatus(SPP, SPIE, etc.).
+     */
+    regs_context_t* pt_regs = (regs_context_t*)(kernel_stack - sizeof(regs_context_t));
+
+    /* TODO: [p2-task1] set sp to simulate just returning from switch_to
+     * NOTE: you should prepare a stack, and push some values to
+     * simulate a callee-saved context.
+     */
+    switchto_context_t* pt_switchto =
+        (switchto_context_t*)((ptr_t)pt_regs - sizeof(switchto_context_t));
+}
+
+static void init_pcb(void) {
+    /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
+
+    /* TODO: [p2-task1] remember to initialize 'current_running' */
+}
+
+static void init_syscall(void) {
+    // TODO: [p2-task3] initialize system call table.
+}
 /************************************************************/
 
 static void writeint(int val) {
@@ -161,6 +209,15 @@ int main(int argc, char** argv) {
 
     // Check whether .bss section is set to zero
     int check = bss_check();
+    if (!check) {
+        printk("> [ERROR] .bss check failed");
+        while (1) asm volatile("wfi");
+    }
+
+    bios_putstr("> [META] OS kernel arguments: \n");
+    bios_putstr("> [META] task_num: "), writeint(task_num), bios_putstr("\n");
+    bios_putstr("> [META] task_info: "), writeptr(task_info), bios_putstr("\n");
+    bios_putstr("> [META] batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
 
     // Init jump table provided by kernel and bios(ΦωΦ)
     init_jmptab();
@@ -168,89 +225,44 @@ int main(int argc, char** argv) {
     // Init task information (〃'▽'〃)
     init_task_info();
 
-    // Output 'Hello OS!', bss check result and OS version
-    char output_str[] = "bss check: _ version: _\n\r";
-    char output_val[2] = {0};
-    int i, output_val_pos = 0;
-
-    output_val[0] = check ? 't' : 'f';
-    output_val[1] = version + '0';
-    for (i = 0; i < sizeof(output_str); ++i) {
-        buf[i] = output_str[i];
-        if (buf[i] == '_') {
-            buf[i] = output_val[output_val_pos++];
-        }
-    }
-
-    bios_putstr("Hello OS!\n\r");
-    bios_putstr(buf);
-    bios_putstr("OS kernel arguments: \n");
-    bios_putstr("task_num: "), writeint(task_num), bios_putstr("\n");
-    bios_putstr("task_info: "), writeptr(task_info), bios_putstr("\n");
-    bios_putstr("batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
+    // Init Process Control Blocks |•'-'•) ✧
+    init_pcb();
+    printk("> [INIT] PCB initialization succeeded.\n");
 
     // while (true) {
     // int _ = echoed_bios_getchar();
     // bios_putchar(c);
     // bios_putchar('\n');
     // }
+    // Read CPU frequency (｡•ᴗ-)_
+    time_base = bios_read_fdt(TIMEBASE);
 
-    // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
-    //   and then execute them.
+    // Init lock mechanism o(´^｀)o
+    init_locks();
+    printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
-    char cmd[SECTOR_SIZE] = {0};
+    // Init interrupt (^_^)
+    init_exception();
+    printk("> [INIT] Interrupt processing initialization succeeded.\n");
+
+    // Init system call table (0_0)
+    init_syscall();
+    printk("> [INIT] System call initialized successfully.\n");
+
+    // Init screen (QAQ)
+    init_screen();
+    printk("> [INIT] SCREEN initialization succeeded.\n");
+
+    // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
+    // NOTE: The function of sstatus.sie is different from sie's
 
     while (1) {
-        for (int i = 0; i < task_num; i++) {
-            bios_putstr("Task #"), writeint(i), bios_putstr(":\t");
-            bios_putstr(tasks[i].name), bios_putstr("\n");
-        }
-        bios_putstr("Input task name (batch for batch-mode): ");
-        char name[16];
-        bzero(name, sizeof(name));
-        readline(name, sizeof(name));
-        if (strcmp(name, "batch") != 0) {
-            run_task(name);
-        } else {
-            bios_putstr("Load, store, or run: ");
-            char buffer[16] = {0};
-            readline(buffer, sizeof(buffer));
-            if (strcmp(buffer, "load") == 0) {
-                bzero(cmd, sizeof(cmd));
-                read_batchfile(cmd, batchfile_location);
-                bios_putstr("Loaded batchfile: "), bios_putstr(cmd), bios_putstr("\n");
-            } else if (strcmp(buffer, "store") == 0) {
-                bios_putstr("Input batch command: ");
-                bzero(cmd, sizeof(cmd));
-                readline(cmd, sizeof(cmd));
-                write_batchfile(cmd, batchfile_location);
-            } else if (strcmp(buffer, "run") == 0) {
-                for (int i = 0; i < sizeof(cmd); i++) {
-                    if (!isdigit(cmd[i]) && !isalpha(cmd[i])) {
-                        cmd[i] = 0;
-                    }
-                }
-                for (int i = 0; i < sizeof(cmd); i++) {
-                    if (cmd[i]) {
-                        bios_putstr("\nRun: "), bios_putstr(cmd + i), bios_putstr("\n");
-                        run_task(cmd + i);
-                        bios_putstr("Result: ");
-                        int result = *(int*)TASK_RESULT;
-                        writeint(result);
-                        bios_putstr("\n");
-                        while (cmd[i]) i++;
-                    }
-                }
-            } else {
-                bios_putstr("Invalid command!\n");
-            }
-            // save_batchfile(cmd);
-        }
-    }
+        // If you do non-preemptive scheduling, it's used to surrender control
+        do_scheduler();
 
-    // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-    while (1) {
-        asm volatile("wfi");
+        // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
+        // enable_preempt();
+        // asm volatile("wfi");
     }
 
     return 0;

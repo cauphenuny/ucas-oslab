@@ -1,5 +1,6 @@
+#include "elf.h"
+
 #include <assert.h>
-#include <elf.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>

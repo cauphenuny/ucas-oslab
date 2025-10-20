@@ -5,29 +5,35 @@
 PROJECT_IDX	= 2
 
 # -----------------------------------------------------------------------
-# Host Linux Variables
+# Include Platform-specific Configuration
+# -----------------------------------------------------------------------
+
+-include config.mk
+
+# -----------------------------------------------------------------------
+# Host Linux Variables (defaults, can be overridden by config.mk)
 # -----------------------------------------------------------------------
 
 SHELL       = /bin/sh
-DISK        = /dev/sdb
-TTYUSB1     = /dev/ttyUSB1
-DIR_OSLAB   = $(HOME)/OSLab-RISC-V
-DIR_QEMU    = $(DIR_OSLAB)/qemu
-DIR_UBOOT   = $(DIR_OSLAB)/u-boot
+DISK        ?= /dev/sdb
+TTYUSB1     ?= /dev/ttyUSB1
+DIR_OSLAB   ?= $(HOME)/OSLab-RISC-V
+DIR_QEMU    ?= $(DIR_OSLAB)/qemu
+DIR_UBOOT   ?= $(DIR_OSLAB)/u-boot
 
 # -----------------------------------------------------------------------
 # Build and Debug Tools
 # -----------------------------------------------------------------------
 
 HOST_CC         = gcc
-CROSS_PREFIX    = riscv64-unknown-linux-gnu-
+CROSS_PREFIX    ?= riscv64-unknown-linux-gnu-
 CC              = $(CROSS_PREFIX)gcc
 AR              = $(CROSS_PREFIX)ar
 OBJDUMP         = $(CROSS_PREFIX)objdump
 GDB             = $(CROSS_PREFIX)gdb
-QEMU            = $(DIR_QEMU)/riscv64-softmmu/qemu-system-riscv64
-UBOOT           = $(DIR_UBOOT)/u-boot
-MINICOM         = minicom
+QEMU            ?= $(DIR_QEMU)/riscv64-softmmu/qemu-system-riscv64
+UBOOT           ?= $(DIR_UBOOT)/u-boot
+MINICOM         ?= minicom
 
 # -----------------------------------------------------------------------
 # Build/Debug Flags and Variables
@@ -51,7 +57,7 @@ QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -device virtio-blk-device,drive=image \
                      -monitor telnet::45454,server,nowait -serial mon:stdio
 QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
-QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin
+QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin \
                      -monitor telnet::45454,server,nowait -serial mon:stdio \
                      -D $(QEMU_LOG_FILE) -d oslab
 QEMU_DEBUG_OPT  = -s -S

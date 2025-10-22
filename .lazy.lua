@@ -3,48 +3,50 @@ local port = 2058
 local verbose = false
 local last = nil
 
-local job_id = vim.fn.jobstart({
-	"orb",
-	"-m",
-	"ubuntu20",
-	"socat",
-	string.format("tcp-listen:%d,reuseaddr", port),
-	"exec:'clangd --background-index'",
-}, {
-	on_stdout = function(chan, data, name)
-		if verbose then
-			vim.notify(table.concat(data), vim.log.levels.INFO)
-		end
-		last = table.concat(data)
-	end,
-	on_stderr = function(chan, data, name)
-		if verbose then
-			vim.notify(table.concat(data), vim.log.levels.TRACE)
-		end
-		last = table.concat(data)
-	end,
-	on_exit = function(chan, exit_code, name)
-		vim.notify("Remote clangd exited with code: " .. exit_code, vim.log.levels.WARN)
-		vim.notify("Last message: " .. last, vim.log.levels.WARN)
-	end,
-})
+-- local job_id = vim.fn.jobstart({
+-- 	"orb",
+-- 	"-m",
+-- 	"ubuntu20",
+-- 	"socat",
+-- 	string.format("tcp-listen:%d,reuseaddr", port),
+-- 	"exec:'clangd --background-index'",
+-- }, {
+-- 	on_stdout = function(chan, data, name)
+-- 		if verbose then
+-- 			vim.notify(table.concat(data), vim.log.levels.INFO)
+-- 		end
+-- 		last = table.concat(data)
+-- 	end,
+-- 	on_stderr = function(chan, data, name)
+-- 		if verbose then
+-- 			vim.notify(table.concat(data), vim.log.levels.TRACE)
+-- 		end
+-- 		last = table.concat(data)
+-- 	end,
+-- 	on_exit = function(chan, exit_code, name)
+-- 		vim.notify("Remote clangd exited with code: " .. exit_code, vim.log.levels.WARN)
+-- 		vim.notify("Last message: " .. last, vim.log.levels.WARN)
+-- 	end,
+-- })
+--
+-- vim.notify("Started remote clangd with job id: " .. job_id, vim.log.levels.INFO)
 
-vim.notify("Started remote clangd with job id: " .. job_id, vim.log.levels.INFO)
+return {}
 
-return {
-	{
-		"neovim/nvim-lspconfig",
-		---@class PluginLspOpts
-		opts = {
-			servers = {
-				clangd = {
-					mason = false,
-					cmd = vim.lsp.rpc.connect("127.0.0.1", port),
-				},
-			},
-		},
-	},
-}
+-- return {
+-- 	{
+-- 		"neovim/nvim-lspconfig",
+-- 		---@class PluginLspOpts
+-- 		opts = {
+-- 			servers = {
+-- 				clangd = {
+-- 					mason = false,
+-- 					cmd = vim.lsp.rpc.connect("127.0.0.1", port),
+-- 				},
+-- 			},
+-- 		},
+-- 	},
+-- }
 
 -- lspconfig.clangd.setup({
 -- 	cmd = {},

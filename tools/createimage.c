@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <elf.h>
+#include "elf.h"
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>

@@ -3,7 +3,7 @@
 .extern __bss_start
 .extern __BSS_END__
 
-.equ USER_STACK_TOP, 0x5f000000
+// .equ USER_STACK_TOP, 0x5f000000
 
 .section ".entry_function","ax"
 ENTRY(_start)
@@ -21,11 +21,11 @@ ENTRY(_start)
 
 .setup:
     // setup stack
-    la t0, USER_STACK_TOP
-	addi t0, t0, -16
-	sd ra, 0(t0)
-	sd sp, 8(t0)
-	mv sp, t0
+    // la t0, USER_STACK_TOP
+    addi sp, sp, -16
+    sd ra, 0(sp)
+    sd sp, 8(sp)
+    // mv sp, t0
 
 
     /* TODO: [p1-task3] enter main function */

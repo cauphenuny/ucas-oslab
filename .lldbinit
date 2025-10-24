@@ -1,7 +1,9 @@
-process connect connect://ubuntu20.orb.local:1234
+# process connect connect://ubuntu20.orb.local:1234
+process connect connect://localhost:1234
 # target stop-hook add -o 'reg read a0 a1 a2 a7 t0 t1 t2'
-# b *0x50000000 # u-boot
+b *0x50000000 # u-boot
 # b *0x50200000 # bootblock
+# b main # main
 # b *0x50200044
 # b *0x50200048
-b loader.c:19
+# b loader.c:19

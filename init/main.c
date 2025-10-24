@@ -1,6 +1,9 @@
+#include "logger.h"
+
 #include <asm.h>
 #include <asm/unistd.h>
 #include <assert.h>
+#include <breakpoint.h>
 #include <common.h>
 #include <csr.h>
 #include <os/irq.h>
@@ -19,7 +22,7 @@
 
 #define VERSION_BUF 50
 
-#define TASK_RESULT 0x5ffffff0
+#define TASK_RESULT 0x5fffff00
 
 int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
@@ -58,6 +61,7 @@ static void init_jmptab(void) {
     jmptab[MUTEX_RELEASE] = (volatile long (*)())do_mutex_lock_release;
 
     // TODO: [p2-task1] (S-core) initialize system call table.
+    jmptab[CONSOLE_REFLUSH] = (volatile long (*)())screen_reflush;
 }
 
 static void init_task_info(void) {
@@ -66,6 +70,13 @@ static void init_task_info(void) {
 }
 
 /************************************************************/
+
+#define KERNEL_STACK_PAGES 1
+#define USER_STACK_PAGES   4
+
+extern pcb_t pcb[NUM_MAX_TASK];
+int pid_counter = 1;
+
 static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t* pcb) {
     /* TODO: [p2-task3] initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
@@ -80,12 +91,56 @@ static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_poi
      */
     switchto_context_t* pt_switchto =
         (switchto_context_t*)((ptr_t)pt_regs - sizeof(switchto_context_t));
+
+    pcb->kernel_sp = (ptr_t)pt_switchto;
+    pcb->user_sp = user_stack;
+    // pcb->user_sp = pcb->kernel_sp;
+    pt_switchto->regs[SAVE_RA] = entry_point;
+    pt_switchto->regs[SAVE_SP] = user_stack;
 }
 
 static void init_pcb(void) {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
+    current_running = &pid0_pcb;
 
-    /* TODO: [p2-task1] remember to initialize 'current_running' */
+    for (int i = 0; i < task_num; i++) {
+        load_task_img(tasks[i]);
+    }
+
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        pcb[i].status = TASK_EXITED;
+    }
+
+    const char* run_tasks[] = {"print1", "print2", "fly"};
+
+    for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
+        task_info_t* task = NULL;
+        for (int j = 0; j < task_num; j++) {
+            if (strcmp(run_tasks[i], tasks[j].name) == 0) {
+                task = &tasks[j];
+                break;
+            }
+        }
+        assert(task);
+        printk("> [INIT] Loading task %s.\n", task->name);
+        int kernel_stack_top = allocKernelPage(KERNEL_STACK_PAGES) + KERNEL_STACK_PAGES * PAGE_SIZE;
+        int user_stack_top = allocUserPage(USER_STACK_PAGES) + USER_STACK_PAGES * PAGE_SIZE;
+        pretty_log(LOG_DEBUG, "ksp: 0x%x, usp: 0x%x", kernel_stack_top, user_stack_top);
+        pcb_t* alloc_pcb = NULL;
+        for (int j = 0; j < NUM_MAX_TASK; j++) {
+            if (pcb[j].status == TASK_EXITED) {
+                alloc_pcb = &pcb[j];
+                break;
+            }
+        }
+        assert(alloc_pcb);
+        alloc_pcb->pid = pid_counter;
+        alloc_pcb->status = TASK_READY;
+        strcpy(alloc_pcb->name, task->name);
+        init_pcb_stack(kernel_stack_top, user_stack_top, task->entrance, alloc_pcb);
+        list_append(&ready_queue, &alloc_pcb->list);
+        pid_counter++;
+    }
 }
 
 static void init_syscall(void) {
@@ -192,6 +247,9 @@ void write_batchfile(char* cmd, int location) { bios_sd_write((unsigned int)cmd,
 void read_batchfile(char* cmd, int location) { bios_sd_read((unsigned int)cmd, 1, location); }
 
 int main(int argc, char** argv) {
+    // Init jump table provided by kernel and bios(ΦωΦ)
+    init_jmptab();
+
     // INFO:
     // argc: argc
     // argv+0: int task_num
@@ -210,7 +268,7 @@ int main(int argc, char** argv) {
     // Check whether .bss section is set to zero
     int check = bss_check();
     if (!check) {
-        printk("> [ERROR] .bss check failed");
+        bios_putstr("> [ERROR] .bss check failed");
         while (1) asm volatile("wfi");
     }
 
@@ -219,15 +277,10 @@ int main(int argc, char** argv) {
     bios_putstr("> [META] task_info: "), writeptr(task_info), bios_putstr("\n");
     bios_putstr("> [META] batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
 
-    // Init jump table provided by kernel and bios(ΦωΦ)
-    init_jmptab();
-
-    // Init task information (〃'▽'〃)
-    init_task_info();
-
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();
     printk("> [INIT] PCB initialization succeeded.\n");
+    breakpoint();
 
     // while (true) {
     // int _ = echoed_bios_getchar();

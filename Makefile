@@ -26,6 +26,7 @@ DIR_UBOOT   ?= $(DIR_OSLAB)/u-boot
 # -----------------------------------------------------------------------
 
 HOST_CC         = gcc
+HOST_GDB	= gdb
 CROSS_PREFIX    ?= riscv64-unknown-linux-gnu-
 CC              = $(CROSS_PREFIX)gcc
 AR              = $(CROSS_PREFIX)ar
@@ -39,7 +40,8 @@ MINICOM         ?= minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
+# CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
+CFLAGS          = -O0 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
@@ -141,6 +143,10 @@ asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 gdb:
 	$(GDB) $(ELF_MAIN) -ex "target remote:1234" -s .gdbinit
 
+host-gdb:
+	$(HOST_GDB) $(ELF_MAIN) -ex "target remote:1234" -s .gdbinit
+
+
 lldb:
 	lldb $(ELF_MAIN) -s .lldbinit
 
@@ -162,7 +168,7 @@ debug-replay:
 minicom:
 	sudo $(MINICOM) -D $(TTYUSB1)
 
-.PHONY: all dirs clean floppy asm gdb run debug minicom lldb debug-record
+.PHONY: all dirs clean floppy asm gdb run debug minicom lldb debug-record host-gdb
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules
@@ -176,9 +182,6 @@ $(ELF_MAIN): $(SRC_MAIN) riscv.lds
 
 $(OBJ_CRT0): $(SRC_CRT0)
 	$(CC) -g $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
-
-$(DIR_BUILD)/%: $(DIR_TEST_PROJ)/%.c $(OBJ_CRT0) riscv.lds
-	$(CC) -g $(USER_CFLAGS) -o $@ $(OBJ_CRT0) $< -Wl,--defsym=TEXT_START=$(USER_ENTRYPOINT) -T riscv.lds
 
 $(LIB_TINYC): $(OBJ_LIBC)
 	$(AR) rcs $@ $^

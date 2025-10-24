@@ -3,7 +3,7 @@
 
 #include <kernel.h>
 
-#define SAVE_LOCATION 0x5ffffff0
+#define SAVE_LOCATION 0x5fffff00
 
 int saveint(int x) {
     *(int*)SAVE_LOCATION = x;

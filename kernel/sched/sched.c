@@ -60,6 +60,7 @@ void do_scheduler(void) {
 
     // TODO: [p2-task1] Modify the current_running pointer.
 
+    // simulate kernel state entrance
     asm volatile("sd sp, %0" ::"m"(current_running->user_sp));
     if (current_running->pid) {
         asm volatile("ld sp, %0" : "=m"(current_running->kernel_sp));
@@ -84,15 +85,15 @@ void do_scheduler(void) {
     // TODO: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
 
+    asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
+    asm volatile("ld sp, %0" : "=m"(current_running->user_sp));
     ptr_t sp, target;
     asm volatile("mv %0, sp" : "=r"(sp));
     LOAD_SCHED_RA(target, sp);
     pretty_log(
         LOG_DEBUG, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
         current_running->name, target);
-    if (target == 0) {
-        breakpoint();
-    }
+    breakpoint();
 }
 
 void do_sleep(uint32_t sleep_time) {

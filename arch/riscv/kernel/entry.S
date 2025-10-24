@@ -96,7 +96,6 @@ ENTRY(switch_to)
 
   addi sp, sp, SWITCH_TO_SIZE
 
-  ld sp, PCB_USER_SP(tp)
   jr ra
 ENDPROC(switch_to)
 

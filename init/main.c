@@ -111,7 +111,7 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"print1", "print2", "fly"};
+    const char* run_tasks[] = {"print1", "print2", "fly", "lock1", "lock2"};
 
     for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
         task_info_t* task = NULL;
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();
     printk("> [INIT] PCB initialization succeeded.\n");
-    breakpoint();
+    // breakpoint();
 
     // while (true) {
     // int _ = echoed_bios_getchar();

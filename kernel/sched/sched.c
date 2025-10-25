@@ -32,18 +32,18 @@ pid_t process_id = 1;
 #define LOAD_SCHED_RA(var, sp) \
     asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
 
-void print_sched_queue(void) {
-    size_t size = list_size(&ready_queue);
+void print_sched_queue(const list_head* queue, const char* name) {
+    size_t size = list_size(queue);
     screen_move_cursor(0, 15);
-    pretty_log(LOG_INFO, "there are %d tasks in the ready_queue.", size);
-    list_node_t* current = ready_queue.next;
-    while (current != &ready_queue) {
+    pretty_log(LOG_INFO, "there are %d tasks in the %s.", size, name);
+    list_node_t* current = queue->next;
+    while (current != queue) {
         pcb_t* pcb = container_of(current, pcb_t, list);
         ptr_t ra1;
         LOAD_SCHED_RA(ra1, pcb->user_sp);
         pretty_log(
-            LOG_DEBUG, "pid: %d, name: %s, sp: 0x%x/0x%x", pcb->pid, pcb->name, pcb->kernel_sp,
-            pcb->user_sp, *(int*)(pcb->kernel_sp));
+            LOG_DEBUG, "(%d) %s: status=%d, sp=0x%x/0x%x", pcb->pid, pcb->name, pcb->status,
+            pcb->kernel_sp, pcb->user_sp, *(int*)(pcb->kernel_sp));
         current = current->next;
     }
 }
@@ -67,16 +67,17 @@ void do_scheduler(void) {
         asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
     }
 
-    print_sched_queue();
-    list_node_t* front_node;
-    list_append(&ready_queue, &current_running->list);
-    list_shift(&ready_queue, &front_node);
+    print_sched_queue(&ready_queue, "ready_queue");
+    list_node_t* front_node = list_shift(&ready_queue);
     assert(front_node);
     pcb_t* next_running = container_of(front_node, pcb_t, list);
     pretty_log(
         LOG_INFO, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
         current_running->name, next_running->pid, next_running->name);
-    current_running->status = TASK_READY;
+    if (current_running->status == TASK_RUNNING) {
+        current_running->status = TASK_READY;
+        list_append(&ready_queue, &current_running->list);
+    }
     next_running->status = TASK_RUNNING;
 
     // TODO: [p2-task1] switch_to current_running
@@ -106,8 +107,25 @@ void do_sleep(uint32_t sleep_time) {
 
 void do_block(list_node_t* pcb_node, list_head* queue) {
     // TODO: [p2-task2] block the pcb task into the block queue
+    pcb_t* pcb = container_of(pcb_node, pcb_t, list);
+    pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
+    if (pcb->status == TASK_BLOCKED) return;
+    pcb->status = TASK_BLOCKED;
+    list_delete(pcb_node);
+    list_append(queue, pcb_node);
 }
 
+/**
+ * @brief unblock the `pcb` to ready queue
+ */
 void do_unblock(list_node_t* pcb_node) {
     // TODO: [p2-task2] unblock the `pcb` from the block queue
+    pcb_t* pcb = container_of(pcb_node, pcb_t, list);
+    if (pcb->status != TASK_BLOCKED) {
+        pretty_log(
+            LOG_WARN, "unblocking a non-blocked task(pid=%d, status=%d)", pcb->pid, pcb->status);
+    }
+    pcb->status = TASK_READY;
+    list_delete(pcb_node);
+    list_append(&ready_queue, pcb_node);
 }

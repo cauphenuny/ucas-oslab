@@ -57,6 +57,8 @@ typedef list_node_t list_head;
 
 /* TODO: [p2-task1] implement your own list API */
 
+void list_init(list_head* head);
+
 /**
  * @brief Add a node to the beginning of the list.
  */
@@ -68,14 +70,24 @@ void list_append(list_head* head, list_node_t* node);
 /**
  * @brief Pop a node from the beginning of the list.
  */
-void list_shift(list_head* head, list_node_t** node);
+list_node_t* list_shift(list_head* head);
 /**
  * @brief Pop a node from the end of the list.
  */
-void list_pop(list_head* head, list_node_t** node);
+list_node_t* list_pop(list_head* head);
 
-size_t list_size(list_head* head);
+void list_delete(list_node_t* node);
+
+size_t list_size(const list_head* head);
 
 void list_traverse(list_head* head, void (*func)(list_node_t* node));
+
+#define list_foreach_item(iter, head, type, member)                                             \
+    for (type* iter = head->next == head ? NULL : container_of(head->next, type, member); iter; \
+         iter = iter->member->next == head ? NULL                                               \
+                                           : container_of(iter->member->next, type, member))
+
+#define list_foreach_node(iter, head) \
+    for (list_node_t* iter = (head)->next; iter != (head); iter = iter->next)
 
 #endif

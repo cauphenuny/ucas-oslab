@@ -84,7 +84,7 @@ typedef struct pcb {
     reg_t user_sp;
 
     /* previous, next pointer */
-    list_node_t list;
+    list_node_t list;  // NOTE: used for scheduling queues, only able to be in one queue
 
     /* process id */
     pid_t pid;
@@ -122,6 +122,8 @@ void do_sleep(uint32_t);
 
 void do_block(list_node_t*, list_head* queue);
 void do_unblock(list_node_t*);
+
+void print_sched_queue(const list_head* queue, const char* name);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */

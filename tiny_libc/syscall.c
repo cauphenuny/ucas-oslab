@@ -38,16 +38,19 @@ void sys_reflush(void) {
 
 int sys_mutex_init(int key) {
     /* TODO: [p2-task2] call call_jmptab to implement sys_mutex_init */
+    call_jmptab(MUTEX_INIT, (long)key, IGNORE, IGNORE, IGNORE, IGNORE);
     /* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_init */
     return 0;
 }
 
 void sys_mutex_acquire(int mutex_idx) {
+    call_jmptab(MUTEX_ACQ, (long)mutex_idx, IGNORE, IGNORE, IGNORE, IGNORE);
     /* TODO: [p2-task2] call call_jmptab to implement sys_mutex_acquire */
     /* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_acquire */
 }
 
 void sys_mutex_release(int mutex_idx) {
+    call_jmptab(MUTEX_RELEASE, (long)mutex_idx, IGNORE, IGNORE, IGNORE, IGNORE);
     /* TODO: [p2-task2] call call_jmptab to implement sys_mutex_release */
     /* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_release */
 }

@@ -276,6 +276,8 @@ int main(int argc, char** argv) {
     bios_putstr("> [META] task_num: "), writeint(task_num), bios_putstr("\n");
     bios_putstr("> [META] task_info: "), writeptr(task_info), bios_putstr("\n");
     bios_putstr("> [META] batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
+    bios_putstr(COLOR_GREEN "> [INIT] Hello World!\n" COLOR_RESET);
+    breakpoint();
 
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();

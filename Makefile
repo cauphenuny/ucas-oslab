@@ -57,12 +57,12 @@ QEMU_LOG_FILE   = $(DIR_OSLAB)/oslab-log.txt
 QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -drive if=none,format=raw,id=image,file=${ELF_IMAGE} \
                      -device virtio-blk-device,drive=image \
-                     -monitor telnet::45454,server,nowait -serial mon:stdio
-QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
-QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin \
                      -monitor telnet::45454,server,nowait -serial mon:stdio \
                      -D $(QEMU_LOG_FILE) -d oslab
 QEMU_DEBUG_OPT  = -s -S
+
+QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
+QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin
 
 # -----------------------------------------------------------------------
 # UCAS-OS Entrypoints and Variables

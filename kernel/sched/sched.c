@@ -35,16 +35,15 @@ pid_t process_id = 1;
 void print_sched_queue(void) {
     size_t size = list_size(&ready_queue);
     screen_move_cursor(0, 15);
-    pretty_log(LOG_DEBUG, "there are %d tasks in the ready_queue.", size);
+    pretty_log(LOG_INFO, "there are %d tasks in the ready_queue.", size);
     list_node_t* current = ready_queue.next;
     while (current != &ready_queue) {
         pcb_t* pcb = container_of(current, pcb_t, list);
         ptr_t ra1;
         LOAD_SCHED_RA(ra1, pcb->user_sp);
         pretty_log(
-            LOG_DEBUG, "\npid: %d, name: %s, sp: 0x%x/0x%x, ra: 0x%x, ra': 0x%x @0x%x           ",
-            pcb->pid, pcb->name, pcb->kernel_sp, pcb->user_sp, *(int*)(pcb->kernel_sp), ra1,
-            pcb->user_sp + SCHED_FRAME_OFFSET_I);
+            LOG_DEBUG, "pid: %d, name: %s, sp: 0x%x/0x%x", pcb->pid, pcb->name, pcb->kernel_sp,
+            pcb->user_sp, *(int*)(pcb->kernel_sp));
         current = current->next;
     }
 }
@@ -68,8 +67,6 @@ void do_scheduler(void) {
         asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
     }
 
-    size_t size = list_size(&ready_queue);
-    pretty_flog(LOG_DEBUG, "there are %d tasks in the ready_queue.", size);
     print_sched_queue();
     list_node_t* front_node;
     list_append(&ready_queue, &current_running->list);
@@ -77,7 +74,7 @@ void do_scheduler(void) {
     assert(front_node);
     pcb_t* next_running = container_of(front_node, pcb_t, list);
     pretty_log(
-        LOG_DEBUG, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
+        LOG_INFO, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
         current_running->name, next_running->pid, next_running->name);
     current_running->status = TASK_READY;
     next_running->status = TASK_RUNNING;
@@ -87,13 +84,16 @@ void do_scheduler(void) {
 
     asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
     asm volatile("ld sp, %0" : "=m"(current_running->user_sp));
-    ptr_t sp, target;
+    ptr_t sp, ra;
     asm volatile("mv %0, sp" : "=r"(sp));
-    LOAD_SCHED_RA(target, sp);
+    LOAD_SCHED_RA(ra, sp);
     pretty_log(
-        LOG_DEBUG, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
-        current_running->name, target);
-    breakpoint();
+        LOG_INFO, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
+        current_running->name, ra);
+    if (ra == 0) {
+        pretty_log(LOG_ERROR, "ra is 0!!!");
+    }
+    // breakpoint();
 }
 
 void do_sleep(uint32_t sleep_time) {

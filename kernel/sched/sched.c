@@ -85,8 +85,8 @@ void do_scheduler(void) {
 
     asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
     asm volatile("ld sp, %0" : "=m"(current_running->user_sp));
-    ptr_t sp, ra;
-    asm volatile("mv %0, sp" : "=r"(sp));
+    // ptr_t sp, ra;
+    // asm volatile("mv %0, sp" : "=r"(sp));
     // LOAD_SCHED_RA(ra, sp);
     // pretty_log(
     //     LOG_INFO, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,

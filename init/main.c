@@ -111,7 +111,7 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"print1", "print2", "fly", "lock1", "lock2"};
+    const char* run_tasks[] = {"print1"};
 
     for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
         task_info_t* task = NULL;

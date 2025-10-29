@@ -67,6 +67,10 @@ void do_scheduler(void) {
         asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
     }
 
+    if (current_running->status == TASK_RUNNING) {
+        current_running->status = TASK_READY;
+        list_append(&ready_queue, &current_running->list);
+    }
     print_sched_queue(&ready_queue, "ready_queue");
     list_node_t* front_node = list_shift(&ready_queue);
     assert(front_node);
@@ -74,10 +78,6 @@ void do_scheduler(void) {
     pretty_log(
         LOG_INFO, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
         current_running->name, next_running->pid, next_running->name);
-    if (current_running->status == TASK_RUNNING) {
-        current_running->status = TASK_READY;
-        list_append(&ready_queue, &current_running->list);
-    }
     next_running->status = TASK_RUNNING;
 
     // TODO: [p2-task1] switch_to current_running

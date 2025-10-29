@@ -26,11 +26,11 @@ LIST_HEAD(sleep_queue);
 /* global process id */
 pid_t process_id = 1;
 
-#define SCHED_FRAME_OFFSET   "56"
-#define SCHED_FRAME_OFFSET_I 56
-
-#define LOAD_SCHED_RA(var, sp) \
-    asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
+// #define SCHED_FRAME_OFFSET   "72"
+// #define SCHED_FRAME_OFFSET_I 72
+//
+// #define LOAD_SCHED_RA(var, sp) \
+//     asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
 
 void print_sched_queue(const list_head* queue, const char* name) {
     size_t size = list_size(queue);
@@ -39,8 +39,8 @@ void print_sched_queue(const list_head* queue, const char* name) {
     list_node_t* current = queue->next;
     while (current != queue) {
         pcb_t* pcb = container_of(current, pcb_t, list);
-        ptr_t ra1;
-        LOAD_SCHED_RA(ra1, pcb->user_sp);
+        // ptr_t ra1;
+        // LOAD_SCHED_RA(ra1, pcb->user_sp);
         pretty_log(
             LOG_DEBUG, "(%d) %s: status=%d, sp=0x%x/0x%x", pcb->pid, pcb->name, pcb->status,
             pcb->kernel_sp, pcb->user_sp, *(int*)(pcb->kernel_sp));
@@ -87,13 +87,13 @@ void do_scheduler(void) {
     asm volatile("ld sp, %0" : "=m"(current_running->user_sp));
     ptr_t sp, ra;
     asm volatile("mv %0, sp" : "=r"(sp));
-    LOAD_SCHED_RA(ra, sp);
-    pretty_log(
-        LOG_INFO, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
-        current_running->name, ra);
-    if (ra == 0) {
-        pretty_log(LOG_ERROR, "ra is 0!!!");
-    }
+    // LOAD_SCHED_RA(ra, sp);
+    // pretty_log(
+    //     LOG_INFO, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
+    //     current_running->name, ra);
+    // if (ra == 0) {
+    //     pretty_log(LOG_ERROR, "ra is 0!!!");
+    // }
     // breakpoint();
 }
 

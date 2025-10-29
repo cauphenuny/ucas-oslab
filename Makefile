@@ -16,6 +16,7 @@ PROJECT_IDX	= 2
 
 SHELL       = /bin/sh
 DISK        ?= /dev/sdb
+DISK_SECTOR ?= 3
 TTYUSB1     ?= /dev/ttyUSB1
 DIR_OSLAB   ?= $(HOME)/OSLab-RISC-V
 DIR_QEMU    ?= $(DIR_OSLAB)/qemu
@@ -40,8 +41,9 @@ MINICOM         ?= minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-# CFLAGS          = -O2 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
-CFLAGS          = -O0 -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
+CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -Wno-main
+CFLAGS          += -O2
+CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
@@ -134,8 +136,8 @@ clean:
 	rm -rf $(DIR_BUILD)
 
 floppy:
-	sudo fdisk -l $(DISK)
-	sudo dd if=$(DIR_BUILD)/image of=$(DISK)3 conv=notrunc
+	sudo dd if=$(DIR_BUILD)/image of=$(DISK)$(DISK_SECTOR) conv=notrunc
+	# sudo fdisk -l $(DISK)
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	for elffile in $^; do $(OBJDUMP) -d $$elffile > $(notdir $$elffile).txt; done

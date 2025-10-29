@@ -1,6 +1,7 @@
 #ifndef _INCLUDE_LOG_H_
 #define _INCLUDE_LOG_H_
 
+#include <breakpoint.h>
 #include <printk.h>
 
 #define COLOR_BLACK   "\033[0;30m"
@@ -42,7 +43,13 @@ const static char* log_level_str_color[] = {
             __FILE__, __LINE__, __func__, ##__VA_ARGS__);                                        \
     } while (0)
 
-#define pretty_logi(level, fmt, ...)                                                              \
+#define pretty_loge(fmt, ...)                      \
+    do {                                           \
+        pretty_log(LOG_ERROR, fmt, ##__VA_ARGS__); \
+        breakpoint();                              \
+    } while (0)
+
+#define pretty_ilog(level, fmt, ...)                                                              \
     do {                                                                                          \
         pretty_log(level, fmt, ##__VA_ARGS__);                                                    \
         printk("%s %s:%d: \t" fmt "\n", log_level_str[level], __FILE__, __LINE__, ##__VA_ARGS__); \

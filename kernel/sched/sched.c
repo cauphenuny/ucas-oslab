@@ -14,9 +14,9 @@
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
 pcb_t pid0_pcb = {
-    .pid = 0,
     .kernel_sp = (ptr_t)pid0_stack,
     .user_sp = (ptr_t)pid0_stack,
+    .pid = 0,
     .name = "init",
 };
 
@@ -53,19 +53,13 @@ void do_scheduler(void) {
     // printk("pid: %d, sp: 0x%x", current_running->pid, sp);
     // TODO: [p2-task3] Check sleep queue to wake up PCBs
 
+    check_sleeping();
+
     /************************************************************/
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
 
     // TODO: [p2-task1] Modify the current_running pointer.
-
-    // simulate kernel state entrance
-    asm volatile("sd sp, %0" ::"m"(current_running->user_sp));
-    if (current_running->pid) {
-        asm volatile("ld sp, %0" : "=m"(current_running->kernel_sp));
-    } else {
-        asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
-    }
 
     if (current_running->status == TASK_RUNNING) {
         current_running->status = TASK_READY;
@@ -83,17 +77,6 @@ void do_scheduler(void) {
     // TODO: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
 
-    asm volatile("sd sp, %0" ::"m"(current_running->kernel_sp));
-    asm volatile("ld sp, %0" : "=m"(current_running->user_sp));
-    // ptr_t sp, ra;
-    // asm volatile("mv %0, sp" : "=r"(sp));
-    // LOAD_SCHED_RA(ra, sp);
-    // pretty_log(
-    //     LOG_INFO, "return to pid %d(%s) at ra=0x%x.                ", current_running->pid,
-    //     current_running->name, ra);
-    // if (ra == 0) {
-    //     pretty_log(LOG_ERROR, "ra is 0!!!");
-    // }
     // breakpoint();
 }
 
@@ -103,6 +86,9 @@ void do_sleep(uint32_t sleep_time) {
     // 1. block the current_running
     // 2. set the wake up time for the blocked task
     // 3. reschedule because the current_running is blocked.
+    uint64_t current = get_timer(), target = current + sleep_time;
+    do_block(&current_running->list, &sleep_queue);
+    do_scheduler();
 }
 
 void do_block(list_node_t* pcb_node, list_head* queue) {

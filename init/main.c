@@ -84,6 +84,9 @@ static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_poi
      *     of sstatus(SPP, SPIE, etc.).
      */
     regs_context_t* pt_regs = (regs_context_t*)(kernel_stack - sizeof(regs_context_t));
+    pt_regs->sepc = entry_point;
+    pt_regs->sstatus = SR_SPIE;
+    pt_regs->regs[REG_SP] = user_stack;
 
     /* TODO: [p2-task1] set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
@@ -94,9 +97,8 @@ static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_poi
 
     pcb->kernel_sp = (ptr_t)pt_switchto;
     pcb->user_sp = user_stack;
-    // pcb->user_sp = pcb->kernel_sp;
-    pt_switchto->regs[SAVE_RA] = entry_point;
-    pt_switchto->regs[SAVE_SP] = user_stack;
+    pt_switchto->regs[SWITCHTO_REG_RA] = (reg_t)ret_from_exception;
+    pt_switchto->regs[SWITCHTO_REG_SP] = user_stack;
 }
 
 static void init_pcb(void) {
@@ -111,7 +113,7 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"print1", "print2", "fly", "lock1", "lock2"};
+    const char* run_tasks[] = {"print1", "print2", "lock1", "lock2", "sleep", "timer"};
 
     for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
         task_info_t* task = NULL;
@@ -122,10 +124,10 @@ static void init_pcb(void) {
             }
         }
         assert(task);
-        printk("> [INIT] Loading task %s.\n", task->name);
+        pretty_log(LOG_INFO, "Loading task %s.", task->name);
         int kernel_stack_top = allocKernelPage(KERNEL_STACK_PAGES) + KERNEL_STACK_PAGES * PAGE_SIZE;
         int user_stack_top = allocUserPage(USER_STACK_PAGES) + USER_STACK_PAGES * PAGE_SIZE;
-        pretty_log(LOG_DEBUG, "ksp: 0x%x, usp: 0x%x", kernel_stack_top, user_stack_top);
+        pretty_log(LOG_DEBUG, "    ksp: 0x%x, usp: 0x%x", kernel_stack_top, user_stack_top);
         pcb_t* alloc_pcb = NULL;
         for (int j = 0; j < NUM_MAX_TASK; j++) {
             if (pcb[j].status == TASK_EXITED) {
@@ -145,6 +147,16 @@ static void init_pcb(void) {
 
 static void init_syscall(void) {
     // TODO: [p2-task3] initialize system call table.
+    syscall[SYSCALL_SLEEP] = (long (*)())do_sleep;
+    syscall[SYSCALL_YIELD] = (long (*)())do_scheduler;
+    syscall[SYSCALL_WRITE] = (long (*)())port_write;
+    syscall[SYSCALL_CURSOR] = (long (*)())screen_move_cursor;
+    syscall[SYSCALL_REFLUSH] = (long (*)())screen_reflush;
+    syscall[SYSCALL_GET_TIMEBASE] = (long (*)())get_time_base;
+    syscall[SYSCALL_GET_TICK] = (long (*)())get_ticks;
+    syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
+    syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
 }
 /************************************************************/
 
@@ -272,17 +284,15 @@ int main(int argc, char** argv) {
         while (1) asm volatile("wfi");
     }
 
-    bios_putstr("> [META] OS kernel arguments: \n");
-    bios_putstr("> [META] task_num: "), writeint(task_num), bios_putstr("\n");
-    bios_putstr("> [META] task_info: "), writeptr(task_info), bios_putstr("\n");
-    bios_putstr("> [META] batchfile_location: "), writeint(batchfile_location), bios_putstr("\n");
-    bios_putstr(COLOR_GREEN "> [INIT] Hello World!\n" COLOR_RESET);
+    pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
+    pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
+    pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
     breakpoint();
 
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();
-    printk("> [INIT] PCB initialization succeeded.\n");
-    // breakpoint();
+    pretty_log(LOG_INFO, "[INIT] PCB initialization succeeded.");
+    breakpoint();
 
     // while (true) {
     // int _ = echoed_bios_getchar();
@@ -291,22 +301,23 @@ int main(int argc, char** argv) {
     // }
     // Read CPU frequency (｡•ᴗ-)_
     time_base = bios_read_fdt(TIMEBASE);
+    pretty_log(LOG_INFO, "time_base: %d", time_base);
 
     // Init lock mechanism o(´^｀)o
     init_locks();
-    printk("> [INIT] Lock mechanism initialization succeeded.\n");
+    pretty_log(LOG_INFO, "[INIT] Lock mechanism initialization succeeded.");
 
     // Init interrupt (^_^)
     init_exception();
-    printk("> [INIT] Interrupt processing initialization succeeded.\n");
+    pretty_log(LOG_INFO, "[INIT] Interrupt processing initialization succeeded.");
 
     // Init system call table (0_0)
     init_syscall();
-    printk("> [INIT] System call initialized successfully.\n");
+    pretty_log(LOG_INFO, "[INIT] System call initialized successfully.");
 
     // Init screen (QAQ)
     init_screen();
-    printk("> [INIT] SCREEN initialization succeeded.\n");
+    pretty_log(LOG_INFO, "[INIT] SCREEN initialization succeeded.");
 
     // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's

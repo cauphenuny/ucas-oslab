@@ -29,10 +29,50 @@
 #ifndef INCLUDE_SCHEDULER_H_
 #define INCLUDE_SCHEDULER_H_
 
+#include <asm.h>
+#include <asm/regs.h>
 #include <os/list.h>
 #include <type.h>
 
 #define NUM_MAX_TASK 16
+
+#define REG_ZERO (OFFSET_REG_ZERO >> RISCV_LGPTR)
+#define REG_RA   (OFFSET_REG_RA >> RISCV_LGPTR)
+#define REG_SP   (OFFSET_REG_SP >> RISCV_LGPTR)
+#define REG_GP   (OFFSET_REG_GP >> RISCV_LGPTR)
+#define REG_TP   (OFFSET_REG_TP >> RISCV_LGPTR)
+#define REG_T0   (OFFSET_REG_T0 >> RISCV_LGPTR)
+#define REG_T1   (OFFSET_REG_T1 >> RISCV_LGPTR)
+#define REG_T2   (OFFSET_REG_T2 >> RISCV_LGPTR)
+#define REG_S0   (OFFSET_REG_S0 >> RISCV_LGPTR)
+#define REG_S1   (OFFSET_REG_S1 >> RISCV_LGPTR)
+#define REG_A0   (OFFSET_REG_A0 >> RISCV_LGPTR)
+#define REG_A1   (OFFSET_REG_A1 >> RISCV_LGPTR)
+#define REG_A2   (OFFSET_REG_A2 >> RISCV_LGPTR)
+#define REG_A3   (OFFSET_REG_A3 >> RISCV_LGPTR)
+#define REG_A4   (OFFSET_REG_A4 >> RISCV_LGPTR)
+#define REG_A5   (OFFSET_REG_A5 >> RISCV_LGPTR)
+#define REG_A6   (OFFSET_REG_A6 >> RISCV_LGPTR)
+#define REG_A7   (OFFSET_REG_A7 >> RISCV_LGPTR)
+#define REG_S2   (OFFSET_REG_S2 >> RISCV_LGPTR)
+#define REG_S3   (OFFSET_REG_S3 >> RISCV_LGPTR)
+#define REG_S4   (OFFSET_REG_S4 >> RISCV_LGPTR)
+#define REG_S5   (OFFSET_REG_S5 >> RISCV_LGPTR)
+#define REG_S6   (OFFSET_REG_S6 >> RISCV_LGPTR)
+#define REG_S7   (OFFSET_REG_S7 >> RISCV_LGPTR)
+#define REG_S8   (OFFSET_REG_S8 >> RISCV_LGPTR)
+#define REG_S9   (OFFSET_REG_S9 >> RISCV_LGPTR)
+#define REG_S10  (OFFSET_REG_S10 >> RISCV_LGPTR)
+#define REG_S11  (OFFSET_REG_S11 >> RISCV_LGPTR)
+#define REG_T3   (OFFSET_REG_T3 >> RISCV_LGPTR)
+#define REG_T4   (OFFSET_REG_T4 >> RISCV_LGPTR)
+#define REG_T5   (OFFSET_REG_T5 >> RISCV_LGPTR)
+#define REG_T6   (OFFSET_REG_T6 >> RISCV_LGPTR)
+
+#define REG_SSTATUS  (OFFSET_REG_SSTATUS >> RISCV_LGPTR)
+#define REG_SEPC     (OFFSET_REG_SEPC >> RISCV_LGPTR)
+#define REG_SBADADDR (OFFSET_REG_SBADADDR >> RISCV_LGPTR)
+#define REG_SCAUSE   (OFFSET_REG_SCAUSE >> RISCV_LGPTR)
 
 /* used to save register infomation */
 typedef struct regs_context {
@@ -47,20 +87,20 @@ typedef struct regs_context {
 } regs_context_t;
 
 enum {
-    SAVE_RA,
-    SAVE_SP,
-    SAVE_S0,
-    SAVE_S1,
-    SAVE_S2,
-    SAVE_S3,
-    SAVE_S4,
-    SAVE_S5,
-    SAVE_S6,
-    SAVE_S7,
-    SAVE_S8,
-    SAVE_S9,
-    SAVE_S10,
-    SAVE_S11,
+    SWITCHTO_REG_RA,
+    SWITCHTO_REG_SP,
+    SWITCHTO_REG_S0,
+    SWITCHTO_REG_S1,
+    SWITCHTO_REG_S2,
+    SWITCHTO_REG_S3,
+    SWITCHTO_REG_S4,
+    SWITCHTO_REG_S5,
+    SWITCHTO_REG_S6,
+    SWITCHTO_REG_S7,
+    SWITCHTO_REG_S8,
+    SWITCHTO_REG_S9,
+    SWITCHTO_REG_S10,
+    SWITCHTO_REG_S11,
 };
 
 /* used to save register infomation in switch_to */

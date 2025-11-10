@@ -34,7 +34,6 @@ pid_t process_id = 1;
 
 void print_sched_queue(const list_head* queue, const char* name) {
     size_t size = list_size(queue);
-    screen_move_cursor(0, 15);
     pretty_log(LOG_INFO, "there are %d tasks in the %s.", size, name);
     list_node_t* current = queue->next;
     while (current != queue) {
@@ -76,6 +75,7 @@ void do_scheduler(void) {
 
     // TODO: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
+    screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
 
     // breakpoint();
 }

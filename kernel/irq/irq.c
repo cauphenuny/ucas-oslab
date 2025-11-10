@@ -6,6 +6,8 @@
 #include <printk.h>
 #include <assert.h>
 #include <screen.h>
+#include <csr.h>
+#include <logger.h>
 
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
@@ -14,6 +16,16 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task3] & [p2-task4] interrupt handler.
     // call corresponding handler by the value of `scause`
+    assert(scause < IRQC_COUNT || scause < EXCC_COUNT);
+    int is_irq = (scause & SCAUSE_IRQ_FLAG) == 1ull;
+    uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
+    if (is_irq) {
+        pretty_log(LOG_INFO, "handling irq: %lu", exception_code);
+        irq_table[exception_code](regs, stval, scause);
+    } else {
+        pretty_log(LOG_INFO, "handling exception: %lu", exception_code);
+        exc_table[exception_code](regs, stval, scause);
+    }
 }
 
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)

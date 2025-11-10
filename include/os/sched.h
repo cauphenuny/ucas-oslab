@@ -139,7 +139,13 @@ typedef struct pcb {
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    /* process name */
     char name[16];
+
+    /* process workload */
+    int task_id;
+    int task_workload;
+    int slice_cnt;
 } pcb_t;
 
 /* ready queue to run */
@@ -162,6 +168,8 @@ void do_sleep(uint32_t);
 
 void do_block(list_node_t*, list_head* queue);
 void do_unblock(list_node_t*);
+
+void set_process_workload(int workload);
 
 void print_sched_queue(const list_head* queue, const char* name);
 

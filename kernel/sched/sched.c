@@ -47,6 +47,40 @@ void print_sched_queue(const list_head* queue, const char* name) {
     }
 }
 
+#define TIME_SLICE_HISTORY_SIZE 100
+
+pcb_t* time_slice_history[TIME_SLICE_HISTORY_SIZE];
+int time_slice_history_index;
+
+pcb_t* pick_process() {
+    assert(ready_queue.next != &ready_queue);
+    int min_task_id = 0x7f7f7f7f;
+    int min_slice_cnt = 0x7f7f7f7f;
+    // return container_of(ready_queue.next, pcb_t, list);
+    pcb_t* selected_proc = NULL;
+    list_foreach_node(iter, &ready_queue) {
+        pcb_t* proc = container_of(iter, pcb_t, list);
+        int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
+        if (proc->pid != 0 && proc->task_id < min_task_id) {
+            selected_proc = proc;
+            min_task_id = proc->task_id;
+            min_slice_cnt = normalized_cnt;
+        } else if (proc->task_id == min_task_id) {
+            if (normalized_cnt < min_slice_cnt) {
+                selected_proc = proc;
+                min_slice_cnt = normalized_cnt;
+            }
+        }
+    }
+    if (time_slice_history[time_slice_history_index]) {
+        time_slice_history[time_slice_history_index]->slice_cnt--;
+    }
+    time_slice_history[time_slice_history_index] = selected_proc;
+    selected_proc->slice_cnt++;
+    time_slice_history_index = (time_slice_history_index + 1) % TIME_SLICE_HISTORY_SIZE;
+    return selected_proc;
+}
+
 void do_scheduler(void) {
     // asm volatile("mv %0, sp" : "=r"(sp));
     // printk("pid: %d, sp: 0x%x", current_running->pid, sp);
@@ -65,9 +99,8 @@ void do_scheduler(void) {
         list_append(&ready_queue, &current_running->list);
     }
     print_sched_queue(&ready_queue, "ready_queue");
-    list_node_t* front_node = list_shift(&ready_queue);
-    assert(front_node);
-    pcb_t* next_running = container_of(front_node, pcb_t, list);
+    pcb_t* next_running = pick_process();
+    list_delete(&next_running->list);
     pretty_log(
         LOG_INFO, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
         current_running->name, next_running->pid, next_running->name);
@@ -119,4 +152,11 @@ void do_unblock(list_node_t* pcb_node) {
     pcb->status = TASK_READY;
     list_delete(pcb_node);
     list_append(&ready_queue, pcb_node);
+}
+
+void set_process_workload(int workload) {
+    if (workload > current_running->task_workload) {
+        current_running->task_id++;
+    }
+    current_running->task_workload = workload;
 }

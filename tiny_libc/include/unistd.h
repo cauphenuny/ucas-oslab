@@ -16,7 +16,7 @@ void sys_mutex_release(int mutex_idx);
 
 // TODO: WARN:
 
-static inline void sys_set_sche_workload(int workload) {}
+void sys_set_sche_workload(int workload);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */

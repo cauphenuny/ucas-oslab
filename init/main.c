@@ -114,7 +114,7 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"print1", "print2", "lock1", "lock2", "sleep", "timer"};
+    const char* run_tasks[] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
 
     for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
         task_info_t* task = NULL;
@@ -137,6 +137,7 @@ static void init_pcb(void) {
             }
         }
         assert(alloc_pcb);
+        memset(alloc_pcb, 0, sizeof(pcb_t));
         alloc_pcb->pid = pid_counter;
         alloc_pcb->status = TASK_READY;
         strcpy(alloc_pcb->name, task->name);
@@ -158,6 +159,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
     syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
+    syscall[SYSCALL_SET_WORKLOAD] = (long(*)())set_process_workload;
 }
 /************************************************************/
 

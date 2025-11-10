@@ -128,7 +128,7 @@ void do_mutex_lock_acquire(int mlock_idx) {
                 LOG_INFO, "mutex lock %d is already acquired by pid %d, blocking pid %d", mlock_idx,
                 mutex->pid, current_running->pid);
             do_block(&current_running->list, &mutex->block_queue);
-            breakpoint_set(BRK_DEBUG);
+            // breakpoint_set(BRK_DEBUG);
         }
         spin_lock_release(&mutex->lock);
         if (acquired) break;

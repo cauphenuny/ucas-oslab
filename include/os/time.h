@@ -35,6 +35,7 @@
 extern uint64_t time_base;
 extern uint64_t time_elapsed;
 
+extern void reset_timer(void);
 extern uint64_t get_timer(void);
 extern uint64_t get_ticks(void);
 extern uint64_t get_time_base(void);

@@ -1,3 +1,4 @@
+#include "os/time.h"
 #include "logger.h"
 #include <os/list.h>
 #include <os/sched.h>
@@ -12,6 +13,12 @@ uint64_t get_ticks()
         "rdtime %0"
         : "=r"(time_elapsed));
     return time_elapsed;
+}
+
+void reset_timer()
+{
+    uint64_t ticks = get_ticks();
+    set_timer(ticks + TIMER_INTERVAL);
 }
 
 uint64_t get_timer()

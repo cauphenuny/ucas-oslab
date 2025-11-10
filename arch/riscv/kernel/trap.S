@@ -9,8 +9,12 @@ ENTRY(setup_exception)
 
   la t0, exception_handler_entry # 00-aligned
   csrw stvec, t0
-  jr ra
 
   /* TODO: [p2-task4] enable interrupts globally */
+
+  li   t0, 0x22 # SIE | SPIE
+  csrs sstatus, t0
+
+  jr ra
 
 ENDPROC(setup_exception)

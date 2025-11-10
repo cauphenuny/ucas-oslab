@@ -105,7 +105,7 @@ int do_mutex_lock_init(int key) {
         spin_lock_release(&mlocks[i].lock);
     }
     assert(id >= 0);
-    breakpoint();
+    // breakpoint();
     return id;
 }
 

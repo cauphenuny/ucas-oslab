@@ -1,3 +1,4 @@
+#include "os/sched.h"
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
@@ -22,9 +23,16 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
         assert(false);
     }
     int sysno = regs->regs[REG_A7];
-    long ret = syscall[sysno](
-        regs->regs[REG_A0], regs->regs[REG_A1], regs->regs[REG_A2], regs->regs[REG_A3],
-        regs->regs[REG_A4], regs->regs[REG_A5]);
+    int arg0 = regs->regs[REG_A0];
+    int arg1 = regs->regs[REG_A1];
+    int arg2 = regs->regs[REG_A2];
+    int arg3 = regs->regs[REG_A3];
+    int arg4 = regs->regs[REG_A4];
+    int arg5 = regs->regs[REG_A5];
+    pretty_log(
+        LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3, arg4,
+        arg5);
+    long ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
     regs->regs[REG_A0] = ret;
     regs->regs[REG_SEPC] += 4;
 }

@@ -87,6 +87,11 @@ void do_sleep(uint32_t sleep_time) {
     // 2. set the wake up time for the blocked task
     // 3. reschedule because the current_running is blocked.
     uint64_t current = get_timer(), target = current + sleep_time;
+    current_running->wakeup_time = target;
+    pretty_log(
+        LOG_INFO, "pid %d sleeping for %d seconds (wake at %d)", current_running->pid, sleep_time,
+        target);
+    // breakpoint();
     do_block(&current_running->list, &sleep_queue);
     do_scheduler();
 }

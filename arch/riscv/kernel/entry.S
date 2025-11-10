@@ -5,15 +5,16 @@
 .macro SAVE_CONTEXT
   /* TODO: [p2-task3] save all general purpose registers here! */
   /* HINT: Pay attention to the function of tp and sp, and save them carefully! */
-  csrw  sscratch, sp
-  ld    sp, PCB_KERNEL_SP(tp)
+  csrrw tp, sscratch, tp // after this inst, tp=kernel_tp, sscratch=user_tp
+  sd    sp, PCB_USER_SP(tp) // save user_sp to pcb
+  ld    sp, PCB_KERNEL_SP(tp) // load kernel_sp to sp
   add   sp, sp, -OFFSET_SIZE
 
   sd zero,  OFFSET_REG_ZERO(sp)
   sd ra,    OFFSET_REG_RA(sp)
   // sd sp,    OFFSET_REG_SP(sp)
   sd gp,    OFFSET_REG_GP(sp)
-  sd tp,    OFFSET_REG_TP(sp)
+  // sd tp,    OFFSET_REG_TP(sp)
   sd t0,    OFFSET_REG_T0(sp)
   sd t1,    OFFSET_REG_T1(sp)
   sd t2,    OFFSET_REG_T2(sp)
@@ -41,6 +42,13 @@
   sd t4,    OFFSET_REG_T4(sp)
   sd t5,    OFFSET_REG_T5(sp)
   sd t6,    OFFSET_REG_T6(sp)
+
+  ld t0, PCB_USER_SP(tp) // recover user_sp from pcb
+  sd t0, OFFSET_REG_SP(sp)
+
+  csrrw tp, sscratch, tp // after this inst, tp=user_tp, sscratch=kernel_tp
+  sd tp, OFFSET_REG_TP(sp)
+  csrr tp, sscratch
 
   /*
    * Disable user-mode memory access as it should only be set in the
@@ -70,23 +78,22 @@
   /* TODO: Restore all general purpose registers and sepc, sstatus */
   /* HINT: Pay attention to sp again! */
 
-  ld  t0, OFFSET_REG_SP(sp) // user_sp
-  csrw sscratch,  t0
-
   ld  t0, OFFSET_REG_SSTATUS(sp)
   csrw sstatus, t0
   ld  t0, OFFSET_REG_SEPC(sp)
   csrw sepc,  t0
 
+  add t0, sp, OFFSET_SIZE // recovered kernel_sp
+  sd  t0,   PCB_KERNEL_SP(tp)
+
+  ld  t0,   OFFSET_REG_TP(sp)
+  csrw sscratch, t0
+
   ld  zero,  OFFSET_REG_ZERO(sp)
   ld  ra,    OFFSET_REG_RA(sp)
-  ld  gp,    OFFSET_REG_GP(sp)
-
-  ld  tp,    OFFSET_REG_TP(sp)
-
-  add t0, sp, OFFSET_SIZE // recovered kernel_sp
-  sd  t0,   PCB_USER_SP(tp)
-
+  // ld  sp,   OFFSET_REG_SP(sp)
+  ld  gp,   OFFSET_REG_GP(sp)
+  // ld  tp,   OFFSET_REG_TP(sp)
   ld  t0,   OFFSET_REG_T0(sp)
   ld  t1,   OFFSET_REG_T1(sp)
   ld  t2,   OFFSET_REG_T2(sp)
@@ -114,7 +121,11 @@
   ld  t4,   OFFSET_REG_T4(sp)
   ld  t5,   OFFSET_REG_T5(sp)
   ld  t6,   OFFSET_REG_T6(sp)
-  csrr  sp, sscratch
+
+  // sp <-- tp.kernel
+  // tp.kernel <--> sscratch(tp.user)
+  ld  sp,   PCB_USER_SP(tp)
+  csrrw tp, sscratch, tp
 
 .endm
 

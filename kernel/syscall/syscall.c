@@ -26,4 +26,5 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
         regs->regs[REG_A0], regs->regs[REG_A1], regs->regs[REG_A2], regs->regs[REG_A3],
         regs->regs[REG_A4], regs->regs[REG_A5]);
     regs->regs[REG_A0] = ret;
+    regs->regs[REG_SEPC] += 4;
 }

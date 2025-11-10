@@ -77,7 +77,7 @@ long sys_get_tick(void) {
 }
 
 void sys_sleep(uint32_t time) { /* TODO: [p2-task3] call invoke_syscall to implement sys_sleep */ 
-    invoke_syscall(SYSCALL_SLEEP, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+    invoke_syscall(SYSCALL_SLEEP, time, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 /************************************************************/

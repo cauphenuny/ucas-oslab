@@ -98,12 +98,13 @@ static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_poi
     pcb->kernel_sp = (ptr_t)pt_switchto;
     pcb->user_sp = user_stack;
     pt_switchto->regs[SWITCHTO_REG_RA] = (reg_t)ret_from_exception;
-    pt_switchto->regs[SWITCHTO_REG_SP] = user_stack;
+    pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
 }
 
 static void init_pcb(void) {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
     current_running = &pid0_pcb;
+    current_running->status = TASK_RUNNING;
 
     for (int i = 0; i < task_num; i++) {
         load_task_img(tasks[i]);
@@ -287,7 +288,6 @@ int main(int argc, char** argv) {
     pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
     pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
     pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
-    breakpoint();
 
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();

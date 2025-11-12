@@ -65,7 +65,7 @@ Darwin)
     fi
 
     # macOS doesn't typically use /dev/sdb
-    DISK="/dev/disk4"
+    DISK="/dev/disk6"
     DISK_SECTOR="s3"
     TTYUSB1="/dev/tty.usbserial-1234_tul1"
 

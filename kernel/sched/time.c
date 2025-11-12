@@ -1,3 +1,5 @@
+#include "os/time.h"
+#include "logger.h"
 #include <os/list.h>
 #include <os/sched.h>
 #include <type.h>
@@ -11,6 +13,12 @@ uint64_t get_ticks()
         "rdtime %0"
         : "=r"(time_elapsed));
     return time_elapsed;
+}
+
+void reset_timer()
+{
+    uint64_t ticks = get_ticks();
+    set_timer(ticks + TIMER_INTERVAL);
 }
 
 uint64_t get_timer()
@@ -34,4 +42,17 @@ void latency(uint64_t time)
 void check_sleeping(void)
 {
     // TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
+
+    uint64_t current_time = get_timer();
+    pretty_log(LOG_INFO, "current_time: %d", current_time);
+    for (list_node_t *cur = sleep_queue.next, *next = NULL; cur != &sleep_queue; cur = next) {
+        next = cur->next;
+        pcb_t* pcb = container_of(cur, pcb_t, list);
+        pretty_log(LOG_INFO, "checking pid %d with wakeup_time %d", pcb->pid, pcb->wakeup_time);
+        if (current_time >= pcb->wakeup_time) {
+            list_delete(cur);
+            list_append(&ready_queue, cur);
+        }
+    }
+    // breakpoint();
 }

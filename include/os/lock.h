@@ -37,24 +37,23 @@ typedef enum {
     LOCKED,
 } lock_status_t;
 
-typedef struct spin_lock
-{
+typedef struct spin_lock {
     volatile lock_status_t status;
 } spin_lock_t;
 
-typedef struct mutex_lock
-{
+typedef struct mutex_lock {
     spin_lock_t lock;
-    list_head block_queue;
+    list_head block_queue;  // container type: pcb_t
+    int acquired, pid;
     int key;
 } mutex_lock_t;
 
 void init_locks(void);
 
-void spin_lock_init(spin_lock_t *lock);
-int spin_lock_try_acquire(spin_lock_t *lock);
-void spin_lock_acquire(spin_lock_t *lock);
-void spin_lock_release(spin_lock_t *lock);
+void spin_lock_init(spin_lock_t* lock);
+int spin_lock_try_acquire(spin_lock_t* lock);
+void spin_lock_acquire(spin_lock_t* lock);
+void spin_lock_release(spin_lock_t* lock);
 
 int do_mutex_lock_init(int key);
 void do_mutex_lock_acquire(int mlock_idx);

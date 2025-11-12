@@ -30,11 +30,16 @@
 
 #include <type.h>
 
-#define TIMER_INTERVAL 150000
+// NOTE: for emulatation
+#define TIMER_INTERVAL 10000
+
+// NOTE: for board
+// #define TIMER_INTERVAL 3000
 
 extern uint64_t time_base;
 extern uint64_t time_elapsed;
 
+extern void reset_timer(void);
 extern uint64_t get_timer(void);
 extern uint64_t get_ticks(void);
 extern uint64_t get_time_base(void);

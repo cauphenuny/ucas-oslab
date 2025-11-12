@@ -7,7 +7,7 @@ typedef int32_t pid_t;
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
-void sys_write(char *buff);
+void sys_write(char* buff);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);
 long sys_get_timebase(void);
@@ -16,16 +16,23 @@ int sys_mutex_init(int key);
 void sys_mutex_acquire(int mutex_idx);
 void sys_mutex_release(int mutex_idx);
 
+// TODO: WARN:
+
+void sys_set_sche_workload(int workload);
+
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
 void sys_ps(void);
 int  sys_getchar(void);
 
 /* TODO: [P3 task1] exec, exit, kill waitpid */
+#ifdef S_CORE
 // S-core
-pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+pid_t sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+#else
 // A/C-core
-// pid_t  sys_exec(char *name, int argc, char **argv);
+pid_t  sys_exec(char *name, int argc, char **argv);
+#endif
 
 void sys_exit(void);
 int  sys_kill(pid_t pid);

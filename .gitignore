@@ -1,3 +1,8 @@
-.vscode
-build
 *.txt
+**/.DS_Store
+build/
+.cache/
+.clangd/
+compile_commands.json
+config.mk
+.vscode/

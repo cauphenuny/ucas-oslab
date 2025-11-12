@@ -5,35 +5,45 @@
 PROJECT_IDX	= 3
 
 # -----------------------------------------------------------------------
-# Host Linux Variables
+# Include Platform-specific Configuration
+# -----------------------------------------------------------------------
+
+-include config.mk
+
+# -----------------------------------------------------------------------
+# Host Linux Variables (defaults, can be overridden by config.mk)
 # -----------------------------------------------------------------------
 
 SHELL       = /bin/sh
-DISK        = /dev/sdb
-TTYUSB1     = /dev/ttyUSB1
-DIR_OSLAB   = $(HOME)/OSLab-RISC-V
-DIR_QEMU    = $(DIR_OSLAB)/qemu
-DIR_UBOOT   = $(DIR_OSLAB)/u-boot
+DISK        ?= /dev/sdb
+DISK_SECTOR ?= 3
+TTYUSB1     ?= /dev/ttyUSB1
+DIR_OSLAB   ?= $(HOME)/OSLab-RISC-V
+DIR_QEMU    ?= $(DIR_OSLAB)/qemu
+DIR_UBOOT   ?= $(DIR_OSLAB)/u-boot
 
 # -----------------------------------------------------------------------
 # Build and Debug Tools
 # -----------------------------------------------------------------------
 
 HOST_CC         = gcc
-CROSS_PREFIX    = riscv64-unknown-linux-gnu-
+HOST_GDB	= gdb
+CROSS_PREFIX    ?= riscv64-unknown-linux-gnu-
 CC              = $(CROSS_PREFIX)gcc
 AR              = $(CROSS_PREFIX)ar
 OBJDUMP         = $(CROSS_PREFIX)objdump
 GDB             = $(CROSS_PREFIX)gdb
-QEMU            = $(DIR_QEMU)/riscv64-softmmu/qemu-system-riscv64
-UBOOT           = $(DIR_UBOOT)/u-boot
-MINICOM         = minicom
+QEMU            ?= $(DIR_QEMU)/riscv64-softmmu/qemu-system-riscv64
+UBOOT           ?= $(DIR_UBOOT)/u-boot
+MINICOM         ?= minicom
 
 # -----------------------------------------------------------------------
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          += -O2
+CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
@@ -53,6 +63,9 @@ QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -D $(QEMU_LOG_FILE) -d oslab
 QEMU_DEBUG_OPT  = -s -S
 QEMU_SMP_OPT	= -smp 2
+
+QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
+QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin
 
 # -----------------------------------------------------------------------
 # UCAS-OS Entrypoints and Variables
@@ -125,14 +138,21 @@ clean:
 	rm -rf $(DIR_BUILD)
 
 floppy:
-	sudo fdisk -l $(DISK)
-	sudo dd if=$(DIR_BUILD)/image of=$(DISK)3 conv=notrunc
+	sudo dd if=$(DIR_BUILD)/image of=$(DISK)$(DISK_SECTOR) conv=notrunc
+	# sudo fdisk -l $(DISK)
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	for elffile in $^; do $(OBJDUMP) -d $$elffile > $(notdir $$elffile).txt; done
 
 gdb:
-	$(GDB) $(ELF_MAIN) -ex "target remote:1234"
+	$(GDB) $(ELF_MAIN) -ex "target remote:1234" -s .gdbinit
+
+host-gdb:
+	$(HOST_GDB) $(ELF_MAIN) -ex "target remote:1234" -s .gdbinit
+
+
+lldb:
+	lldb $(ELF_MAIN) -s .lldbinit
 
 run:
 	$(QEMU) $(QEMU_OPTS)
@@ -140,29 +160,38 @@ run:
 run-smp:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_SMP_OPT)
 
+run-record:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_RECORD)
+
 debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
 
 debug-smp:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_SMP_OPT) $(QEMU_DEBUG_OPT)
 
+debug-record:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_RECORD)
+
+debug-replay:
+	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_REPLAY)
+
 minicom:
 	sudo $(MINICOM) -D $(TTYUSB1)
 
-.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom
+.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom host-gdb lldb debug-record debug-replay run-smp debug-smp
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules
 # -----------------------------------------------------------------------
 
 $(ELF_BOOT): $(SRC_BOOT) riscv.lds
-	$(CC) $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
+	$(CC) -g $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
 
 $(ELF_MAIN): $(SRC_MAIN) riscv.lds
-	$(CC) $(KERNEL_CFLAGS) -o $@ $(SRC_MAIN)
+	$(CC) -g $(KERNEL_CFLAGS) -o $@ $(SRC_MAIN)
 
 $(OBJ_CRT0): $(SRC_CRT0)
-	$(CC) $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
+	$(CC) -g $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
 
 $(LIB_TINYC): $(OBJ_LIBC)
 	$(AR) rcs $@ $^

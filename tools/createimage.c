@@ -1,28 +1,37 @@
+#include "elf.h"
+
 #include <assert.h>
-#include <elf.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define IMAGE_FILE "./image"
-#define ARGS "[--extended] [--vm] <bootblock> <executable-file> ..."
+#define ARGS       "[--extended] [--vm] <bootblock> <executable-file> ..."
 
-#define SECTOR_SIZE 512
+#define SECTOR_SIZE            512
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
-#define OS_SIZE_LOC (BOOT_LOADER_SIG_OFFSET - 2)
-#define BOOT_LOADER_SIG_1 0x55
-#define BOOT_LOADER_SIG_2 0xaa
+#define OS_SIZE_LOC            (BOOT_LOADER_SIG_OFFSET - 2)
+#define TASKINFO_START_LOC     (BOOT_LOADER_SIG_OFFSET - 4)
+#define TASKINFO_SIZE_LOC      (BOOT_LOADER_SIG_OFFSET - 6)
+#define TASKINFO_TASKNUM_LOC   (BOOT_LOADER_SIG_OFFSET - 8)
+#define BATCH_FILE_LOC         (BOOT_LOADER_SIG_OFFSET - 10)
+#define BOOT_LOADER_SIG_1      0x55
+#define BOOT_LOADER_SIG_2      0xaa
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
 /* TODO: [p1-task4] design your own task_info_t */
 typedef struct {
-
+    char name[16];
+    int phyaddr_start, phyaddr_end;
+    uint64_t entrance;
 } task_info_t;
 
 #define TASK_MAXNUM 16
+#define TASK_SIZE   0x10000
 static task_info_t taskinfo[TASK_MAXNUM];
 
 /* structure to store command line options */
@@ -32,35 +41,34 @@ static struct {
 } options;
 
 /* prototypes of local functions */
-static void create_image(int nfiles, char *files[]);
-static void error(char *fmt, ...);
-static void read_ehdr(Elf64_Ehdr *ehdr, FILE *fp);
-static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
-static uint64_t get_entrypoint(Elf64_Ehdr ehdr);
+static void create_image(int nfiles, char* files[]);
+static void error(char* fmt, ...);
+static void read_ehdr(Elf64_Ehdr* ehdr, FILE* fp);
+static void read_phdr(Elf64_Phdr* phdr, FILE* fp, int ph, Elf64_Ehdr ehdr);
+// static uint64_t get_entrypoint(Elf64_Ehdr ehdr);
 static uint32_t get_filesz(Elf64_Phdr phdr);
-static uint32_t get_memsz(Elf64_Phdr phdr);
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr);
-static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
-static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE *img);
+// static uint32_t get_memsz(Elf64_Phdr phdr);
+static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr);
+static void write_padding(FILE* img, int* phyaddr, int new_phyaddr);
+static void write_align_padding(FILE* img, int* phyaddr);
+static void
+write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img, int* phyaddr);
 
-int main(int argc, char **argv)
-{
-    char *progname = argv[0];
+int main(int argc, char** argv) {
+    char* progname = argv[0];
 
     /* process command line options */
     options.vm = 0;
-    options.extended = 0;
+    options.extended = 0;  // echo debug message?
     while ((argc > 1) && (argv[1][0] == '-') && (argv[1][1] == '-')) {
-        char *option = &argv[1][2];
+        char* option = &argv[1][2];
 
         if (strcmp(option, "vm") == 0) {
             options.vm = 1;
         } else if (strcmp(option, "extended") == 0) {
             options.extended = 1;
         } else {
-            error("%s: invalid option\nusage: %s %s\n", progname,
-                  progname, ARGS);
+            error("%s: invalid option\nusage: %s %s\n", progname, progname, ARGS);
         }
         argc--;
         argv++;
@@ -77,8 +85,7 @@ int main(int argc, char **argv)
 }
 
 /* TODO: [p1-task4] assign your task_info_t somewhere in 'create_image' */
-static void create_image(int nfiles, char *files[])
-{
+static void create_image(int nfiles, char* files[]) {
     int tasknum = nfiles - 2;
     int nbytes_kernel = 0;
     int phyaddr = 0;
@@ -92,8 +99,9 @@ static void create_image(int nfiles, char *files[])
 
     /* for each input file */
     for (int fidx = 0; fidx < nfiles; ++fidx) {
-
         int taskidx = fidx - 2;
+        if (taskidx >= 0) taskinfo[taskidx].phyaddr_start = phyaddr;
+        if (taskidx >= 0) strcpy(taskinfo[taskidx].name, *files);
 
         /* open input file */
         fp = fopen(*files, "r");
@@ -102,6 +110,7 @@ static void create_image(int nfiles, char *files[])
         /* read ELF header */
         read_ehdr(&ehdr, fp);
         printf("0x%04lx: %s\n", ehdr.e_entry, *files);
+        if (taskidx >= 0) taskinfo[taskidx].entrance = ehdr.e_entry;
 
         /* for each program header */
         for (int ph = 0; ph < ehdr.e_phnum; ph++) {
@@ -130,17 +139,17 @@ static void create_image(int nfiles, char *files[])
         if (strcmp(*files, "bootblock") == 0) {
             write_padding(img, &phyaddr, SECTOR_SIZE);
         }
+        if (taskidx >= 0) taskinfo[taskidx].phyaddr_end = phyaddr;
 
         fclose(fp);
         files++;
     }
-    write_img_info(nbytes_kernel, taskinfo, tasknum, img);
+    write_img_info(nbytes_kernel, taskinfo, tasknum, img, &phyaddr);
 
     fclose(img);
 }
 
-static void read_ehdr(Elf64_Ehdr * ehdr, FILE * fp)
-{
+static void read_ehdr(Elf64_Ehdr* ehdr, FILE* fp) {
     int ret;
 
     ret = fread(ehdr, sizeof(*ehdr), 1, fp);
@@ -150,9 +159,7 @@ static void read_ehdr(Elf64_Ehdr * ehdr, FILE * fp)
     assert(ehdr->e_ident[EI_MAG3] == 'F');
 }
 
-static void read_phdr(Elf64_Phdr * phdr, FILE * fp, int ph,
-                      Elf64_Ehdr ehdr)
-{
+static void read_phdr(Elf64_Phdr* phdr, FILE* fp, int ph, Elf64_Ehdr ehdr) {
     int ret;
 
     fseek(fp, ehdr.e_phoff + ph * ehdr.e_phentsize, SEEK_SET);
@@ -167,23 +174,13 @@ static void read_phdr(Elf64_Phdr * phdr, FILE * fp, int ph,
     }
 }
 
-static uint64_t get_entrypoint(Elf64_Ehdr ehdr)
-{
-    return ehdr.e_entry;
-}
+// static uint64_t get_entrypoint(Elf64_Ehdr ehdr) { return ehdr.e_entry; }
 
-static uint32_t get_filesz(Elf64_Phdr phdr)
-{
-    return phdr.p_filesz;
-}
+static uint32_t get_filesz(Elf64_Phdr phdr) { return phdr.p_filesz; }
 
-static uint32_t get_memsz(Elf64_Phdr phdr)
-{
-    return phdr.p_memsz;
-}
+// static uint32_t get_memsz(Elf64_Phdr phdr) { return phdr.p_memsz; }
 
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
-{
+static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr) {
     if (phdr.p_memsz != 0 && phdr.p_type == PT_LOAD) {
         /* write the segment itself */
         /* NOTE: expansion of .bss should be done by kernel or runtime env! */
@@ -198,8 +195,13 @@ static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
     }
 }
 
-static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
-{
+static void write_padding(FILE* img, int* phyaddr, int new_phyaddr) {
+    if (*phyaddr > new_phyaddr) {
+        error(
+            "%s:%d: phyaddr %d > new_phyaddr %d, can not pad\n", __FILE__, __LINE__, *phyaddr,
+            new_phyaddr);
+    }
+
     if (options.extended == 1 && *phyaddr < new_phyaddr) {
         printf("\t\twrite 0x%04x bytes for padding\n", new_phyaddr - *phyaddr);
     }
@@ -210,16 +212,81 @@ static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
     }
 }
 
-static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
-                           short tasknum, FILE * img)
-{
+/**
+ * @brief auto pad image to align to sector boarders
+ *
+ * @param img iamge file
+ * @param phyaddr current size of image
+ */
+static void write_align_padding(FILE* img, int* phyaddr) {
+    int target = (((*phyaddr) + SECTOR_SIZE - 1) / SECTOR_SIZE) * SECTOR_SIZE;
+    write_padding(img, phyaddr, target);
+}
+
+static void
+write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img, int* phyaddr) {
     // TODO: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
+
+    // write taskinfo
+    write_align_padding(img, phyaddr);
+    short taskinfo_start = (*phyaddr) / SECTOR_SIZE;
+    short taskinfo_bytes = sizeof(task_info_t) * tasknum;
+    fwrite(taskinfo, sizeof(task_info_t), tasknum, img), *phyaddr += taskinfo_bytes;
+    if (options.extended) {
+        printf("\ntaskinfo: \t%d bytes, starts at #%d sector\n", taskinfo_bytes, taskinfo_start);
+    }
+
+    // preserve batch_file sector
+    write_align_padding(img, phyaddr);
+    short batch_file_sector = (*phyaddr) / SECTOR_SIZE;
+    if (options.extended) {
+        printf("batch_file: \treserved at #%d sector\n", batch_file_sector);
+    }
+    write_padding(img, phyaddr, *phyaddr + SECTOR_SIZE);
+
+    // write 2-byte taskinfo_start to TASKINFO_START_LOC
+    fseek(img, TASKINFO_START_LOC, SEEK_SET);
+    fwrite(&taskinfo_start, sizeof(taskinfo_start), 1, img);
+    if (options.extended)
+        printf(
+            "taskinfo_start:\t%d,\t%lu bytes at 0x%08x\n", taskinfo_start, sizeof(taskinfo_start),
+            TASKINFO_START_LOC);
+
+    // write 2-byte taskinfo_size to TASKINFO_SIZE_LOC
+    fseek(img, TASKINFO_SIZE_LOC, SEEK_SET);
+    fwrite(&taskinfo_bytes, sizeof(taskinfo_bytes), 1, img);
+    if (options.extended)
+        printf(
+            "taskinfo_bytes:\t%d,\t%lu bytes at 0x%08x\n", taskinfo_bytes, sizeof(taskinfo_bytes),
+            TASKINFO_SIZE_LOC);
+
+    // write 2-byte tasknum to TASKINFO_TASKNUM_LOC
+    fseek(img, TASKINFO_TASKNUM_LOC, SEEK_SET);
+    fwrite(&tasknum, sizeof(tasknum), 1, img);
+    if (options.extended)
+        printf(
+            "tasknum: \t%d,\t%lu bytes at 0x%08x\n", tasknum, sizeof(tasknum),
+            TASKINFO_TASKNUM_LOC);
+
+    // write 2-byte batch_file_sector to BATCH_FILE_LOC
+    fseek(img, BATCH_FILE_LOC, SEEK_SET);
+    fwrite(&batch_file_sector, sizeof(batch_file_sector), 1, img);
+    if (options.extended)
+        printf(
+            "batch_file_loc: %d,\t%lu bytes at 0x%08x\n", batch_file_sector,
+            sizeof(batch_file_sector), BATCH_FILE_LOC);
+
+    // write 2-byte size to OS_SIZE_LOC
+    fseek(img, OS_SIZE_LOC, SEEK_SET);
+    short os_size = nbytes_kernel;
+    fwrite(&os_size, sizeof(os_size), 1, img);
+    if (options.extended)
+        printf("os_size: \t%d,\t%lu bytes at 0x%08x\n", os_size, sizeof(os_size), OS_SIZE_LOC);
 }
 
 /* print an error message and exit */
-static void error(char *fmt, ...)
-{
+static void error(char* fmt, ...) {
     va_list args;
 
     va_start(args, fmt);

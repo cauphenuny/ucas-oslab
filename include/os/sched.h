@@ -29,14 +29,53 @@
 #ifndef INCLUDE_SCHEDULER_H_
 #define INCLUDE_SCHEDULER_H_
 
-#include <type.h>
+#include <asm.h>
+#include <asm/regs.h>
 #include <os/list.h>
+#include <type.h>
 
 #define NUM_MAX_TASK 16
 
+#define REG_ZERO (OFFSET_REG_ZERO >> RISCV_LGPTR)
+#define REG_RA   (OFFSET_REG_RA >> RISCV_LGPTR)
+#define REG_SP   (OFFSET_REG_SP >> RISCV_LGPTR)
+#define REG_GP   (OFFSET_REG_GP >> RISCV_LGPTR)
+#define REG_TP   (OFFSET_REG_TP >> RISCV_LGPTR)
+#define REG_T0   (OFFSET_REG_T0 >> RISCV_LGPTR)
+#define REG_T1   (OFFSET_REG_T1 >> RISCV_LGPTR)
+#define REG_T2   (OFFSET_REG_T2 >> RISCV_LGPTR)
+#define REG_S0   (OFFSET_REG_S0 >> RISCV_LGPTR)
+#define REG_S1   (OFFSET_REG_S1 >> RISCV_LGPTR)
+#define REG_A0   (OFFSET_REG_A0 >> RISCV_LGPTR)
+#define REG_A1   (OFFSET_REG_A1 >> RISCV_LGPTR)
+#define REG_A2   (OFFSET_REG_A2 >> RISCV_LGPTR)
+#define REG_A3   (OFFSET_REG_A3 >> RISCV_LGPTR)
+#define REG_A4   (OFFSET_REG_A4 >> RISCV_LGPTR)
+#define REG_A5   (OFFSET_REG_A5 >> RISCV_LGPTR)
+#define REG_A6   (OFFSET_REG_A6 >> RISCV_LGPTR)
+#define REG_A7   (OFFSET_REG_A7 >> RISCV_LGPTR)
+#define REG_S2   (OFFSET_REG_S2 >> RISCV_LGPTR)
+#define REG_S3   (OFFSET_REG_S3 >> RISCV_LGPTR)
+#define REG_S4   (OFFSET_REG_S4 >> RISCV_LGPTR)
+#define REG_S5   (OFFSET_REG_S5 >> RISCV_LGPTR)
+#define REG_S6   (OFFSET_REG_S6 >> RISCV_LGPTR)
+#define REG_S7   (OFFSET_REG_S7 >> RISCV_LGPTR)
+#define REG_S8   (OFFSET_REG_S8 >> RISCV_LGPTR)
+#define REG_S9   (OFFSET_REG_S9 >> RISCV_LGPTR)
+#define REG_S10  (OFFSET_REG_S10 >> RISCV_LGPTR)
+#define REG_S11  (OFFSET_REG_S11 >> RISCV_LGPTR)
+#define REG_T3   (OFFSET_REG_T3 >> RISCV_LGPTR)
+#define REG_T4   (OFFSET_REG_T4 >> RISCV_LGPTR)
+#define REG_T5   (OFFSET_REG_T5 >> RISCV_LGPTR)
+#define REG_T6   (OFFSET_REG_T6 >> RISCV_LGPTR)
+
+#define REG_SSTATUS  (OFFSET_REG_SSTATUS >> RISCV_LGPTR)
+#define REG_SEPC     (OFFSET_REG_SEPC >> RISCV_LGPTR)
+#define REG_SBADADDR (OFFSET_REG_SBADADDR >> RISCV_LGPTR)
+#define REG_SCAUSE   (OFFSET_REG_SCAUSE >> RISCV_LGPTR)
+
 /* used to save register infomation */
-typedef struct regs_context
-{
+typedef struct regs_context {
     /* Saved main processor registers.*/
     reg_t regs[32];
 
@@ -47,9 +86,25 @@ typedef struct regs_context
     reg_t scause;
 } regs_context_t;
 
+enum {
+    SWITCHTO_REG_RA,
+    SWITCHTO_REG_SP,
+    SWITCHTO_REG_S0,
+    SWITCHTO_REG_S1,
+    SWITCHTO_REG_S2,
+    SWITCHTO_REG_S3,
+    SWITCHTO_REG_S4,
+    SWITCHTO_REG_S5,
+    SWITCHTO_REG_S6,
+    SWITCHTO_REG_S7,
+    SWITCHTO_REG_S8,
+    SWITCHTO_REG_S9,
+    SWITCHTO_REG_S10,
+    SWITCHTO_REG_S11,
+};
+
 /* used to save register infomation in switch_to */
-typedef struct switchto_context
-{
+typedef struct switchto_context {
     /* Callee saved registers.*/
     reg_t regs[14];
 } switchto_context_t;
@@ -62,8 +117,7 @@ typedef enum {
 } task_status_t;
 
 /* Process Control Block */
-typedef struct pcb
-{
+typedef struct pcb {
     /* register context */
     // NOTE: this order must be preserved, which is defined in regs.h!!
     reg_t kernel_sp;
@@ -72,7 +126,7 @@ typedef struct pcb
     ptr_t user_stack_base;
 
     /* previous, next pointer */
-    list_node_t list;
+    list_node_t list;  // NOTE: used for scheduling queues, only able to be in one queue
     list_head wait_list;
 
     /* process id */
@@ -88,6 +142,13 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    /* process name */
+    char name[16];
+
+    /* process workload */
+    int task_id;
+    int task_workload;
+    int slice_cnt;
 } pcb_t;
 
 /* ready queue to run */
@@ -97,19 +158,23 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-register pcb_t * current_running asm("tp");
+register pcb_t* current_running asm("tp");
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
 extern const ptr_t pid0_stack;
 
-extern void switch_to(pcb_t *prev, pcb_t *next);
+extern void switch_to(pcb_t* prev, pcb_t* next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
-void do_block(list_node_t *, list_head *queue);
-void do_unblock(list_node_t *);
+void do_block(list_node_t*, list_head* queue);
+void do_unblock(list_node_t*);
+
+void set_process_workload(int workload);
+
+void print_sched_queue(const list_head* queue, const char* name);
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/

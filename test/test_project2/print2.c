@@ -2,14 +2,12 @@
 #include <unistd.h>
 // #include <kernel.h>
 
-int main(void)
-{
+int main(void) {
     int print_location = 1;
 
-    for (int i = 0;; i++)
-    {
+    for (int i = 0;; i++) {
         sys_move_cursor(0, print_location);
-        printf("> [TASK] This task is to test scheduler. (%d)", i);
+        printf("> [TASK] This task is to test scheduler. (%d)\n", i);
         // sys_yield();
     }
 }

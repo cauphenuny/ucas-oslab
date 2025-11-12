@@ -19,7 +19,6 @@ typedef enum {
     MUTEX_INIT,
     MUTEX_ACQ,
     MUTEX_RELEASE,
-    NUM_ENTRIES,
     WRITE,
     CLEAR,
     REFLUSH,
@@ -31,32 +30,22 @@ typedef enum {
     GETPID,
     BARRIER_INIT,
     BARRIER_WAIT,
-    BARRIER_DESTROY
+    BARRIER_DESTROY,
+    CONSOLE_REFLUSH, // TODO: check confilict with REFLUSH
+    NUM_ENTRIES
 } jmptab_idx_t;
 
-
-static inline long call_jmptab(long which, long arg0, long arg1, long arg2, long arg3, long arg4)
-{
-    unsigned long val = \
-        *(unsigned long *)(KERNEL_JMPTAB_BASE + sizeof(unsigned long) * which);
+static inline long call_jmptab(long which, long arg0, long arg1, long arg2, long arg3, long arg4) {
+    unsigned long val = *(unsigned long*)(KERNEL_JMPTAB_BASE + sizeof(unsigned long) * which);
     long (*func)(long, long, long, long, long) = (long (*)(long, long, long, long, long))val;
 
     return func(arg0, arg1, arg2, arg3, arg4);
 }
 
-static inline void bios_putstr(char *str)
-{
-    call_jmptab(CONSOLE_PUTSTR, (long)str, 0, 0, 0, 0);
-}
+static inline void bios_putstr(char* str) { call_jmptab(CONSOLE_PUTSTR, (long)str, 0, 0, 0, 0); }
 
-static inline void bios_putchar(int ch)
-{
-    call_jmptab(CONSOLE_PUTCHAR, (long)ch, 0, 0, 0, 0);
-}
+static inline void bios_putchar(int ch) { call_jmptab(CONSOLE_PUTCHAR, (long)ch, 0, 0, 0, 0); }
 
-static inline int bios_getchar(void)
-{
-    return call_jmptab(CONSOLE_GETCHAR, 0, 0, 0, 0, 0);
-}
+static inline int bios_getchar(void) { return call_jmptab(CONSOLE_GETCHAR, 0, 0, 0, 0, 0); }
 
 #endif

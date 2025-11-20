@@ -37,12 +37,12 @@ Darwin)
     echo -e "${GREEN}Configuring for macOS...${NC}"
 
     # Check for Homebrew RISC-V toolchain
-    if command -v riscv64-unknown-linux-gnu-gcc &>/dev/null; then
-        CROSS_PREFIX="riscv64-unknown-linux-gnu-"
-        echo -e "${GREEN}✓ Found riscv64-unknown-linux-gnu toolchain${NC}"
-    elif command -v riscv64-unknown-elf-gcc &>/dev/null; then
+    if command -v riscv64-unknown-elf-gcc &>/dev/null; then
         CROSS_PREFIX="riscv64-unknown-elf-"
         echo -e "${GREEN}✓ Found riscv64-unknown-elf toolchain${NC}"
+    elif command -v riscv64-unknown-linux-gnu-gcc &>/dev/null; then
+        CROSS_PREFIX="riscv64-unknown-linux-gnu-"
+        echo -e "${GREEN}✓ Found riscv64-unknown-linux-gnu toolchain${NC}"
     elif command -v riscv64-elf-gcc &>/dev/null; then
         CROSS_PREFIX="riscv64-elf-"
         echo -e "${GREEN}✓ Found riscv64-elf toolchain${NC}"

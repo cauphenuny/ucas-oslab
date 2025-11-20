@@ -1,8 +1,10 @@
-#include "breakpoint.h"
-#include "logger.h"
+extern "C" {
 
+// #include <atomic.h>
 #include <assert.h>
-#include <atomic.h>
+#include <breakpoint.h>
+#include <guard.hpp>
+#include <logger.h>
 #include <os/list.h>
 #include <os/lock.h>
 #include <os/sched.h>
@@ -41,9 +43,9 @@ int spin_lock_try_acquire(spin_lock_t* lock) {
      *
      * @note This is a GCC/Clang builtin for atomic compare-and-swap with flexible memory ordering.
      */
+    lock_status_t expected = UNLOCKED;
     return __atomic_compare_exchange_n(
-        &lock->status, &(lock_status_t){UNLOCKED}, LOCKED, false, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED);
+        &lock->status, &expected, LOCKED, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
     /*
         1. **__ATOMIC_RELAXED**
            - 只保证原子性，不做任何同步或重排序约束。
@@ -73,9 +75,9 @@ void spin_lock_acquire(spin_lock_t* lock) {
     /* TODO: [p2-task2] acquire spin lock */
 
     // WARN: check failure order
+    lock_status_t expected = UNLOCKED;
     while (!__atomic_compare_exchange_n(
-        &lock->status, &(lock_status_t){UNLOCKED}, LOCKED, false, __ATOMIC_SEQ_CST,
-        __ATOMIC_RELAXED));
+        &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
 }
 
 void spin_lock_release(spin_lock_t* lock) {
@@ -87,22 +89,20 @@ int do_mutex_lock_init(int key) {
     /* TODO: [p2-task2] initialize mutex lock */
     int id = -1;
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
-        spin_lock_acquire(&mlocks[i].lock);
+        spin_guard_t guard(mlocks[i].lock);
         if (mlock_used[i] && mlocks[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing mutex lock %d for key %d", id, key);
         }
-        spin_lock_release(&mlocks[i].lock);
     }
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
-        spin_lock_acquire(&mlocks[i].lock);
+        spin_guard_t guard(mlocks[i].lock);
         if (!mlock_used[i]) {
             mlock_used[i] = true;
             mlocks[i].key = key;
             id = i;
             pretty_log(LOG_INFO, "allocate mutex lock %d from key %d", id, key);
         }
-        spin_lock_release(&mlocks[i].lock);
     }
     assert(id >= 0);
     // breakpoint();
@@ -117,23 +117,23 @@ void do_mutex_lock_acquire(int mlock_idx) {
         return;
     }
     mutex_lock_t* mutex = &mlocks[mlock_idx];
-    int acquired = 0;
-    do {
-        spin_lock_acquire(&mutex->lock);
-        if (!mutex->acquired) {
-            acquired = mutex->acquired = 1;
-            mutex->pid = current_running->pid;
-        } else {
-            pretty_log(
-                LOG_INFO, "mutex lock %d is already acquired by pid %d, blocking pid %d", mlock_idx,
-                mutex->pid, current_running->pid);
-            do_block(&current_running->list, &mutex->block_queue);
-            // breakpoint_set(BRK_DEBUG);
+    while (true) {
+        {
+            spin_guard_t guard(mutex->lock);
+            if (!mutex->acquired) {
+                mutex->acquired = 1;
+                mutex->pid = current_running->pid;
+                break;
+            } else {
+                pretty_log(
+                    LOG_INFO, "mutex lock %d is already acquired by pid %d, blocking pid %d",
+                    mlock_idx, mutex->pid, current_running->pid);
+                do_block(&current_running->list, &mutex->block_queue);
+                // breakpoint_set(BRK_DEBUG);
+            }
         }
-        spin_lock_release(&mutex->lock);
-        if (acquired) break;
         do_scheduler();
-    } while (!acquired);
+    }
 }
 
 void do_mutex_lock_release(int mlock_idx) {
@@ -143,7 +143,7 @@ void do_mutex_lock_release(int mlock_idx) {
         return;
     }
     mutex_lock_t* mutex = &mlocks[mlock_idx];
-    spin_lock_acquire(&mutex->lock);
+    spin_guard_t guard(mutex->lock);
     if (!mlock_used[mlock_idx]) {
         pretty_loge("mutex lock %d is not initialized!", mlock_idx);
     } else if (mutex->pid != current_running->pid) {
@@ -162,6 +162,6 @@ void do_mutex_lock_release(int mlock_idx) {
             do_unblock(node);
         }
     }
-    spin_lock_release(&mutex->lock);
     return;
+}
 }

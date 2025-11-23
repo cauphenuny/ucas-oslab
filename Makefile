@@ -44,14 +44,15 @@ MINICOM         ?= minicom
 CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 CFLAGS          += -O2
 CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
-CXXFLAGS        = -std=gnu++20
+CXXFLAGS        = -std=gnu++20 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -fno-exceptions -fno-rtti
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
 
 KERNEL_INCLUDE  = -I$(DIR_ARCH)/include -Iinclude -Idrivers
-KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
-KERNEL_CXXFLAGS = -fno-exceptions -fno-rtti $(CXXFLAGS)
+KERNEL_LDFLAGS  = -nostdlib -nostdinc -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
+KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE)
+KERNEL_CXXFLAGS = $(CXXFLAGS) $(KERNEL_INCLUDE)
 
 USER_INCLUDE    = -I$(DIR_TINYLIBC)/include
 USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE)
@@ -192,7 +193,9 @@ $(ELF_BOOT): $(SRC_BOOT) riscv.lds
 	$(CC) -g $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
 
 $(ELF_MAIN): $(SRC_MAIN) $(SRCPP_MAIN) riscv.lds
-	$(CC) -o $@ -g $(KERNEL_CFLAGS) $(SRC_MAIN) $(KERNEL_CXXFLAGS) $(SRCPP_MAIN)
+	$(CC) -g -r -o $@.c.o $(KERNEL_CFLAGS) $(SRC_MAIN)
+	$(CC) -g -r -o $@.cpp.o $(KERNEL_CXXFLAGS) $(SRCPP_MAIN)
+	$(CC) -g -o $@ $@.c.o $@.cpp.o $(KERNEL_LDFLAGS)
 
 $(OBJ_CRT0): $(SRC_CRT0)
 	$(CC) -g $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@

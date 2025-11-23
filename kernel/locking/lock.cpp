@@ -570,6 +570,7 @@ int do_mbox_open(char* name) {
         if (mbox_allocated[i] && (strcmp(mailboxes[i].name, name) == 0)) {
             id = i;
             pretty_log(LOG_INFO, "find existing mailbox %d for name %s", id, name);
+            mailboxes[id].nref++;
         }
     }
     for (int i = 0; id == -1 && i < MBOX_NUM; i++) {
@@ -580,10 +581,10 @@ int do_mbox_open(char* name) {
             strcpy(mailboxes[i].name, name);
             id = i;
             pretty_log(LOG_INFO, "allocate mailbox %d for name %s", id, name);
+            mailboxes[id].nref++;
         }
     }
     assert(id >= 0);
-    mailboxes[id].nref++;
     return id;
 }
 

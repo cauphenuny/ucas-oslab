@@ -7,6 +7,7 @@
 #include <os/lock.h>
 #include <os/mm.h>
 #include <os/sched.h>
+#include <os/string.h>
 #include <os/time.h>
 #include <printk.h>
 #include <screen.h>
@@ -19,6 +20,24 @@ pcb_t pid0_pcb = {
     .pid = 0,
     .name = "init",
 };
+
+pcb_t* alloc_pcb() {
+    pcb_t* selected_pcb = NULL;
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        if (pcb[i].status == TASK_EXITED) {
+            selected_pcb = &pcb[i];
+            break;
+        }
+    }
+    memset(selected_pcb, 0, sizeof(pcb_t));
+    selected_pcb->pid = process_id++;
+    return pcb;
+}
+
+void free_pcb(pcb_t* pcb) {
+    if (!pcb) return;
+    pcb->status = TASK_EXITED;
+}
 
 LIST_HEAD(ready_queue);
 LIST_HEAD(sleep_queue);
@@ -153,6 +172,47 @@ void do_unblock(list_node_t* pcb_node) {
     list_delete(pcb_node);
     list_append(&ready_queue, pcb_node);
 }
+
+void cleanup(pcb_t* pcb) {
+    // TODO:
+    free_pcb(pcb);
+}
+
+pid_t do_exec(char* name, int argc, char* argv[]) { return -1; }
+
+void do_process_show() {
+    const int PID_LEN = 5;
+    const int NAME_LEN = 8;
+    const char* status_str[] = {
+        [TASK_BLOCKED] = "BLOCKED",
+        [TASK_READY] = "READY",
+        [TASK_RUNNING] = "RUNNING",
+        [TASK_EXITED] = "EXITED",
+    };
+    printk("PID"), screen_move_cursor_col(PID_LEN);
+    printk("NAME"), screen_move_cursor_col(PID_LEN + NAME_LEN);
+    printk("STATUS\n");
+#define display_proc(proc)                      \
+    printk("%d", (proc)->pid);                  \
+    screen_move_cursor_col(PID_LEN);            \
+    printk("%s", (proc)->name);                 \
+    screen_move_cursor_col(PID_LEN + NAME_LEN); \
+    printk("%s\n", status_str[(proc)->status]);
+    display_proc(&pid0_pcb);
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        pcb_t* proc = &pcb[i];
+        if (proc->status == TASK_EXITED) continue;
+        display_proc(proc);
+    }
+#undef display_proc
+    return;
+}
+
+void do_exit() { return; }
+
+int do_kill(pid_t pid) { return 0; }
+
+int do_waitpid(pid_t pid) { return 0; }
 
 void set_process_workload(int workload) {
     if (workload > current_running->task_workload) {

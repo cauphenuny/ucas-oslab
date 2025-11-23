@@ -25,12 +25,6 @@
 int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
 
-extern void ret_from_exception();
-
-// Task info array
-int task_num;
-task_info_t tasks[TASK_MAXNUM];
-
 static int bss_check(void) {
     for (int i = 0; i < VERSION_BUF; ++i) {
         if (buf[i] != 0) {
@@ -69,35 +63,7 @@ static void init_task_info(void) {
 
 /************************************************************/
 
-#define KERNEL_STACK_PAGES 1
-#define USER_STACK_PAGES   4
-
 extern pcb_t pcb[NUM_MAX_TASK];
-int pid_counter = 1;
-
-static void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t* pcb) {
-    /* TODO: [p2-task3] initialization of registers on kernel stack
-     * HINT: sp, ra, sepc, sstatus
-     * NOTE: To run the task in user mode, you should set corresponding bits
-     *     of sstatus(SPP, SPIE, etc.).
-     */
-    regs_context_t* pt_regs = (regs_context_t*)(kernel_stack - sizeof(regs_context_t));
-    pt_regs->sepc = entry_point;
-    pt_regs->sstatus = SR_SPIE;
-    pt_regs->regs[REG_SP] = user_stack;
-
-    /* TODO: [p2-task1] set sp to simulate just returning from switch_to
-     * NOTE: you should prepare a stack, and push some values to
-     * simulate a callee-saved context.
-     */
-    switchto_context_t* pt_switchto =
-        (switchto_context_t*)((ptr_t)pt_regs - sizeof(switchto_context_t));
-
-    pcb->kernel_sp = (ptr_t)pt_switchto;
-    pcb->user_sp = user_stack;
-    pt_switchto->regs[SWITCHTO_REG_RA] = (reg_t)ret_from_exception;
-    pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
-}
 
 static void init_pcb(void) {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
@@ -112,37 +78,9 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"shell"};
-
-    for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
-        task_info_t* task = NULL;
-        for (int j = 0; j < task_num; j++) {
-            if (strcmp(run_tasks[i], tasks[j].name) == 0) {
-                task = &tasks[j];
-                break;
-            }
-        }
-        assert(task);
-        pretty_log(LOG_INFO, "Loading task %s.", task->name);
-        int kernel_stack_top = allocKernelPage(KERNEL_STACK_PAGES) + KERNEL_STACK_PAGES * PAGE_SIZE;
-        int user_stack_top = allocUserPage(USER_STACK_PAGES) + USER_STACK_PAGES * PAGE_SIZE;
-        pretty_log(LOG_DEBUG, "    ksp: 0x%x, usp: 0x%x", kernel_stack_top, user_stack_top);
-        pcb_t* alloc_pcb = NULL;
-        for (int j = 0; j < NUM_MAX_TASK; j++) {
-            if (pcb[j].status == TASK_EXITED) {
-                alloc_pcb = &pcb[j];
-                break;
-            }
-        }
-        assert(alloc_pcb);
-        memset(alloc_pcb, 0, sizeof(pcb_t));
-        alloc_pcb->pid = pid_counter;
-        alloc_pcb->status = TASK_READY;
-        strcpy(alloc_pcb->name, task->name);
-        init_pcb_stack(kernel_stack_top, user_stack_top, task->entrance, alloc_pcb);
-        list_append(&ready_queue, &alloc_pcb->list);
-        pid_counter++;
-    }
+    pcb_t* pcb = construct_pcb("shell", 1, (char*[]){"shell"});
+    assert(pcb);
+    list_append(&ready_queue, &pcb->list);
 }
 
 static void init_syscall(void) {
@@ -150,6 +88,10 @@ static void init_syscall(void) {
     syscall[SYSCALL_SLEEP] = sys_sleep;
     syscall[SYSCALL_YIELD] = sys_yield;
     syscall[SYSCALL_EXEC] = sys_exec;
+    syscall[SYSCALL_EXIT] = sys_exit;
+    syscall[SYSCALL_KILL] = sys_kill;
+    syscall[SYSCALL_WAITPID] = sys_waitpid;
+    syscall[SYSCALL_PS] = sys_process_show;
 
     syscall[SYSCALL_WRITE] = sys_write;
     syscall[SYSCALL_READCH] = sys_readch;

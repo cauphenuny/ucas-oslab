@@ -1,6 +1,7 @@
 #ifndef __INCLUDE_TASK_H__
 #define __INCLUDE_TASK_H__
 
+#include <os/sched.h>
 #include <type.h>
 
 #define TASK_MEM_BASE 0x52000000
@@ -19,6 +20,10 @@ typedef struct {
     uint64_t entrance;
 } task_info_t;
 
+extern int task_num;
 extern task_info_t tasks[TASK_MAXNUM];
+
+task_info_t* find_task(const char* name);
+pcb_t* construct_pcb(const char* name, int argc, char* argv[]);
 
 #endif

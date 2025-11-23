@@ -1,9 +1,14 @@
+#include <logger.h>
 #include <os/list.h>
 
 /**
  * @brief Add a node to the beginning of the list.
  */
 void list_prepend(list_head* head, list_node_t* node) {
+    if (node->next || node->prev) {
+        pretty_loge("trying to prepend a node already in a list: %x", node);
+        return;
+    }
     node->next = head->next;
     node->prev = head;
     head->next->prev = node;
@@ -14,6 +19,10 @@ void list_prepend(list_head* head, list_node_t* node) {
  * @brief Add a node to the end of the list.
  */
 void list_append(list_head* head, list_node_t* node) {
+    if (node->next || node->prev) {
+        pretty_loge("trying to append a node already in a list: %x", node);
+        return;
+    }
     node->prev = head->prev;
     node->next = head;
     head->prev->next = node;
@@ -57,8 +66,13 @@ size_t list_size(const list_head* head) {
 }
 
 void list_delete(list_node_t* node) {
+    if (!node->prev || !node->next) {
+        pretty_loge("trying to delete a node not in any list: %x", node);
+        return;
+    }
     node->prev->next = node->next;
     node->next->prev = node->prev;
+    node->prev = node->next = NULL;
 }
 
 void list_init(list_head* head) {

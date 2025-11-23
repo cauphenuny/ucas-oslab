@@ -105,6 +105,20 @@ long sys_lock_release(int handle) {
     return 0;
 }
 
+long sys_barrier_init(int key, int goal) {
+    return do_barrier_init(key, goal);
+}
+
+long sys_barrier_destroy(int bar_idx) {
+    do_barrier_destroy(bar_idx);
+    return 0;
+}
+
+long sys_barrier_wait(int bar_idx) {
+    do_barrier_wait(bar_idx);
+    return 0;
+}
+
 /***************** screen *****************/
 
 long sys_write(char *buff) {

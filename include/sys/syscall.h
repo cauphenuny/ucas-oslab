@@ -35,11 +35,11 @@
 
 /* syscall function pointer */
 extern long (*syscall[NUM_SYSCALLS])();
-extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause);
+extern void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause);
 
 long sys_sleep(uint32_t);
 long sys_yield(void);
-long sys_exec(char *, int, char **);
+long sys_exec(char*, int, char**);
 long sys_exit(void);
 long sys_kill(pid_t);
 long sys_waitpid(pid_t);
@@ -48,7 +48,7 @@ long sys_getpid(void);
 long sys_process_show();
 long sys_task_show();
 
-long sys_write(char *);
+long sys_write(char*);
 long sys_readch();
 long sys_move_cursor(int, int);
 long sys_move_cursor_row(int);
@@ -62,6 +62,10 @@ long sys_get_tick(void);
 long sys_lock_init(int);
 long sys_lock_acquire(int);
 long sys_lock_release(int);
+
+long sys_barrier_init(int key, int goal);
+long sys_barrier_destroy(int bar_idx);
+long sys_barrier_wait(int bar_idx);
 
 long sys_set_workload(int);
 

@@ -105,9 +105,12 @@ static void init_syscall(void) {
     syscall[SYSCALL_LOCK_ACQ] = sys_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE] = sys_lock_release;
 
+    syscall[SYSCALL_BARR_INIT] = sys_barrier_init;
+    syscall[SYSCALL_BARR_WAIT] = sys_barrier_wait;
+    syscall[SYSCALL_BARR_DESTROY] = sys_barrier_destroy;
+
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_TASK_SHOW] = sys_task_show;
-
 }
 
 /************************************************************/

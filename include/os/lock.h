@@ -43,7 +43,7 @@ typedef struct spin_lock {
 
 typedef struct mutex_lock {
     spin_lock_t lock;
-    list_head block_queue;  // container type: pcb_t
+    list_head block_list;  // container type: pcb_t
     int acquired, pid;
     int key;
 } mutex_lock_t;
@@ -63,7 +63,11 @@ void cleanup_mutex(pid_t pid);
 
 /************************************************************/
 typedef struct barrier {
-    // TODO [P3-TASK2 barrier]
+    int key;
+    int goal;
+    int current;
+    spin_lock_t lock;
+    list_head block_list;  // container type: pcb_t
 } barrier_t;
 
 #define BARRIER_NUM 16

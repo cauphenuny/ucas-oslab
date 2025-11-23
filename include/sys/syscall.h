@@ -43,6 +43,7 @@ long sys_exec(char *, int, char **);
 long sys_exit(void);
 long sys_kill(pid_t);
 long sys_waitpid(pid_t);
+long sys_getpid(void);
 
 long sys_process_show();
 long sys_task_show();

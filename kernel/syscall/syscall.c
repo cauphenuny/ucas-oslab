@@ -75,6 +75,10 @@ long sys_waitpid(pid_t pid) {
     return do_waitpid(pid);
 }
 
+long sys_getpid() {
+    return current_running->pid;
+}
+
 long sys_process_show() {
     do_process_show();
     return 0;

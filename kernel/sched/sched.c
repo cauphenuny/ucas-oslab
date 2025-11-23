@@ -17,6 +17,7 @@ const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
 pcb_t pid0_pcb = {
     .kernel_sp = (ptr_t)pid0_stack,
     .user_sp = (ptr_t)pid0_stack,
+    .wait_list = {&pid0_pcb.wait_list, &pid0_pcb.wait_list},
     .pid = 0,
     .name = "init",
 };
@@ -33,9 +34,16 @@ pcb_t* alloc_pcb() {
         pretty_log(LOG_ERROR, "no free PCB!");
         return NULL;
     }
-    memset(selected_pcb, 0, sizeof(pcb_t));
-    selected_pcb->pid = process_id++;
     return selected_pcb;
+}
+
+pcb_t* find_pcb(pid_t pid) {
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        if (pcb[i].pid == pid && pcb[i].status != TASK_EXITED) {
+            return &pcb[i];
+        }
+    }
+    return NULL;
 }
 
 void free_pcb(pcb_t* pcb) {
@@ -64,8 +72,7 @@ void print_sched_queue(const list_head* queue, const char* name) {
         // ptr_t ra1;
         // LOAD_SCHED_RA(ra1, pcb->user_sp);
         pretty_log(
-            LOG_DEBUG, "(%d) %s: status=%d, sp=0x%x/0x%x", pcb->pid, pcb->name, pcb->status,
-            pcb->kernel_sp, pcb->user_sp, *(int*)(pcb->kernel_sp));
+            LOG_DEBUG, "(%d) %s: status=%d, node=0x%x", pcb->pid, pcb->name, pcb->status, current);
         current = current->next;
     }
 }
@@ -81,6 +88,7 @@ pcb_t* pick_process() {
     int min_slice_cnt = 0x7f7f7f7f;
     // return container_of(ready_queue.next, pcb_t, list);
     pcb_t* selected_proc = NULL;
+    assert(ready_queue.next != &ready_queue);
     list_foreach_node(iter, &ready_queue) {
         pcb_t* proc = container_of(iter, pcb_t, list);
         int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
@@ -95,6 +103,15 @@ pcb_t* pick_process() {
             }
         }
     }
+    if (!selected_proc) {
+        pretty_loge("no candidate selected, fallback to first (pid 0)");
+        selected_proc = container_of(ready_queue.next, pcb_t, list);
+    }
+    assert(selected_proc);
+
+    pretty_log(
+        LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", selected_proc->pid,
+        selected_proc->task_id, selected_proc->task_workload, selected_proc->slice_cnt);
     if (time_slice_history[time_slice_history_index]) {
         time_slice_history[time_slice_history_index]->slice_cnt--;
     }
@@ -125,7 +142,7 @@ void do_scheduler(void) {
     pcb_t* next_running = pick_process();
     list_delete(&next_running->list);
     pretty_log(
-        LOG_INFO, "switch from pid %d(%s) to pid %d(%s).                ", current_running->pid,
+        LOG_INFO, "switch from pid %d(%s) to pid %d(%s).", current_running->pid,
         current_running->name, next_running->pid, next_running->name);
     next_running->status = TASK_RUNNING;
 
@@ -152,13 +169,14 @@ void do_sleep(uint32_t sleep_time) {
     do_scheduler();
 }
 
+// NOTE: do_block would not delete node from any list
 void do_block(list_node_t* pcb_node, list_head* queue) {
     // TODO: [p2-task2] block the pcb task into the block queue
+    asserts(!pcb_node->next && !pcb_node->prev, "pcb_node is already in a list");
     pcb_t* pcb = container_of(pcb_node, pcb_t, list);
     pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
     if (pcb->status == TASK_BLOCKED) return;
     pcb->status = TASK_BLOCKED;
-    list_delete(pcb_node);
     list_append(queue, pcb_node);
 }
 
@@ -177,12 +195,26 @@ void do_unblock(list_node_t* pcb_node) {
     list_append(&ready_queue, pcb_node);
 }
 
+void exit_wakeup(pcb_t* pcb) {
+    for (list_node_t *node = pcb->wait_list.next, *next; node != &pcb->wait_list; node = next) {
+        next = node->next;
+        pcb_t* wait_pcb = container_of(node, pcb_t, list);
+        pretty_log(LOG_INFO, "waking up waiting pid %d on exit of pid %d", wait_pcb->pid, pcb->pid);
+        do_unblock(node);
+    }
+}
+
 void cleanup(pcb_t* pcb) {
-    // TODO:
+    pid_t pid = pcb->pid;
+    pretty_log(LOG_INFO, "cleaning up pid %d", pid);
+    cleanup_mutex(pid);
+    list_delete(&pcb->list);
+    exit_wakeup(pcb);
     free_pcb(pcb);
 }
 
 pid_t do_exec(char* name, int argc, char* argv[]) {
+    pretty_log(LOG_DEBUG, "handling exec for %s", name);
     pcb_t* pcb = construct_pcb(name, argc, argv);
     if (!pcb) {
         pretty_log(LOG_WARN, "exec %s failed!", name);
@@ -190,6 +222,7 @@ pid_t do_exec(char* name, int argc, char* argv[]) {
     }
     pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
     list_append(&ready_queue, &pcb->list);
+    print_sched_queue(&ready_queue, "ready_queue");
     return pcb->pid;
 }
 
@@ -221,11 +254,31 @@ void do_process_show() {
     return;
 }
 
-void do_exit() { return; }
+void do_exit() {
+    cleanup(current_running);
+    do_scheduler();
+}
 
-int do_kill(pid_t pid) { return 0; }
+int do_kill(pid_t pid) {
+    pcb_t* pcb = find_pcb(pid);
+    if (!pcb || current_running->pid == pid) {
+        return 0;
+    }
+    cleanup(pcb);
+    return 1;
+}
 
-int do_waitpid(pid_t pid) { return 0; }
+int do_waitpid(pid_t pid) {
+    pcb_t* pcb = find_pcb(pid);
+    if (!pcb) {
+        return 0;
+    }
+    list_append(&pcb->wait_list, &current_running->list);
+    // list_delete(&current_running->list);
+    current_running->status = TASK_BLOCKED;
+    do_scheduler();
+    return pid;
+}
 
 void set_process_workload(int workload) {
     if (workload > current_running->task_workload) {

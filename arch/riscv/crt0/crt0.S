@@ -2,6 +2,7 @@
 
 .extern __bss_start
 .extern __BSS_END__
+.extern sys_exit
 
 // .equ USER_STACK_TOP, 0x5f000000
 
@@ -19,15 +20,6 @@ ENTRY(_start)
     addi t2, t2, 4
     blt t2, t1, .clear
 
-.setup:
-    // setup stack
-    // la t0, USER_STACK_TOP
-    addi sp, sp, -16
-    sd ra, 0(sp)
-    sd sp, 8(sp)
-    // mv sp, t0
-
-
     /* TODO: [p1-task3] enter main function */
 .enter:
     jal main
@@ -35,9 +27,7 @@ ENTRY(_start)
 
     /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
 .ret:
-    ld ra, 0(sp)
-	ld sp, 8(sp)
-    ret
+    j sys_exit
 
     /************************************************************/
     /* TODO: [P3] call sys_exit */

@@ -77,22 +77,18 @@ static void init_pcb(void) {
     for (int i = 0; i < NUM_MAX_TASK; i++) {
         pcb[i].status = TASK_EXITED;
     }
-
-    pcb_t* pcb = construct_pcb("shell", 1, (char*[]){"shell"});
-    assert(pcb);
-    list_append(&ready_queue, &pcb->list);
 }
 
 static void init_syscall(void) {
     // TODO: [p2-task3] initialize system call table.
-    syscall[SYSCALL_SLEEP] = sys_sleep;
-    syscall[SYSCALL_YIELD] = sys_yield;
     syscall[SYSCALL_EXEC] = sys_exec;
     syscall[SYSCALL_EXIT] = sys_exit;
+    syscall[SYSCALL_SLEEP] = sys_sleep;
     syscall[SYSCALL_KILL] = sys_kill;
     syscall[SYSCALL_WAITPID] = sys_waitpid;
     syscall[SYSCALL_PS] = sys_process_show;
-    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
+    syscall[SYSCALL_GETPID] = sys_getpid;
+    syscall[SYSCALL_YIELD] = sys_yield;
 
     syscall[SYSCALL_WRITE] = sys_write;
     syscall[SYSCALL_READCH] = sys_readch;
@@ -110,6 +106,8 @@ static void init_syscall(void) {
     syscall[SYSCALL_LOCK_RELEASE] = sys_lock_release;
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
+    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
+
 }
 
 /************************************************************/
@@ -218,7 +216,8 @@ int main(int argc, char** argv) {
     // Init Process Control Blocks |•'-'•) ✧
     init_pcb();
     pretty_log(LOG_INFO, "[INIT] PCB initialization succeeded.");
-    breakpoint();
+
+    do_exec("shell", 1, (char*[]){"shell"});
 
     // while (true) {
     // int _ = echoed_bios_getchar();

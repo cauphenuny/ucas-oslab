@@ -89,14 +89,14 @@ int do_mutex_lock_init(int key) {
     /* TODO: [p2-task2] initialize mutex lock */
     int id = -1;
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
-        spin_guard_t guard(mlocks[i].lock);
+        with_spin guard(mlocks[i].lock);
         if (mlock_used[i] && mlocks[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing mutex lock %d for key %d", id, key);
         }
     }
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
-        spin_guard_t guard(mlocks[i].lock);
+        with_spin guard(mlocks[i].lock);
         if (!mlock_used[i]) {
             mlock_used[i] = true;
             mlocks[i].key = key;
@@ -119,10 +119,12 @@ void do_mutex_lock_acquire(int mlock_idx) {
     mutex_lock_t* mutex = &mlocks[mlock_idx];
     while (true) {
         {
-            spin_guard_t guard(mutex->lock);
+            with_spin guard(mutex->lock);
             if (!mutex->acquired) {
                 mutex->acquired = 1;
                 mutex->pid = current_running->pid;
+                pretty_log(
+                    LOG_INFO, "mutex lock %d acquired by pid %d", mlock_idx, current_running->pid);
                 break;
             } else {
                 pretty_log(
@@ -136,14 +138,28 @@ void do_mutex_lock_acquire(int mlock_idx) {
     }
 }
 
+static void mutex_wakeup(int mlock_idx) {
+    /// NOTE: need to be called with mutex lock held
+    mutex_lock_t* mutex = mlocks + mlock_idx;
+    print_sched_queue(&mutex->block_queue, "mutex block_queue");
+    for (list_node_t *node = mutex->block_queue.next, *next; node != &mutex->block_queue;
+         node = next) {
+        next = node->next;
+        pcb_t* pcb = container_of(node, pcb_t, list);
+        pretty_log(LOG_INFO, "waking up blocked pid %d on mutex lock %d", pcb->pid, mlock_idx);
+        do_unblock(node);
+    }
+}
+
 void do_mutex_lock_release(int mlock_idx) {
     /* TODO: [p2-task2] release mutex lock */
     if (mlock_idx < 0 || mlock_idx >= LOCK_NUM) {
         pretty_loge("mutex lock index %d out of range!", mlock_idx);
         return;
     }
+    pretty_log(LOG_INFO, "pid %d releasing mutex lock %d", current_running->pid, mlock_idx);
     mutex_lock_t* mutex = &mlocks[mlock_idx];
-    spin_guard_t guard(mutex->lock);
+    with_spin guard(mutex->lock);
     if (!mlock_used[mlock_idx]) {
         pretty_loge("mutex lock %d is not initialized!", mlock_idx);
     } else if (mutex->pid != current_running->pid) {
@@ -152,16 +168,19 @@ void do_mutex_lock_release(int mlock_idx) {
             mutex->pid, current_running->pid);
     } else {
         mutex->acquired = 0;
-        print_sched_queue(&mutex->block_queue, "mutex block_queue");
-        for (list_node_t *node = mutex->block_queue.next, *next; node != &mutex->block_queue;
-             node = next) {
-            next = node->next;
-            pcb_t* pcb = container_of(node, pcb_t, list);
-            pretty_log(LOG_INFO, "waking up blocked pid %d on mutex lock %d", pcb->pid, mlock_idx);
-            breakpoint_set(BRK_DEBUG);
-            do_unblock(node);
-        }
+        mutex_wakeup(mlock_idx);
     }
     return;
+}
+
+void cleanup_mutex(pid_t pid) {
+    for (int i = 0; i < LOCK_NUM; i++) {
+        with_spin guard(mlocks[i].lock);
+        if (mlock_used[i] && mlocks[i].acquired && mlocks[i].pid == pid) {
+            pretty_log(LOG_INFO, "cleaned up mutex lock %d for pid %d", i, pid);
+            mlocks[i].acquired = 0;
+            mutex_wakeup(i);
+        }
+    }
 }
 }

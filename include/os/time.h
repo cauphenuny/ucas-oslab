@@ -30,8 +30,11 @@
 
 #include <type.h>
 
+// NOTE: for debug
+#define TIMER_INTERVAL 100000
+
 // NOTE: for emulatation
-#define TIMER_INTERVAL 10000
+// #define TIMER_INTERVAL 10000
 
 // NOTE: for board
 // #define TIMER_INTERVAL 3000

@@ -47,6 +47,7 @@
 const char* prompt = "> root@UCAS_OS: ";
 int prompt_len;
 
+int ts(int, char**);
 int ps(int, char**);
 int exec(int, char**);
 int kill(int, char**);
@@ -65,9 +66,13 @@ typedef struct command {
 } command_t;
 
 const command_t COMMAND_TABLE[] = {
-    {"echo", subcmd_lint, echo},       {"ps", subcmd_lint, ps},
-    {"exec", subcmd_lint, exec},       {"kill", subcmd_lint, kill},
-    {"clear", subcmd_lint, clear},     {"decompose", subcmd_lint, decompose},
+    {"echo", subcmd_lint, echo},
+    {"ts", subcmd_lint, ts},
+    {"ps", subcmd_lint, ps},
+    {"exec", subcmd_lint, exec},
+    {"kill", subcmd_lint, kill},
+    {"clear", subcmd_lint, clear},
+    {"decompose", subcmd_lint, decompose},
     {"keycode", subcmd_lint, keycode},
 };
 
@@ -252,6 +257,11 @@ int decompose(int argc, char** argv) {
 
 int ps(int argc, char** argv) {
     sys_ps();
+    return 0;
+}
+
+int ts(int argc, char** argv) {
+    sys_task_show();
     return 0;
 }
 

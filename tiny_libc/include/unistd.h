@@ -26,6 +26,8 @@ void sys_mutex_release(int mutex_idx);
 
 void sys_set_sche_workload(int workload);
 
+void sys_task_show(void);
+
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
 void sys_ps(void);

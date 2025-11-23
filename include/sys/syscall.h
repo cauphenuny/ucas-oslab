@@ -45,6 +45,7 @@ long sys_kill(pid_t);
 long sys_waitpid(pid_t);
 
 long sys_process_show();
+long sys_task_show();
 
 long sys_write(char *);
 long sys_readch();

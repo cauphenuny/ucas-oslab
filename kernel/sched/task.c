@@ -5,6 +5,7 @@
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
+#include <screen.h>
 
 // Task info array
 int task_num;
@@ -16,7 +17,34 @@ task_info_t* find_task(const char* name) {
             return &tasks[i];
         }
     }
+    pretty_log(LOG_WARN, "task %s not found!", name);
     return NULL;
+}
+
+void show_tasks(void) {
+    const int NAME_LEN = 16;
+    const int ENTRANCE_LEN = 12;
+    printk("TASK_NAME"), screen_move_cursor_col(NAME_LEN);
+    printk("ENTRANCE"), screen_move_cursor_col(NAME_LEN + ENTRANCE_LEN);
+    printk("NAME"), screen_move_cursor_col(NAME_LEN + ENTRANCE_LEN + NAME_LEN);
+    printk("ENTRANCE\n");
+    int len = 0;
+    for (int i = 0; i < task_num; i++) {
+        task_info_t* task = &tasks[i];
+        printk("%s", task->name);
+        len += NAME_LEN;
+        screen_move_cursor_col(len);
+        printk("0x%x", task->entrance);
+        len += ENTRANCE_LEN;
+        screen_move_cursor_col(len);
+        if ((i + 1) % 2 == 0) {
+            printk("\n");
+            len = 0;
+        }
+    }
+    if (task_num % 2 != 0) {
+        printk("\n");
+    }
 }
 
 extern void ret_from_exception();
@@ -66,10 +94,12 @@ static void init_pcb_stack(
 #define USER_STACK_PAGES   4
 
 pcb_t* construct_pcb(const char* name, int argc, char* argv[]) {
+    pretty_log(LOG_DEBUG, "constructing pcb for task %s", name);
     task_info_t* task = find_task(name);
     if (!task) return NULL;
     pcb_t* pcb = alloc_pcb();
     if (!pcb) return NULL;
+    pretty_log(LOG_DEBUG, "process id: %d", pcb->pid);
     pcb->status = TASK_READY;
     int kernel_stack_top = allocKernelPage(KERNEL_STACK_PAGES) + KERNEL_STACK_PAGES * PAGE_SIZE;
     int user_stack_top = allocUserPage(USER_STACK_PAGES) + USER_STACK_PAGES * PAGE_SIZE;

@@ -92,6 +92,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_KILL] = sys_kill;
     syscall[SYSCALL_WAITPID] = sys_waitpid;
     syscall[SYSCALL_PS] = sys_process_show;
+    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
 
     syscall[SYSCALL_WRITE] = sys_write;
     syscall[SYSCALL_READCH] = sys_readch;

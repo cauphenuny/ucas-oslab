@@ -1,5 +1,4 @@
-#include "asm/regs.h"
-
+#include <asm/regs.h>
 #include <assert.h>
 #include <breakpoint.h>
 #include <logger.h>
@@ -8,6 +7,7 @@
 #include <os/mm.h>
 #include <os/sched.h>
 #include <os/string.h>
+#include <os/task.h>
 #include <os/time.h>
 #include <printk.h>
 #include <screen.h>
@@ -29,9 +29,13 @@ pcb_t* alloc_pcb() {
             break;
         }
     }
+    if (!selected_pcb) {
+        pretty_log(LOG_ERROR, "no free PCB!");
+        return NULL;
+    }
     memset(selected_pcb, 0, sizeof(pcb_t));
     selected_pcb->pid = process_id++;
-    return pcb;
+    return selected_pcb;
 }
 
 void free_pcb(pcb_t* pcb) {
@@ -178,11 +182,20 @@ void cleanup(pcb_t* pcb) {
     free_pcb(pcb);
 }
 
-pid_t do_exec(char* name, int argc, char* argv[]) { return -1; }
+pid_t do_exec(char* name, int argc, char* argv[]) {
+    pcb_t* pcb = construct_pcb(name, argc, argv);
+    if (!pcb) {
+        pretty_log(LOG_WARN, "exec %s failed!", name);
+        return 0;
+    }
+    pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
+    list_append(&ready_queue, &pcb->list);
+    return pcb->pid;
+}
 
 void do_process_show() {
     const int PID_LEN = 5;
-    const int NAME_LEN = 8;
+    const int NAME_LEN = 16;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",

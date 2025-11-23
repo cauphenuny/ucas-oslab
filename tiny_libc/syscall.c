@@ -96,6 +96,10 @@ void sys_set_sche_workload(int workload) {
     invoke_syscall(SYSCALL_SET_WORKLOAD, workload, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+void sys_task_show(void) {
+    invoke_syscall(SYSCALL_TASK_SHOW, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)
@@ -106,6 +110,7 @@ pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)
 pid_t  sys_exec(char *name, int argc, char **argv)
 {
     /* TODO: [p3-task1] call invoke_syscall to implement sys_exec */
+    invoke_syscall(SYSCALL_EXEC, (long)name, (long)argc, (long)argv, IGNORE, IGNORE);
 }
 #endif
 

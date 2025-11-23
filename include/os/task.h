@@ -24,6 +24,7 @@ extern int task_num;
 extern task_info_t tasks[TASK_MAXNUM];
 
 task_info_t* find_task(const char* name);
+void show_tasks(void);
 pcb_t* construct_pcb(const char* name, int argc, char* argv[]);
 
 #endif

@@ -1,3 +1,4 @@
+#include <os/task.h>
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/time.h>
@@ -61,22 +62,6 @@ long sys_set_workload(int workload) {
     return 0;
 }
 
-/***************** sync *****************/
-
-long sys_lock_init(int key) {
-    return do_mutex_lock_init(key);
-}
-
-long sys_lock_acquire(int handle) {
-    do_mutex_lock_acquire(handle);
-    return 0;
-}
-
-long sys_lock_release(int handle) {
-    do_mutex_lock_release(handle);
-    return 0;
-}
-
 long sys_exit(void) {
     do_exit();
     return 0;
@@ -92,6 +77,27 @@ long sys_waitpid(pid_t pid) {
 
 long sys_process_show() {
     do_process_show();
+    return 0;
+}
+
+long sys_task_show() {
+    show_tasks();
+    return 0;
+}
+
+/***************** sync *****************/
+
+long sys_lock_init(int key) {
+    return do_mutex_lock_init(key);
+}
+
+long sys_lock_acquire(int handle) {
+    do_mutex_lock_acquire(handle);
+    return 0;
+}
+
+long sys_lock_release(int handle) {
+    do_mutex_lock_release(handle);
     return 0;
 }
 

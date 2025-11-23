@@ -60,8 +60,7 @@ void do_mutex_lock_acquire(int mlock_idx);
 void do_mutex_lock_release(int mlock_idx);
 
 /************************************************************/
-typedef struct barrier
-{
+typedef struct barrier {
     // TODO [P3-TASK2 barrier]
 } barrier_t;
 
@@ -72,8 +71,7 @@ int do_barrier_init(int key, int goal);
 void do_barrier_wait(int bar_idx);
 void do_barrier_destroy(int bar_idx);
 
-typedef struct condition
-{
+typedef struct condition {
     // TODO [P3-TASK2 condition]
 } condition_t;
 
@@ -86,8 +84,7 @@ void do_condition_signal(int cond_idx);
 void do_condition_broadcast(int cond_idx);
 void do_condition_destroy(int cond_idx);
 
-typedef struct semaphore
-{
+typedef struct semaphore {
     // TODO [P3-TASK2 semaphore]
 } semaphore_t;
 
@@ -101,17 +98,16 @@ void do_semaphore_destroy(int sema_idx);
 
 #define MAX_MBOX_LENGTH (64)
 
-typedef struct mailbox
-{
+typedef struct mailbox {
     // TODO [P3-TASK2 mailbox]
 } mailbox_t;
 
 #define MBOX_NUM 16
 void init_mbox();
-int do_mbox_open(char *name);
+int do_mbox_open(char* name);
 void do_mbox_close(int mbox_idx);
-int do_mbox_send(int mbox_idx, void * msg, int msg_length);
-int do_mbox_recv(int mbox_idx, void * msg, int msg_length);
+int do_mbox_send(int mbox_idx, void* msg, int msg_length);
+int do_mbox_recv(int mbox_idx, void* msg, int msg_length);
 
 /************************************************************/
 

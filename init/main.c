@@ -147,21 +147,26 @@ static void init_pcb(void) {
 
 static void init_syscall(void) {
     // TODO: [p2-task3] initialize system call table.
-    syscall[SYSCALL_SLEEP] = (long (*)())do_sleep;
-    syscall[SYSCALL_YIELD] = (long (*)())do_scheduler;
-    syscall[SYSCALL_WRITE] = (long (*)())screen_write;
-    syscall[SYSCALL_READCH] = (long (*)())port_read_ch;
-    syscall[SYSCALL_CURSOR] = (long (*)())screen_move_cursor;
-    syscall[SYSCALL_CURSOR_COL] = (long (*)())screen_move_cursor_col;
-    syscall[SYSCALL_CURSOR_ROW] = (long (*)())screen_move_cursor_row;
-    syscall[SYSCALL_REFLUSH] = (long (*)())screen_reflush;
-    syscall[SYSCALL_CLEAR] = (long (*)())screen_clear;
-    syscall[SYSCALL_GET_TIMEBASE] = (long (*)())get_time_base;
-    syscall[SYSCALL_GET_TICK] = (long (*)())get_ticks;
-    syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
-    syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
-    syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
-    syscall[SYSCALL_SET_WORKLOAD] = (long (*)())set_process_workload;
+    syscall[SYSCALL_SLEEP] = sys_sleep;
+    syscall[SYSCALL_YIELD] = sys_yield;
+    syscall[SYSCALL_EXEC] = sys_exec;
+
+    syscall[SYSCALL_WRITE] = sys_write;
+    syscall[SYSCALL_READCH] = sys_readch;
+    syscall[SYSCALL_CURSOR] = sys_move_cursor;
+    syscall[SYSCALL_CURSOR_COL] = sys_move_cursor_col;
+    syscall[SYSCALL_CURSOR_ROW] = sys_move_cursor_row;
+    syscall[SYSCALL_REFLUSH] = sys_screen_reflush;
+    syscall[SYSCALL_CLEAR] = sys_screen_clear;
+
+    syscall[SYSCALL_GET_TIMEBASE] = sys_get_timebase;
+    syscall[SYSCALL_GET_TICK] = sys_get_tick;
+
+    syscall[SYSCALL_LOCK_INIT] = sys_lock_init;
+    syscall[SYSCALL_LOCK_ACQ] = sys_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE] = sys_lock_release;
+
+    syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
 }
 
 /************************************************************/

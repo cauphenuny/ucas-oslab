@@ -1,4 +1,7 @@
-#include "os/sched.h"
+#include <os/lock.h>
+#include <os/sched.h>
+#include <os/time.h>
+#include <screen.h>
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
@@ -36,3 +39,87 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     regs->regs[REG_A0] = ret;
     regs->regs[REG_SEPC] += 4;
 }
+
+/***************** proc *****************/
+
+long sys_sleep(uint32_t time) {
+    do_sleep(time);
+    return 0;
+}
+
+long sys_yield(void) {
+    do_scheduler();
+    return 0;
+}
+
+long sys_exec(char *name, int argc, char *argv[]) {
+    return do_exec(name, argc, argv);
+}
+
+long sys_set_workload(int workload) {
+    set_process_workload(workload);
+    return 0;
+}
+
+/***************** sync *****************/
+
+long sys_lock_init(int key) {
+    return do_mutex_lock_init(key);
+}
+
+long sys_lock_acquire(int handle) {
+    do_mutex_lock_acquire(handle);
+    return 0;
+}
+
+long sys_lock_release(int handle) {
+    do_mutex_lock_release(handle);
+    return 0;
+}
+
+/***************** screen *****************/
+
+long sys_write(char *buff) {
+    screen_write(buff);
+    return 0;
+}
+
+long sys_readch(void) {
+    return port_read_ch();
+}
+
+long sys_move_cursor(int x, int y) {
+    screen_move_cursor(x, y);
+    return 0;
+}
+
+long sys_move_cursor_row(int row) {
+    screen_move_cursor_row(row);
+    return 0;
+}
+
+long sys_move_cursor_col(int col) {
+    screen_move_cursor_col(col);
+    return 0;
+}
+
+long sys_screen_reflush(void) {
+    screen_reflush();
+    return 0;
+}
+
+long sys_screen_clear(void) {
+    screen_clear();
+    return 0;
+}
+
+/***************** time *****************/
+
+long sys_get_timebase(void) {
+    return get_time_base();
+}
+
+long sys_get_tick(void) {
+    return get_ticks();
+}
+

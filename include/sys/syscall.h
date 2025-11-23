@@ -37,4 +37,24 @@
 extern long (*syscall[NUM_SYSCALLS])();
 extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
+long sys_sleep(uint32_t);
+long sys_yield(void);
+long sys_exec(char *, int, char **);
+long sys_write(char *);
+long sys_readch();
+long sys_move_cursor(int, int);
+long sys_move_cursor_row(int);
+long sys_move_cursor_col(int);
+long sys_screen_reflush(void);
+long sys_screen_clear(void);
+
+long sys_get_timebase(void);
+long sys_get_tick(void);
+
+long sys_lock_init(int);
+long sys_lock_acquire(int);
+long sys_lock_release(int);
+
+long sys_set_workload(int);
+
 #endif

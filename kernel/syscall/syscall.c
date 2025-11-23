@@ -1,3 +1,4 @@
+#include <os/kernel.h>
 #include <os/task.h>
 #include <os/lock.h>
 #include <os/sched.h>
@@ -147,7 +148,7 @@ long sys_semaphore_init(int key, int init) {
     return do_semaphore_init(key, init);
 }
 
-long sys_sempahore_up(int sema_idx) {
+long sys_semaphore_up(int sema_idx) {
     do_semaphore_up(sema_idx);
     return 0;
 }
@@ -162,6 +163,23 @@ long sys_semaphore_destroy(int sema_idx) {
     return 0;
 }
 
+long sys_mbox_open(char *name) {
+    return do_mbox_open(name);
+}
+
+long sys_mbox_close(int mbox_id) {
+    do_mbox_close(mbox_id);
+    return 0;
+}
+
+long sys_mbox_send(int mbox_idx, void *msg, int msg_length) {
+    return do_mbox_send(mbox_idx, msg, msg_length);
+}
+
+long sys_mbox_recv(int mbox_idx, void *msg, int msg_length) {
+    return do_mbox_recv(mbox_idx, msg, msg_length);
+}
+
 /***************** screen *****************/
 
 long sys_write(char *buff) {
@@ -170,7 +188,7 @@ long sys_write(char *buff) {
 }
 
 long sys_readch(void) {
-    return port_read_ch();
+    return bios_getchar();
 }
 
 long sys_move_cursor(int x, int y) {

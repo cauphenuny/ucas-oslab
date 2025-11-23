@@ -51,8 +51,6 @@ static void init_jmptab(void) {
     jmptab[MUTEX_INIT] = (volatile long (*)())do_mutex_lock_init;
     jmptab[MUTEX_ACQ] = (volatile long (*)())do_mutex_lock_acquire;
     jmptab[MUTEX_RELEASE] = (volatile long (*)())do_mutex_lock_release;
-
-    // TODO: [p2-task1] (S-core) initialize system call table.
     jmptab[CONSOLE_REFLUSH] = (volatile long (*)())screen_reflush;
 }
 
@@ -119,6 +117,11 @@ static void init_syscall(void) {
     syscall[SYSCALL_SEMA_UP] = sys_semaphore_up;
     syscall[SYSCALL_SEMA_DOWN] = sys_semaphore_down;
     syscall[SYSCALL_SEMA_DESTROY] = sys_semaphore_destroy;
+
+    syscall[SYSCALL_MBOX_OPEN] = sys_mbox_open;
+    syscall[SYSCALL_MBOX_CLOSE] = sys_mbox_close;
+    syscall[SYSCALL_MBOX_SEND] = sys_mbox_send;
+    syscall[SYSCALL_MBOX_RECV] = sys_mbox_recv;
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_TASK_SHOW] = sys_task_show;

@@ -191,7 +191,7 @@ void do_unblock(list_node_t* pcb_node) {
             LOG_WARN, "unblocking a non-blocked task(pid=%d, status=%d)", pcb->pid, pcb->status);
     }
     pcb->status = TASK_READY;
-    list_delete(pcb_node);
+    // list_delete(pcb_node);
     list_append(&ready_queue, pcb_node);
 }
 
@@ -201,6 +201,7 @@ void unblock_list(list_head* queue, const char* name) {
         list_node_t* next = node->next;
         pretty_log(
             LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, list)->pid, name);
+        list_delete(node);
         do_unblock(node);
         node = next;
     }

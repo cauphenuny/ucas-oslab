@@ -8,6 +8,7 @@ extern "C" {
 #include <os/list.h>
 #include <os/lock.h>
 #include <os/sched.h>
+#include <os/string.h>
 
 mutex_lock_t mlocks[LOCK_NUM];
 bool mlock_used[LOCK_NUM] = {false};
@@ -117,14 +118,7 @@ int do_mutex_lock_init(int key) {
     return id;
 }
 
-void do_mutex_lock_acquire(int mlock_idx) {
-    /* TODO: [p2-task2] acquire mutex lock */
-    pretty_log(LOG_INFO, "pid %d trying to acquire mutex lock %d", current_running->pid, mlock_idx);
-    if (mlock_idx < 0 || mlock_idx >= LOCK_NUM) {
-        pretty_loge("mutex lock index %d out of range!", mlock_idx);
-        return;
-    }
-    mutex_lock_t* mutex = &mlocks[mlock_idx];
+void mutex_acquire(mutex_lock_t* mutex) {
     while (true) {
         {
             with_spin guard(mutex->lock);
@@ -132,12 +126,12 @@ void do_mutex_lock_acquire(int mlock_idx) {
                 mutex->acquired = 1;
                 mutex->pid = current_running->pid;
                 pretty_log(
-                    LOG_INFO, "mutex lock %d acquired by pid %d", mlock_idx, current_running->pid);
+                    LOG_INFO, "mutex lock 0x%x acquired by pid %d", mutex, current_running->pid);
                 break;
             } else {
                 pretty_log(
-                    LOG_INFO, "mutex lock %d is already acquired by pid %d, blocking pid %d",
-                    mlock_idx, mutex->pid, current_running->pid);
+                    LOG_INFO, "mutex lock 0x%x is already acquired by pid %d, blocking pid %d",
+                    mutex, mutex->pid, current_running->pid);
                 do_block(&current_running->list, &mutex->block_list);
             }
         }
@@ -145,11 +139,21 @@ void do_mutex_lock_acquire(int mlock_idx) {
     }
 }
 
-static void mutex_wakeup(int mlock_idx) {
-    /// NOTE: need to be called with mutex lock held
-    mutex_lock_t* mutex = mlocks + mlock_idx;
-    // print_sched_queue(&mutex->block_list, "mutex block_list");
+void mutex_release(mutex_lock_t* mutex) {
+    mutex->acquired = 0;
     unblock_list(&mutex->block_list, "mutex block_list");
+}
+
+static void mutex_destruct(mutex_lock_t* mutex) { mutex_release(mutex); }
+
+void do_mutex_lock_acquire(int mlock_idx) {
+    /* TODO: [p2-task2] acquire mutex lock */
+    pretty_log(LOG_INFO, "pid %d trying to acquire mutex lock %d", current_running->pid, mlock_idx);
+    if (mlock_idx < 0 || mlock_idx >= LOCK_NUM) {
+        pretty_loge("mutex lock index %d out of range!", mlock_idx);
+        return;
+    }
+    mutex_acquire(&mlocks[mlock_idx]);
 }
 
 void do_mutex_lock_release(int mlock_idx) {
@@ -168,8 +172,7 @@ void do_mutex_lock_release(int mlock_idx) {
             "mutex lock %d is acquired by pid %d, cannot be released by pid %d", mlock_idx,
             mutex->pid, current_running->pid);
     } else {
-        mutex->acquired = 0;
-        mutex_wakeup(mlock_idx);
+        mutex_release(mutex);
     }
     return;
 }
@@ -179,8 +182,7 @@ void cleanup_mutex(pid_t pid) {
         with_spin guard(mlocks[i].lock);
         if (mlock_used[i] && mlocks[i].acquired && mlocks[i].pid == pid) {
             pretty_log(LOG_INFO, "cleaned up mutex lock %d for pid %d", i, pid);
-            mlocks[i].acquired = 0;
-            mutex_wakeup(i);
+            mutex_destruct(&mlocks[i]);
         }
     }
 }
@@ -326,25 +328,47 @@ int do_condition_init(int key) {
     return id;
 }
 
+void condition_wait(condition_t* cond, mutex_lock_t* mutex) {
+    {
+        with_spin guard(cond->lock);
+        pretty_log(LOG_INFO, "proc %d waiting condition 0x%x", current_running->pid, cond);
+        do_block(&current_running->list, &cond->wait_list);
+    }
+    without_mutex release_guard(*mutex);
+    do_scheduler();
+}
+
+void condition_broadcast(condition_t* cond) {
+    with_spin guard(cond->lock);
+    pretty_log(LOG_INFO, "broadcasting condition 0x%x", cond);
+    unblock_list(&cond->wait_list, "condition wait_list");
+}
+
+void condition_signal(condition_t* cond) {
+    with_spin guard(cond->lock);
+    pretty_log(LOG_INFO, "signaling condition 0x%x", cond);
+    list_node_t* node = list_shift(&cond->wait_list);
+    if (node) {
+        pcb_t* pcb = container_of(node, pcb_t, list);
+        pretty_log(LOG_INFO, "signaling pid %d on condition 0x%x", pcb->pid, cond);
+        do_unblock(&pcb->list);
+    }
+}
+
 void do_condition_wait(int cond_idx, int mutex_idx) {
     if (cond_idx < 0 || cond_idx >= CONDITION_NUM) {
         pretty_loge("condition index %d out of range!", cond_idx);
         return;
     }
-
-    // add to wait list
-    {
-        with_spin guard(conditions[cond_idx].lock);
-        if (!cond_used[cond_idx]) {
-            pretty_loge("condition %d is not initialized!", cond_idx);
-            return;
-        }
-        pretty_log(LOG_INFO, "proc %d waiting condition %d", current_running->pid, cond_idx);
-        do_block(&current_running->list, &conditions[cond_idx].wait_list);
+    if (mutex_idx < 0 || mutex_idx >= LOCK_NUM) {
+        pretty_loge("mutex index %d out of range!", mutex_idx);
+        return;
     }
-
-    without_mutex release_guard(mutex_idx);
-    do_scheduler();
+    if (!cond_used[cond_idx]) {
+        pretty_loge("condition %d is not initialized!", cond_idx);
+        return;
+    }
+    condition_wait(&conditions[cond_idx], &mlocks[mutex_idx]);
 }
 
 void do_condition_broadcast(int cond_idx) {
@@ -353,13 +377,11 @@ void do_condition_broadcast(int cond_idx) {
         return;
     }
 
-    with_spin guard(conditions[cond_idx].lock);
     if (!cond_used[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
-    pretty_log(LOG_INFO, "broadcasting condition %d", cond_idx);
-    unblock_list(&conditions[cond_idx].wait_list, "condition wait_list");
+    condition_broadcast(&conditions[cond_idx]);
 }
 
 void do_condition_signal(int cond_idx) {
@@ -368,18 +390,11 @@ void do_condition_signal(int cond_idx) {
         return;
     }
 
-    with_spin guard(conditions[cond_idx].lock);
     if (!cond_used[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
-    pretty_log(LOG_INFO, "signaling condition %d", cond_idx);
-    list_node_t* node = list_shift(&conditions[cond_idx].wait_list);
-    if (node) {
-        pcb_t* pcb = container_of(node, pcb_t, list);
-        pretty_log(LOG_INFO, "signaling pid %d on condition %d", pcb->pid, cond_idx);
-        do_unblock(&pcb->list);
-    }
+    condition_signal(&conditions[cond_idx]);
 }
 
 void do_condition_destroy(int cond_idx) {
@@ -504,5 +519,163 @@ void do_semaphore_destroy(int sema_idx) {
     pretty_log(LOG_INFO, "destroying semaphore %d", sema_idx);
     sema_used[sema_idx] = 0;
     semaphore_destruct(sema);
+}
+
+mailbox_t mailboxes[MBOX_NUM];
+spin_lock_t mbox_locks[MBOX_NUM];
+int mbox_allocated[MBOX_NUM] = {0};
+
+void mailbox_init(mailbox_t* mbox) {
+    memset(mbox->name, 0, sizeof(mbox->name));
+    memset(mbox->buffer, 0, sizeof(mbox->buffer));
+    mbox->head = 0;
+    mbox->tail = 0;
+    mbox->used = 0;
+    mbox->nref = 0;
+    mutex_init(&mbox->buffer_lock);
+    condition_init(&mbox->empty);
+    condition_init(&mbox->full);
+}
+
+void mailbox_destruct(mailbox_t* mbox) {
+    condition_destruct(&mbox->full);
+    condition_destruct(&mbox->empty);
+    mutex_destruct(&mbox->buffer_lock);
+}
+
+void init_mbox() {
+    for (int i = 0; i < MBOX_NUM; i++) {
+        mbox_allocated[i] = 0;
+        spin_lock_init(&mbox_locks[i]);
+        mailbox_init(&mailboxes[i]);
+    }
+}
+
+void list_mboxes() {
+    for (int i = 0; i < MBOX_NUM; i++) {
+        with_spin guard(mbox_locks[i]);
+        if (mbox_allocated[i]) {
+            pretty_log(
+                LOG_INFO, "mbox %d: name=%s, nref=%d, used=%d", i, mailboxes[i].name,
+                mailboxes[i].nref, mailboxes[i].used);
+        }
+    }
+}
+
+int do_mbox_open(char* name) {
+    list_mboxes();
+    int id = -1;
+    for (int i = 0; id == -1 && i < MBOX_NUM; i++) {
+        with_spin guard(mbox_locks[i]);
+        if (mbox_allocated[i] && (strcmp(mailboxes[i].name, name) == 0)) {
+            id = i;
+            pretty_log(LOG_INFO, "find existing mailbox %d for name %s", id, name);
+        }
+    }
+    for (int i = 0; id == -1 && i < MBOX_NUM; i++) {
+        with_spin guard(mbox_locks[i]);
+        if (!mbox_allocated[i]) {
+            mbox_allocated[i] = 1;
+            mailbox_init(&mailboxes[i]);
+            strcpy(mailboxes[i].name, name);
+            id = i;
+            pretty_log(LOG_INFO, "allocate mailbox %d for name %s", id, name);
+        }
+    }
+    assert(id >= 0);
+    mailboxes[id].nref++;
+    return id;
+}
+
+void do_mbox_close(int mbox_idx) {
+    list_mboxes();
+    if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
+        pretty_loge("mailbox index %d out of range!", mbox_idx);
+        return;
+    }
+
+    mailbox_t* mbox = &mailboxes[mbox_idx];
+    with_spin guard(mbox_locks[mbox_idx]);
+    if (!mbox_allocated[mbox_idx]) {
+        pretty_loge("mailbox %d is not initialized!", mbox_idx);
+        return;
+    }
+
+    pretty_log(LOG_INFO, "closing mailbox %d", mbox_idx);
+    mbox->nref--;
+    if (mbox->nref > 0) {
+        pretty_log(LOG_INFO, "mailbox %d still has %d references", mbox_idx, mbox->nref);
+        return;
+    }
+    pretty_log(LOG_INFO, "destroying mailbox %d", mbox_idx);
+    mbox_allocated[mbox_idx] = 0;
+    mailbox_destruct(mbox);
+}
+
+int do_mbox_send(int mbox_idx, void* msg, int msg_length) {
+    if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
+        pretty_loge("mailbox index %d out of range!", mbox_idx);
+        return 0;
+    }
+
+    mailbox_t* mbox = &mailboxes[mbox_idx];
+    if (!mbox_allocated[mbox_idx]) {
+        pretty_loge("mailbox %d is not initialized!", mbox_idx);
+        return 0;
+    }
+
+    int blocked = 0;
+    while (true) {
+        with_mutex guard(mbox->buffer_lock);
+        int rest = MAX_MBOX_LENGTH - mbox->used;
+        if (rest >= msg_length) {
+            for (int i = 0; i < msg_length; i++) {
+                mbox->buffer[mbox->tail] = ((char*)msg)[i];
+                mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
+                mbox->used++;
+            }
+            break;
+        } else {
+            blocked = 1;
+            condition_wait(&mbox->full, &mbox->buffer_lock);
+        }
+    }
+    condition_signal(&mbox->empty);
+    return blocked;
+}
+
+int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
+    if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
+        pretty_loge("mailbox index %d out of range!", mbox_idx);
+        return 0;
+    }
+
+    mailbox_t* mbox = &mailboxes[mbox_idx];
+    if (!mbox_allocated[mbox_idx]) {
+        pretty_loge("mailbox %d is not initialized!", mbox_idx);
+        return 0;
+    }
+
+    int blocked = 0;
+    char* cur = (char*)msg;
+
+    while (true) {
+        with_mutex guard(mbox->buffer_lock);
+        if (mbox->used >= msg_length) {
+            for (int i = 0; i < msg_length; i++) {
+                cur[i] = mbox->buffer[mbox->head];
+                mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
+                mbox->used--;
+            }
+            break;
+        } else {
+            blocked = 1;
+            pretty_log(
+                LOG_WARN, "blocking on mbox recv: used=%d, needed=%d", mbox->used, msg_length);
+            condition_wait(&mbox->empty, &mbox->buffer_lock);
+        }
+    }
+    condition_signal(&mbox->full);
+    return blocked;
 }
 }

@@ -1,4 +1,4 @@
-#include "os/lock.h"
+#include <os/lock.h>
 
 struct with_spin {
     spin_lock_t& lock;
@@ -13,13 +13,13 @@ struct without_spin {
 };
 
 struct with_mutex {
-    int mlock_idx;
-    with_mutex(int idx) : mlock_idx(idx) { do_mutex_lock_acquire(mlock_idx); }
-    ~with_mutex() { do_mutex_lock_release(mlock_idx); }
+    mutex_lock_t& lock;
+    with_mutex(mutex_lock_t& lk) : lock(lk) { mutex_acquire(&lock); }
+    ~with_mutex() { mutex_release(&lock); }
 };
 
 struct without_mutex {
-    int mlock_idx;
-    without_mutex(int idx) : mlock_idx(idx) { do_mutex_lock_release(mlock_idx); }
-    ~without_mutex() { do_mutex_lock_acquire(mlock_idx); }
+    mutex_lock_t& lock;
+    without_mutex(mutex_lock_t& lk) : lock(lk) { mutex_release(&lock); }
+    ~without_mutex() { mutex_acquire(&lock); }
 };

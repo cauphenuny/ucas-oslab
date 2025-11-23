@@ -48,16 +48,19 @@ typedef struct mutex_lock {
     int key;
 } mutex_lock_t;
 
-void init_locks(void);
-
 void spin_lock_init(spin_lock_t* lock);
 int spin_lock_try_acquire(spin_lock_t* lock);
 void spin_lock_acquire(spin_lock_t* lock);
 void spin_lock_release(spin_lock_t* lock);
 
+void mutex_acquire(mutex_lock_t* lock);
+void mutex_release(mutex_lock_t* lock);
+
 int do_mutex_lock_init(int key);
 void do_mutex_lock_acquire(int mlock_idx);
 void do_mutex_lock_release(int mlock_idx);
+
+void init_locks(void);
 
 void cleanup_mutex(pid_t pid);
 
@@ -107,17 +110,27 @@ void do_semaphore_up(int sema_idx);
 void do_semaphore_down(int sema_idx);
 void do_semaphore_destroy(int sema_idx);
 
+#define MAX_MBOX_NAME   32
 #define MAX_MBOX_LENGTH (64)
 
 typedef struct mailbox {
-    // TODO [P3-TASK2 mailbox]
+    char name[MAX_MBOX_NAME];
+    char buffer[MAX_MBOX_LENGTH];
+    int nref, used;
+    int head, tail;
+    mutex_lock_t buffer_lock;
+    condition_t empty, full;
 } mailbox_t;
 
 #define MBOX_NUM 16
 void init_mbox();
 int do_mbox_open(char* name);
 void do_mbox_close(int mbox_idx);
+
+/// @return 1: blocked, 0: immediately sent
 int do_mbox_send(int mbox_idx, void* msg, int msg_length);
+
+/// @return 1: blocked, 0: immediately received
 int do_mbox_recv(int mbox_idx, void* msg, int msg_length);
 
 /************************************************************/

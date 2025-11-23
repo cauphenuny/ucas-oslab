@@ -29,6 +29,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <vt100.h>
@@ -280,8 +281,8 @@ int exec(int argc, char** argv) {
 }
 
 int kill(int argc, char** argv) {
-    log_info("not implemented yet.");
-    return decompose(argc, argv);
+    int pid = atoi(argv[1]);
+    return sys_kill(pid);
 }
 
 int clear(int argc, char** argv) {

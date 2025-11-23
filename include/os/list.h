@@ -76,6 +76,8 @@ list_node_t* list_shift(list_head* head);
  */
 list_node_t* list_pop(list_head* head);
 
+bool list_holding(list_node_t* node);
+
 void list_delete(list_node_t* node);
 
 size_t list_size(const list_head* head);

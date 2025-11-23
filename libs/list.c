@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <logger.h>
 #include <os/list.h>
 
@@ -5,7 +6,7 @@
  * @brief Add a node to the beginning of the list.
  */
 void list_prepend(list_head* head, list_node_t* node) {
-    if (node->next || node->prev) {
+    if (list_holding(node)) {
         pretty_loge("trying to prepend a node already in a list: %x", node);
         return;
     }
@@ -19,7 +20,7 @@ void list_prepend(list_head* head, list_node_t* node) {
  * @brief Add a node to the end of the list.
  */
 void list_append(list_head* head, list_node_t* node) {
-    if (node->next || node->prev) {
+    if (list_holding(node)) {
         pretty_loge("trying to append a node already in a list: %x", node);
         return;
     }
@@ -66,7 +67,7 @@ size_t list_size(const list_head* head) {
 }
 
 void list_delete(list_node_t* node) {
-    if (!node->prev || !node->next) {
+    if (!list_holding(node)) {
         pretty_loge("trying to delete a node not in any list: %x", node);
         return;
     }
@@ -78,4 +79,9 @@ void list_delete(list_node_t* node) {
 void list_init(list_head* head) {
     head->next = head;
     head->prev = head;
+}
+
+bool list_holding(list_node_t* node) {
+    asserts(!((node->next != NULL) ^ (node->prev != NULL)), "node broken");
+    return node->next != NULL || node->prev != NULL;
 }

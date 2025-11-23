@@ -208,7 +208,9 @@ void cleanup(pcb_t* pcb) {
     pid_t pid = pcb->pid;
     pretty_log(LOG_INFO, "cleaning up pid %d", pid);
     cleanup_mutex(pid);
-    list_delete(&pcb->list);
+    if (list_holding(&pcb->list)) {
+        list_delete(&pcb->list);
+    }
     exit_wakeup(pcb);
     free_pcb(pcb);
 }

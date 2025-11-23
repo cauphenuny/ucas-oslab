@@ -109,6 +109,12 @@ static void init_syscall(void) {
     syscall[SYSCALL_BARR_WAIT] = sys_barrier_wait;
     syscall[SYSCALL_BARR_DESTROY] = sys_barrier_destroy;
 
+    syscall[SYSCALL_COND_INIT] = sys_condition_init;
+    syscall[SYSCALL_COND_WAIT] = sys_condition_wait;
+    syscall[SYSCALL_COND_SIGNAL] = sys_condition_signal;
+    syscall[SYSCALL_COND_BROADCAST] = sys_condition_broadcast;
+    syscall[SYSCALL_COND_DESTROY] = sys_condition_destroy;
+
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_TASK_SHOW] = sys_task_show;
 }

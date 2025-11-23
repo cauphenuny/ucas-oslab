@@ -40,6 +40,7 @@ list_node_t* list_shift(list_head* head) {
     list_node_t* node = head->next;
     head->next = node->next;
     node->next->prev = head;
+    node->next = node->prev = NULL;
     return node;
 }
 
@@ -53,6 +54,7 @@ list_node_t* list_pop(list_head* head) {
     list_node_t* node = head->prev;
     head->prev = node->prev;
     node->prev->next = head;
+    node->next = node->prev = NULL;
     return node;
 }
 

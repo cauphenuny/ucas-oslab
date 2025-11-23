@@ -119,6 +119,30 @@ long sys_barrier_wait(int bar_idx) {
     return 0;
 }
 
+long sys_condition_init(int key) {
+    return do_condition_init(key);
+}
+
+long sys_condition_wait(int cond_idx, int mutex_idx) {
+    do_condition_wait(cond_idx, mutex_idx);
+    return 0;
+}
+
+long sys_condition_signal(int cond_idx) {
+    do_condition_signal(cond_idx);
+    return 0;
+}
+
+long sys_condition_broadcast(int cond_idx) {
+    do_condition_broadcast(cond_idx);
+    return 0;
+}
+
+long sys_condition_destroy(int cond_idx) {
+    do_condition_destroy(cond_idx);
+    return 0;
+}
+
 /***************** screen *****************/
 
 long sys_write(char *buff) {

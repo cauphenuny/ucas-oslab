@@ -67,6 +67,12 @@ long sys_barrier_init(int key, int goal);
 long sys_barrier_destroy(int bar_idx);
 long sys_barrier_wait(int bar_idx);
 
+long sys_condition_init(int key);
+long sys_condition_wait(int cond_idx, int mutex_idx);
+long sys_condition_signal(int cond_idx);
+long sys_condition_broadcast(int cond_idx);
+long sys_condition_destroy(int cond_idx);
+
 long sys_set_workload(int);
 
 #endif

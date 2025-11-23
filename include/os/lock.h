@@ -78,7 +78,9 @@ void do_barrier_wait(int bar_idx);
 void do_barrier_destroy(int bar_idx);
 
 typedef struct condition {
-    // TODO [P3-TASK2 condition]
+    int key;
+    spin_lock_t lock;
+    list_head wait_list;  // container type: pcb_t
 } condition_t;
 
 #define CONDITION_NUM 16

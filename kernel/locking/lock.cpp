@@ -248,20 +248,20 @@ void do_barrier_wait(int bar_idx) {
     }
 
     pretty_log(
-        LOG_WARN, "proc %d waiting barrier %d(goal=%d, current=%d)", current_running->pid, bar_idx,
+        LOG_INFO, "proc %d waiting barrier %d(goal=%d, current=%d)", current_running->pid, bar_idx,
         bar->goal, bar->current);
 
     asserts(bar->current < bar->goal, "barrier broken");
     bar->current++;
 
     if (bar->current < bar->goal) {
-        pretty_log(LOG_WARN, "proc %d blocked on barrier %d", current_running->pid, bar_idx);
+        pretty_log(LOG_INFO, "proc %d blocked on barrier %d", current_running->pid, bar_idx);
         without_spin release_guard(bar->lock);
         do_block(&current_running->list, &bar->block_list);
         do_scheduler();
     } else {
         pretty_log(
-            LOG_WARN, "proc %d caused barrier %d to be released", current_running->pid, bar_idx);
+            LOG_INFO, "proc %d caused barrier %d to be released", current_running->pid, bar_idx);
         bar->current = 0;
         unblock_list(&bar->block_list, "barrier block_list");
     }
@@ -283,5 +283,119 @@ void do_barrier_destroy(int bar_idx) {
     barrier_used[bar_idx] = 0;
     barrier_destruct(bar);
     pretty_log(LOG_INFO, "destroyed barrier %d", bar_idx);
+}
+
+condition_t conditions[CONDITION_NUM];
+int cond_used[CONDITION_NUM] = {0};
+
+void condition_init(condition_t* cond) {
+    spin_lock_init(&cond->lock);
+    list_init(&cond->wait_list);
+}
+
+void condition_destruct(condition_t* cond) {
+    unblock_list(&cond->wait_list, "condition wait_list (destroyed)");
+}
+
+void init_conditions() {
+    for (int i = 0; i < CONDITION_NUM; i++) {
+        cond_used[i] = 0;
+    }
+}
+
+int do_condition_init(int key) {
+    int id = -1;
+    for (int i = 0; id == -1 && i < CONDITION_NUM; i++) {
+        with_spin guard(conditions[i].lock);
+        if (cond_used[i] && conditions[i].key == key) {
+            id = i;
+            pretty_log(LOG_INFO, "find existing condition %d for key %d", id, key);
+        }
+    }
+    for (int i = 0; id == -1 && i < CONDITION_NUM; i++) {
+        with_spin guard(conditions[i].lock);
+        if (!cond_used[i]) {
+            cond_used[i] = 1;
+            condition_init(&conditions[i]);
+            conditions[i].key = key;
+            id = i;
+            pretty_log(LOG_INFO, "allocate condition %d for key %d", id, key);
+        }
+    }
+    assert(id >= 0);
+    return id;
+}
+
+void do_condition_wait(int cond_idx, int mutex_idx) {
+    if (cond_idx < 0 || cond_idx >= CONDITION_NUM) {
+        pretty_loge("condition index %d out of range!", cond_idx);
+        return;
+    }
+
+    // add to wait list
+    {
+        with_spin guard(conditions[cond_idx].lock);
+        if (!cond_used[cond_idx]) {
+            pretty_loge("condition %d is not initialized!", cond_idx);
+            return;
+        }
+        pretty_log(LOG_INFO, "proc %d waiting condition %d", current_running->pid, cond_idx);
+        do_block(&current_running->list, &conditions[cond_idx].wait_list);
+    }
+
+    without_mutex release_guard(mutex_idx);
+    do_scheduler();
+}
+
+void do_condition_broadcast(int cond_idx) {
+    if (cond_idx < 0 || cond_idx >= CONDITION_NUM) {
+        pretty_loge("condition index %d out of range!", cond_idx);
+        return;
+    }
+
+    with_spin guard(conditions[cond_idx].lock);
+    if (!cond_used[cond_idx]) {
+        pretty_loge("condition %d is not initialized!", cond_idx);
+        return;
+    }
+    pretty_log(LOG_INFO, "broadcasting condition %d", cond_idx);
+    unblock_list(&conditions[cond_idx].wait_list, "condition wait_list");
+}
+
+void do_condition_signal(int cond_idx) {
+    if (cond_idx < 0 || cond_idx >= CONDITION_NUM) {
+        pretty_loge("condition index %d out of range!", cond_idx);
+        return;
+    }
+
+    with_spin guard(conditions[cond_idx].lock);
+    if (!cond_used[cond_idx]) {
+        pretty_loge("condition %d is not initialized!", cond_idx);
+        return;
+    }
+    pretty_log(LOG_INFO, "signaling condition %d", cond_idx);
+    list_node_t* node = list_shift(&conditions[cond_idx].wait_list);
+    if (node) {
+        pcb_t* pcb = container_of(node, pcb_t, list);
+        pretty_log(LOG_INFO, "signaling pid %d on condition %d", pcb->pid, cond_idx);
+        do_unblock(&pcb->list);
+    }
+}
+
+void do_condition_destroy(int cond_idx) {
+    if (cond_idx < 0 || cond_idx >= CONDITION_NUM) {
+        pretty_loge("condition index %d out of range!", cond_idx);
+        return;
+    }
+
+    with_spin guard(conditions[cond_idx].lock);
+    if (!cond_used[cond_idx]) {
+        pretty_loge("condition %d is not initialized!", cond_idx);
+        return;
+    }
+
+    pretty_log(LOG_INFO, "destroying condition %d", cond_idx);
+    cond_used[cond_idx] = 0;
+    condition_destruct(&conditions[cond_idx]);
 }
 }

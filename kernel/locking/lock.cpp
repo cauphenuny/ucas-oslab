@@ -141,14 +141,8 @@ void do_mutex_lock_acquire(int mlock_idx) {
 static void mutex_wakeup(int mlock_idx) {
     /// NOTE: need to be called with mutex lock held
     mutex_lock_t* mutex = mlocks + mlock_idx;
-    print_sched_queue(&mutex->block_queue, "mutex block_queue");
-    for (list_node_t *node = mutex->block_queue.next, *next; node != &mutex->block_queue;
-         node = next) {
-        next = node->next;
-        pcb_t* pcb = container_of(node, pcb_t, list);
-        pretty_log(LOG_INFO, "waking up blocked pid %d on mutex lock %d", pcb->pid, mlock_idx);
-        do_unblock(node);
-    }
+    // print_sched_queue(&mutex->block_list, "mutex block_list");
+    unblock_list(&mutex->block_list, "mutex block_list");
 }
 
 void do_mutex_lock_release(int mlock_idx) {

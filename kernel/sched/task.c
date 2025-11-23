@@ -107,7 +107,7 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[]) {
 
     memset(pcb, 0, sizeof(pcb_t));
     pcb->pid = process_id++;
-    pcb->wait_list = (list_head){&pcb->wait_list, &pcb->wait_list};
+    list_init(&pcb->wait_list);
     pcb->status = TASK_READY;
     strcpy(pcb->name, task->name);
     init_pcb_stack(pcb, kernel_stack_top, user_stack_top, task->entrance, argc, argv);

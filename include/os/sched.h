@@ -174,6 +174,8 @@ void do_sleep(uint32_t);
 void do_block(list_node_t*, list_head* queue);
 void do_unblock(list_node_t*);
 
+void unblock_list(list_head* list, const char* name);
+
 void set_process_workload(int workload);
 
 void print_sched_queue(const list_head* queue, const char* name);
@@ -183,7 +185,7 @@ void print_sched_queue(const list_head* queue, const char* name);
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
-extern pid_t do_exec(char *name, int argc, char *argv[]);
+extern pid_t do_exec(char* name, int argc, char* argv[]);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

@@ -195,16 +195,20 @@ void do_unblock(list_node_t* pcb_node) {
     list_append(&ready_queue, pcb_node);
 }
 
-void exit_wakeup(pcb_t* pcb) {
-    for (list_node_t *node = pcb->wait_list.next, *next; node != &pcb->wait_list; node = next) {
-        next = node->next;
-        pcb_t* wait_pcb = container_of(node, pcb_t, list);
-        pretty_log(LOG_INFO, "waking up waiting pid %d on exit of pid %d", wait_pcb->pid, pcb->pid);
+void unblock_list(list_head* queue, const char* name) {
+    list_node_t* node = queue->next;
+    while (node != queue) {
+        list_node_t* next = node->next;
+        pretty_log(
+            LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, list)->pid, name);
         do_unblock(node);
+        node = next;
     }
 }
 
-void cleanup(pcb_t* pcb) {
+void exit_wakeup(pcb_t* pcb) { unblock_list(&pcb->wait_list, "pcb wait_list"); }
+
+void cleanup_proc(pcb_t* pcb) {
     pid_t pid = pcb->pid;
     pretty_log(LOG_INFO, "cleaning up pid %d", pid);
     cleanup_mutex(pid);
@@ -257,7 +261,7 @@ void do_process_show() {
 }
 
 void do_exit() {
-    cleanup(current_running);
+    cleanup_proc(current_running);
     do_scheduler();
 }
 
@@ -266,7 +270,7 @@ int do_kill(pid_t pid) {
     if (!pcb || current_running->pid == pid) {
         return 0;
     }
-    cleanup(pcb);
+    cleanup_proc(pcb);
     return 1;
 }
 

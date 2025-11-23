@@ -59,13 +59,13 @@ void subcmd_lint(char**, int, char**);
 
 typedef int (*handler_t)(int argc, char** argv);
 
-typedef struct command {
+typedef struct task {
     char* name;
     void (*subcmd_linter)(char* dest[], int argc, char** argv);
     handler_t handler;
-} command_t;
+} task_t;
 
-const command_t COMMAND_TABLE[] = {
+const task_t COMMAND_TABLE[] = {
     {"echo", subcmd_lint, echo},
     {"ts", subcmd_lint, ts},
     {"ps", subcmd_lint, ps},
@@ -105,13 +105,13 @@ args_t parse(char* raw, int maxn) {
     return result;
 }
 
-command_t* lint(char* dest[], int argc, char** argv) {
+task_t* lint(char* dest[], int argc, char** argv) {
     memset((void*)dest, 0, sizeof(dest[0]) * argc);
-    command_t* matched = NULL;
+    task_t* matched = NULL;
     if (!argv[0]) return matched;
     for (int i = 0; i < NUM_CMD; i++) {
         if (strcmp(argv[0], COMMAND_TABLE[i].name) == 0) {
-            matched = (command_t*)&COMMAND_TABLE[i];
+            matched = (task_t*)&COMMAND_TABLE[i];
             break;
         }
     }
@@ -159,11 +159,11 @@ int getchar() {
 }
 
 typedef struct {
-    command_t* cmd;
+    task_t* task;
     args_t args;
-} context_t;
+} command_t;
 
-context_t readline() {
+command_t readline() {
     int pos = 0;
     char buffer[BUFFER_LEN] = {0};
     char* color_buffer[ARGUMENT_LEN] = {0};
@@ -172,7 +172,7 @@ context_t readline() {
     char args_buffer[BUFFER_LEN] = {0};
     int ch;
     args_t args;
-    command_t* cmd = NULL;
+    task_t* task = NULL;
     while ((ch = getchar()) != NEWLINE) {
         if (ch == BACKSPACE) {
             if (pos) {
@@ -186,14 +186,14 @@ context_t readline() {
         }
         strcpy(args_buffer, buffer);
         args = parse(args_buffer, BUFFER_LEN);
-        cmd = lint(color_buffer, args.argc, args.argv);
+        task = lint(color_buffer, args.argc, args.argv);
         // render(
         //     display_buffer, display_color_buffer, sizeof(display_buffer), buffer, args.argc,
         //     color_buffer);
         // display(display_buffer, display_color_buffer);
     }
     printf("\n");
-    return (context_t){cmd, args};
+    return (command_t){task, args};
 }
 
 void preamble() {
@@ -213,12 +213,12 @@ int main(int argc, char** argv) {
 
         // TODO [P3-task1]: ps, exec, kill, clear
         printf("> root@UCAS_OS: ");
-        context_t context = readline();
-        if (!context.cmd) {
-            printf("%s: no such command: %s\n", argv[0], context.args.argv[0]);
+        command_t cmd = readline();
+        if (!cmd.task) {
+            printf("%s: no such command: %s\n", argv[0], cmd.args.argv[0]);
             continue;
         }
-        context.cmd->handler(context.args.argc, context.args.argv);
+        cmd.task->handler(cmd.args.argc, cmd.args.argv);
 
         /************************************************************/
         /* Do not touch this comment. Reserved for future projects. */
@@ -265,7 +265,19 @@ int ts(int argc, char** argv) {
     return 0;
 }
 
-int exec(int argc, char** argv) { return sys_exec(argv[1], argc - 1, argv + 1); }
+int exec(int argc, char** argv) {
+    int wait;
+    if (strcmp(argv[argc - 1], "&") == 0) {
+        wait = 0;
+    } else {
+        wait = 1;
+    }
+    pid_t pid = sys_exec(argv[1], argc - 1, argv + 1);
+    if (wait) {
+        sys_waitpid(pid);
+    }
+    return pid;
+}
 
 int kill(int argc, char** argv) {
     log_info("not implemented yet.");

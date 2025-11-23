@@ -13,11 +13,11 @@
 
 #define SECTOR_SIZE            512
 #define BOOT_LOADER_SIG_OFFSET 0x1fe
-#define OS_SIZE_LOC            (BOOT_LOADER_SIG_OFFSET - 2)
-#define TASKINFO_START_LOC     (BOOT_LOADER_SIG_OFFSET - 4)
-#define TASKINFO_SIZE_LOC      (BOOT_LOADER_SIG_OFFSET - 6)
-#define TASKINFO_TASKNUM_LOC   (BOOT_LOADER_SIG_OFFSET - 8)
-#define BATCH_FILE_LOC         (BOOT_LOADER_SIG_OFFSET - 10)
+#define OS_SIZE_LOC            (BOOT_LOADER_SIG_OFFSET - 4)
+#define TASKINFO_START_LOC     (BOOT_LOADER_SIG_OFFSET - 6)
+#define TASKINFO_SIZE_LOC      (BOOT_LOADER_SIG_OFFSET - 8)
+#define TASKINFO_TASKNUM_LOC   (BOOT_LOADER_SIG_OFFSET - 10)
+#define BATCH_FILE_LOC         (BOOT_LOADER_SIG_OFFSET - 12)
 #define BOOT_LOADER_SIG_1      0x55
 #define BOOT_LOADER_SIG_2      0xaa
 
@@ -279,7 +279,7 @@ write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* im
 
     // write 2-byte size to OS_SIZE_LOC
     fseek(img, OS_SIZE_LOC, SEEK_SET);
-    short os_size = nbytes_kernel;
+    uint32_t os_size = nbytes_kernel;
     fwrite(&os_size, sizeof(os_size), 1, img);
     if (options.extended)
         printf("os_size: \t%d,\t%lu bytes at 0x%08x\n", os_size, sizeof(os_size), OS_SIZE_LOC);

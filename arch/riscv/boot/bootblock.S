@@ -1,11 +1,11 @@
 #include <asm/biosdef.h>
 
 // os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
-.equ os_size_loc, 0x502001fc
-.equ task_start_loc, 0x502001fa
-.equ task_size_loc, 0x502001f8
-.equ task_num_loc, 0x502001f6
-.equ batchfile_loc, 0x502001f4
+.equ os_size_loc, 0x502001fa
+.equ task_start_loc, 0x502001f8
+.equ task_size_loc, 0x502001f6
+.equ task_num_loc, 0x502001f4
+.equ batchfile_loc, 0x502001f2
 
 // kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50201000
@@ -17,8 +17,8 @@
 .equ bios_putstr, 9
 .equ bios_sdread, 11
 
-.equ temp, 0x50600000
-.equ taskinfo, 0x50600000
+.equ temp, 0x50500000
+.equ taskinfo, 0x50500000
 .extern tasks
 
 .text
@@ -38,10 +38,10 @@ main:
 
 
     // TODO: [p1-task2] call BIOS to read kernel in SD card
-    
+
 .load_kernel:
     la t0, os_size_loc
-    lh t1, 0(t0) // kernel bytes
+    lw t1, 0(t0) // kernel bytes
     la a0, temp
     add a1, t1, 511
     sra a1, a1, 9 // sectors = ((bytes + 511) / 512)
@@ -56,7 +56,7 @@ main:
 .copy_kernel:
     la a0, kernel
     la t0, os_size_loc
-    lh a1, 0(t0) // kernel bytes
+    lw a1, 0(t0) // kernel bytes
     jal copy_data
 
 
@@ -93,7 +93,8 @@ main:
     sd t0, 16(t1) // t1+16: batchfile
     li a0, 3 // argc
     mv a1, t1 // argv
-    jal kernel
+    la ra, stop
+    j kernel
 
 	/************************************************************/
 secondary:

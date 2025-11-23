@@ -128,6 +128,7 @@ int  sys_waitpid(pid_t pid)
 void sys_ps(void)
 {
     /* TODO: [p3-task1] call invoke_syscall to implement sys_ps */
+    invoke_syscall(SYSCALL_PS, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 pid_t sys_getpid()

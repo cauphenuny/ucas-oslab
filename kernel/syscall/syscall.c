@@ -77,6 +77,24 @@ long sys_lock_release(int handle) {
     return 0;
 }
 
+long sys_exit(void) {
+    do_exit();
+    return 0;
+}
+
+long sys_kill(pid_t pid) {
+    return do_kill(pid);
+}
+
+long sys_waitpid(pid_t pid) {
+    return do_waitpid(pid);
+}
+
+long sys_process_show() {
+    do_process_show();
+    return 0;
+}
+
 /***************** screen *****************/
 
 long sys_write(char *buff) {

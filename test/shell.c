@@ -52,7 +52,8 @@ int exec(int, char**);
 int kill(int, char**);
 int clear(int, char**);
 int echo(int, char**);
-int parrot(int, char**);
+int decompose(int, char**);
+int keycode(int, char**);
 void subcmd_lint(char**, int, char**);
 
 typedef int (*handler_t)(int argc, char** argv);
@@ -64,8 +65,10 @@ typedef struct command {
 } command_t;
 
 const command_t COMMAND_TABLE[] = {
-    {"ps", subcmd_lint, ps},       {"exec", subcmd_lint, exec}, {"kill", subcmd_lint, kill},
-    {"clear", subcmd_lint, clear}, {"echo", subcmd_lint, echo}, {"parrot", subcmd_lint, parrot},
+    {"echo", subcmd_lint, echo},       {"ps", subcmd_lint, ps},
+    {"exec", subcmd_lint, exec},       {"kill", subcmd_lint, kill},
+    {"clear", subcmd_lint, clear},     {"decompose", subcmd_lint, decompose},
+    {"keycode", subcmd_lint, keycode},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);
@@ -193,7 +196,7 @@ void preamble() {
     printf("------------------- COMMAND -------------------\n");
 }
 
-int main(void) {
+int main(int argc, char** argv) {
     prompt_len = strlen(prompt);
     preamble();
 
@@ -207,7 +210,7 @@ int main(void) {
         printf("> root@UCAS_OS: ");
         context_t context = readline();
         if (!context.cmd) {
-            log_info("no such command: %s", context.args.argv[0]);
+            printf("%s: no such command: %s\n", argv[0], context.args.argv[0]);
             continue;
         }
         context.cmd->handler(context.args.argc, context.args.argv);
@@ -222,7 +225,7 @@ int main(void) {
 
 void subcmd_lint(char** dest, int argc, char** argv) { dest[0] = COLOR_RESET; }
 
-int parrot(int argc, char** argv) {
+int keycode(int argc, char** argv) {
     int ch = getchar();
     do {
         sys_move_cursor_col(0);
@@ -233,6 +236,14 @@ int parrot(int argc, char** argv) {
 }
 
 int echo(int argc, char** argv) {
+    for (int i = 1; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+    return 0;
+}
+
+int decompose(int argc, char** argv) {
     for (int i = 0; i < argc; i++) {
         log_info("[%d]: %s", i, argv[i]);
     }
@@ -240,18 +251,15 @@ int echo(int argc, char** argv) {
 }
 
 int ps(int argc, char** argv) {
-    log_info("not implemented yet.");
-    return echo(argc, argv);
+    sys_ps();
+    return 0;
 }
 
-int exec(int argc, char** argv) {
-    log_info("not implemented yet.");
-    return echo(argc, argv);
-}
+int exec(int argc, char** argv) { return sys_exec(argv[1], argc - 1, argv + 1); }
 
 int kill(int argc, char** argv) {
     log_info("not implemented yet.");
-    return echo(argc, argv);
+    return decompose(argc, argv);
 }
 
 int clear(int argc, char** argv) {

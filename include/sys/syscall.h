@@ -40,6 +40,12 @@ extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause
 long sys_sleep(uint32_t);
 long sys_yield(void);
 long sys_exec(char *, int, char **);
+long sys_exit(void);
+long sys_kill(pid_t);
+long sys_waitpid(pid_t);
+
+long sys_process_show();
+
 long sys_write(char *);
 long sys_readch();
 long sys_move_cursor(int, int);

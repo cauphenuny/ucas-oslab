@@ -155,6 +155,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_CURSOR_COL] = (long (*)())screen_move_cursor_col;
     syscall[SYSCALL_CURSOR_ROW] = (long (*)())screen_move_cursor_row;
     syscall[SYSCALL_REFLUSH] = (long (*)())screen_reflush;
+    syscall[SYSCALL_CLEAR] = (long (*)())screen_clear;
     syscall[SYSCALL_GET_TIMEBASE] = (long (*)())get_time_base;
     syscall[SYSCALL_GET_TICK] = (long (*)())get_ticks;
     syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;

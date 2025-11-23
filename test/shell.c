@@ -75,14 +75,6 @@ typedef struct {
     char* argv[ARGUMENT_LEN];
 } args_t;
 
-int cursor_col, cursor_row;
-
-void move_cursor(int new_cursor_col, int new_cursor_row) {
-    sys_move_cursor(new_cursor_col, new_cursor_row);
-    cursor_col = new_cursor_col;
-    cursor_row = new_cursor_row;
-}
-
 args_t parse(char* raw, int maxn) {
     args_t result = {0};
     int isspace = 1;
@@ -164,7 +156,6 @@ typedef struct {
 } context_t;
 
 context_t readline() {
-    // move_cursor(prompt_len, cursor_row);
     int pos = 0;
     char buffer[BUFFER_LEN] = {0};
     char* color_buffer[ARGUMENT_LEN] = {0};
@@ -197,13 +188,14 @@ context_t readline() {
     return (context_t){cmd, args};
 }
 
-int main(void) {
-    move_cursor(0, SHELL_BEGIN);
-
-    // parrot(0, NULL);
-
+void preamble() {
+    sys_move_cursor(0, SHELL_BEGIN);
     printf("------------------- COMMAND -------------------\n");
+}
+
+int main(void) {
     prompt_len = strlen(prompt);
+    preamble();
 
     while (1) {
         // TODO [P3-task1]: call syscall to read UART port
@@ -263,6 +255,7 @@ int kill(int argc, char** argv) {
 }
 
 int clear(int argc, char** argv) {
-    log_info("not implemented yet.");
-    return echo(argc, argv);
+    sys_clear();
+    preamble();
+    return 0;
 }

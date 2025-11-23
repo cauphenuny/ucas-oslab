@@ -7,13 +7,17 @@ typedef int32_t pid_t;
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
+
 void sys_write(char* buff);
 void sys_move_cursor(int x, int y);
 void sys_move_cursor_row(int row);
 void sys_move_cursor_col(int col);
 void sys_reflush(void);
+void sys_clear(void);
+
 long sys_get_timebase(void);
 long sys_get_tick(void);
+
 int sys_mutex_init(int key);
 void sys_mutex_acquire(int mutex_idx);
 void sys_mutex_release(int mutex_idx);

@@ -93,7 +93,10 @@ void do_condition_broadcast(int cond_idx);
 void do_condition_destroy(int cond_idx);
 
 typedef struct semaphore {
-    // TODO [P3-TASK2 semaphore]
+    int key;
+    int count;
+    spin_lock_t lock;
+    list_head wait_list;  // container type: pcb_t
 } semaphore_t;
 
 #define SEMAPHORE_NUM 16

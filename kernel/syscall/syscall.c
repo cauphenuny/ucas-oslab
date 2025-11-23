@@ -143,6 +143,25 @@ long sys_condition_destroy(int cond_idx) {
     return 0;
 }
 
+long sys_semaphore_init(int key, int init) {
+    return do_semaphore_init(key, init);
+}
+
+long sys_sempahore_up(int sema_idx) {
+    do_semaphore_up(sema_idx);
+    return 0;
+}
+
+long sys_semaphore_down(int sema_idx) {
+    do_semaphore_down(sema_idx);
+    return 0;
+}
+
+long sys_semaphore_destroy(int sema_idx) {
+    do_semaphore_destroy(sema_idx);
+    return 0;
+}
+
 /***************** screen *****************/
 
 long sys_write(char *buff) {

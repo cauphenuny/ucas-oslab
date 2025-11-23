@@ -398,4 +398,111 @@ void do_condition_destroy(int cond_idx) {
     cond_used[cond_idx] = 0;
     condition_destruct(&conditions[cond_idx]);
 }
+
+semaphore_t semaphores[SEMAPHORE_NUM];
+int sema_used[SEMAPHORE_NUM] = {0};
+
+void semaphore_init(semaphore_t* sema) {
+    sema->key = -1;
+    sema->count = 0;
+    spin_lock_init(&sema->lock);
+    list_init(&sema->wait_list);
+}
+
+void semaphore_destruct(semaphore_t* sema) {
+    sema->key = -1;
+    sema->count = 0;
+    unblock_list(&sema->wait_list, "semaphore wait_list (destroyed)");
+}
+
+void init_semaphores() {
+    for (int i = 0; i < SEMAPHORE_NUM; i++) {
+        sema_used[i] = 0;
+    }
+}
+
+int do_semaphore_init(int key, int init) {
+    int id = -1;
+    for (int i = 0; id == -1 && i < SEMAPHORE_NUM; i++) {
+        with_spin guard(semaphores[i].lock);
+        if (sema_used[i] && semaphores[i].key == key) {
+            id = i;
+            pretty_log(LOG_INFO, "find existing semaphore %d for key %d", id, key);
+        }
+    }
+    for (int i = 0; id == -1 && i < SEMAPHORE_NUM; i++) {
+        with_spin guard(semaphores[i].lock);
+        if (!sema_used[i]) {
+            sema_used[i] = 1;
+            semaphore_init(&semaphores[i]);
+            semaphores[i].key = key;
+            semaphores[i].count = init;
+            id = i;
+            pretty_log(LOG_INFO, "allocate semaphore %d for key %d", id, key);
+        }
+    }
+    assert(id >= 0);
+    return id;
+}
+
+void do_semaphore_down(int sema_idx) {
+    if (sema_idx < 0 || sema_idx >= SEMAPHORE_NUM) {
+        pretty_loge("semaphore index %d out of range!", sema_idx);
+        return;
+    }
+
+    semaphore_t* sema = &semaphores[sema_idx];
+    with_spin guard(sema->lock);
+    if (!sema_used[sema_idx]) {
+        pretty_loge("semaphore %d is not initialized!", sema_idx);
+        return;
+    }
+
+    sema->count--;
+    pretty_log(LOG_INFO, "proc %d down semaphore %d", current_running->pid, sema_idx);
+    if (sema->count < 0) {
+        pretty_log(LOG_INFO, "proc %d block on semaphore %d", current_running->pid, sema_idx);
+        do_block(&current_running->list, &sema->wait_list);
+        without_spin release(sema->lock);
+        do_scheduler();
+    }
+}
+
+void do_semaphore_up(int sema_idx) {
+    if (sema_idx < 0 || sema_idx >= SEMAPHORE_NUM) {
+        pretty_loge("semaphore index %d out of range!", sema_idx);
+        return;
+    }
+
+    semaphore_t* sema = &semaphores[sema_idx];
+    with_spin guard(sema->lock);
+    if (!sema_used[sema_idx]) {
+        pretty_loge("semaphore %d is not initialized!", sema_idx);
+        return;
+    }
+
+    sema->count++;
+    pretty_log(LOG_INFO, "proc %d up semaphore %d", current_running->pid, sema_idx);
+    if (sema->count <= 0) {
+        list_node_t* node = list_shift(&sema->wait_list);
+        asserts(node, "semaphore wait list is empty while count < 0");
+        do_unblock(node);
+    }
+}
+
+void do_semaphore_destroy(int sema_idx) {
+    if (sema_idx < 0 || sema_idx >= SEMAPHORE_NUM) {
+        pretty_loge("semaphore index %d out of range!", sema_idx);
+    }
+    semaphore_t* sema = &semaphores[sema_idx];
+    with_spin guard(sema->lock);
+    if (!sema_used[sema_idx]) {
+        pretty_loge("semaphore %d is not initialized!", sema_idx);
+        return;
+    }
+
+    pretty_log(LOG_INFO, "destroying semaphore %d", sema_idx);
+    sema_used[sema_idx] = 0;
+    semaphore_destruct(sema);
+}
 }

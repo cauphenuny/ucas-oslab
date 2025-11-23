@@ -115,6 +115,11 @@ static void init_syscall(void) {
     syscall[SYSCALL_COND_BROADCAST] = sys_condition_broadcast;
     syscall[SYSCALL_COND_DESTROY] = sys_condition_destroy;
 
+    syscall[SYSCALL_SEMA_INIT] = sys_semaphore_init;
+    syscall[SYSCALL_SEMA_UP] = sys_semaphore_up;
+    syscall[SYSCALL_SEMA_DOWN] = sys_semaphore_down;
+    syscall[SYSCALL_SEMA_DESTROY] = sys_semaphore_destroy;
+
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_TASK_SHOW] = sys_task_show;
 }
@@ -239,6 +244,10 @@ int main(int argc, char** argv) {
 
     // Init lock mechanism o(´^｀)o
     init_locks();
+    init_barriers();
+    init_conditions();
+    init_semaphores();
+    init_mbox();
     pretty_log(LOG_INFO, "[INIT] Lock mechanism initialization succeeded.");
 
     // Init interrupt (^_^)

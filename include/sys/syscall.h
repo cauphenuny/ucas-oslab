@@ -73,6 +73,11 @@ long sys_condition_signal(int cond_idx);
 long sys_condition_broadcast(int cond_idx);
 long sys_condition_destroy(int cond_idx);
 
+long sys_semaphore_init(int key, int init);
+long sys_semaphore_up(int sema_idx);
+long sys_semaphore_down(int sema_idx);
+long sys_semaphore_destroy(int sema_idx);
+
 long sys_set_workload(int);
 
 #endif

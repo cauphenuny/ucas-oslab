@@ -26,23 +26,184 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * * * * * */
 
 #include <ctype.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <vt100.h>
 
-#define SHELL_BEGIN 20
+#define SHELL_BEGIN 10
 
-#define BUFFER_SIZE 256
+#define BUFFER_LEN   64
+#define COMMAND_LEN  16
+#define ARGUMENT_LEN 16
+
+#define log_info(fmt, ...)                                \
+    do {                                                  \
+        printf("%s: " fmt "\n", __func__, ##__VA_ARGS__); \
+    } while (0)
 
 const char* prompt = "> root@UCAS_OS: ";
+int prompt_len;
 
-char buffer[BUFFER_SIZE];
+int ps(int, char**);
+int exec(int, char**);
+int kill(int, char**);
+int clear(int, char**);
+int echo(int, char**);
+int parrot(int, char**);
+void subcmd_lint(char**, int, char**);
+
+typedef int (*handler_t)(int argc, char** argv);
+
+typedef struct command {
+    char* name;
+    void (*subcmd_linter)(char* dest[], int argc, char** argv);
+    handler_t handler;
+} command_t;
+
+const command_t COMMAND_TABLE[] = {
+    {"ps", subcmd_lint, ps},       {"exec", subcmd_lint, exec}, {"kill", subcmd_lint, kill},
+    {"clear", subcmd_lint, clear}, {"echo", subcmd_lint, echo}, {"parrot", subcmd_lint, parrot},
+};
+
+const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);
+
+typedef struct {
+    int argc;
+    char* argv[ARGUMENT_LEN];
+} args_t;
+
+int cursor_col, cursor_row;
+
+void move_cursor(int new_cursor_col, int new_cursor_row) {
+    sys_move_cursor(new_cursor_col, new_cursor_row);
+    cursor_col = new_cursor_col;
+    cursor_row = new_cursor_row;
+}
+
+args_t parse(char* raw, int maxn) {
+    args_t result = {0};
+    int isspace = 1;
+    // printf("parse: raw = \"%s\", maxn = %d, addr = %x", raw, maxn, raw), endl();
+    for (int i = 0; i < maxn; i++) {
+        // printf("i = %d", i), endl();
+        if (!raw[i]) break;
+        if (raw[i] == ' ') {
+            raw[i] = '\0';
+            isspace = 1;
+        } else {
+            if (isspace) {
+                // printf("argc = %d", result.argc), endl();
+                result.argv[result.argc] = &raw[i];
+                result.argc++;
+                isspace = 0;
+            }
+        }
+    }
+    return result;
+}
+
+command_t* lint(char* dest[], int argc, char** argv) {
+    memset((void*)dest, 0, sizeof(dest[0]) * argc);
+    command_t* matched = NULL;
+    if (!argv[0]) return matched;
+    for (int i = 0; i < NUM_CMD; i++) {
+        if (strcmp(argv[0], COMMAND_TABLE[i].name) == 0) {
+            matched = (command_t*)&COMMAND_TABLE[i];
+            break;
+        }
+    }
+    if (!matched) {
+        dest[0] = COLOR_RED;
+        dest[1] = COLOR_RESET;
+    } else {
+        dest[0] = COLOR_GREEN;
+        matched->subcmd_linter(dest + 1, argc - 1, argv + 1);
+    }
+    return matched;
+}
+
+void render(char* dest, char** dest_color, int maxn, char* buffer, int argc, char** colors) {
+    memset(dest, 0, maxn);
+    memset((void*)dest_color, 0, maxn);
+    char* top = dest;
+    char* current_color = NULL;
+    int arg_id = -1, prev_space = 1;
+    for (int i = 0; buffer[i]; i++) {
+        if (!isspace(i) && prev_space) {
+            arg_id++;
+            if (colors[arg_id]) {
+                current_color = colors[arg_id];
+            }
+        }
+        prev_space = isspace(buffer[i]);
+        *top++ = buffer[i];
+        *dest_color++ = current_color;
+    }
+}
+
+#define BACKSPACE 127
+#define NEWLINE   '\r'
+
+int getchar() {
+    int ch;
+    while ((ch = sys_getchar()) == -1);
+    // if (ch == BACKSPACE) {
+    //     printf("\b \b");
+    // } else {
+    //     printf("%c", ch);
+    // }
+    return ch;
+}
+
+typedef struct {
+    command_t* cmd;
+    args_t args;
+} context_t;
+
+context_t readline() {
+    // move_cursor(prompt_len, cursor_row);
+    int pos = 0;
+    char buffer[BUFFER_LEN] = {0};
+    char* color_buffer[ARGUMENT_LEN] = {0};
+    char display_buffer[BUFFER_LEN] = {0};
+    char* display_color_buffer[BUFFER_LEN] = {0};
+    char args_buffer[BUFFER_LEN] = {0};
+    int ch;
+    args_t args;
+    command_t* cmd = NULL;
+    while ((ch = getchar()) != NEWLINE) {
+        if (ch == BACKSPACE) {
+            if (pos) {
+                pos--;
+                buffer[pos] = '\0';
+                printf("\b \b");
+            }
+        } else {
+            buffer[pos++] = ch;
+            printf("%c", ch);
+        }
+        strcpy(args_buffer, buffer);
+        args = parse(args_buffer, BUFFER_LEN);
+        cmd = lint(color_buffer, args.argc, args.argv);
+        // render(
+        //     display_buffer, display_color_buffer, sizeof(display_buffer), buffer, args.argc,
+        //     color_buffer);
+        // display(display_buffer, display_color_buffer);
+    }
+    printf("\n");
+    return (context_t){cmd, args};
+}
 
 int main(void) {
-    sys_move_cursor(0, SHELL_BEGIN);
+    move_cursor(0, SHELL_BEGIN);
+
+    // parrot(0, NULL);
+
     printf("------------------- COMMAND -------------------\n");
-    printf("> root@UCAS_OS: ");
+    prompt_len = strlen(prompt);
 
     while (1) {
         // TODO [P3-task1]: call syscall to read UART port
@@ -51,6 +212,13 @@ int main(void) {
         // note: backspace maybe 8('\b') or 127(delete)
 
         // TODO [P3-task1]: ps, exec, kill, clear
+        printf("> root@UCAS_OS: ");
+        context_t context = readline();
+        if (!context.cmd) {
+            log_info("no such command: %s", context.args.argv[0]);
+            continue;
+        }
+        context.cmd->handler(context.args.argc, context.args.argv);
 
         /************************************************************/
         /* Do not touch this comment. Reserved for future projects. */
@@ -58,4 +226,43 @@ int main(void) {
     }
 
     return 0;
+}
+
+void subcmd_lint(char** dest, int argc, char** argv) { dest[0] = COLOR_RESET; }
+
+int parrot(int argc, char** argv) {
+    int ch = getchar();
+    do {
+        sys_move_cursor_col(0);
+        printf("%d   ", ch);
+    } while ((ch = getchar()) != 27);
+    printf("\n");
+    return 0;
+}
+
+int echo(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        log_info("[%d]: %s", i, argv[i]);
+    }
+    return 0;
+}
+
+int ps(int argc, char** argv) {
+    log_info("not implemented yet.");
+    return echo(argc, argv);
+}
+
+int exec(int argc, char** argv) {
+    log_info("not implemented yet.");
+    return echo(argc, argv);
+}
+
+int kill(int argc, char** argv) {
+    log_info("not implemented yet.");
+    return echo(argc, argv);
+}
+
+int clear(int argc, char** argv) {
+    log_info("not implemented yet.");
+    return echo(argc, argv);
 }

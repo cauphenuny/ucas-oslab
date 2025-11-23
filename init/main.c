@@ -22,8 +22,6 @@
 
 #define VERSION_BUF 50
 
-#define TASK_RESULT 0x5fffff00
-
 int version = 3;  // version must between 0 and 9
 char buf[VERSION_BUF];
 
@@ -114,7 +112,7 @@ static void init_pcb(void) {
         pcb[i].status = TASK_EXITED;
     }
 
-    const char* run_tasks[] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
+    const char* run_tasks[] = {"shell"};
 
     for (int i = 0; i < sizeof(run_tasks) / sizeof(run_tasks[0]); i++) {
         task_info_t* task = NULL;
@@ -162,34 +160,10 @@ static void init_syscall(void) {
     syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
     syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
-    syscall[SYSCALL_SET_WORKLOAD] = (long(*)())set_process_workload;
+    syscall[SYSCALL_SET_WORKLOAD] = (long (*)())set_process_workload;
 }
+
 /************************************************************/
-
-static void writeint(int val) {
-    if (val == 0)
-        bios_putchar('0');
-    else {
-        if (val / 10) writeint(val / 10);
-        bios_putchar('0' + val % 10);
-    }
-}
-
-static void writeptr(void* ptr) {
-    bios_putstr("0x");
-    uint64_t val = (uint64_t)ptr;
-    int started = 0;
-    for (int i = 64; i >= 0; i -= 4) {
-        int digit = (val >> i) & 0xf;
-        if (digit || started || i == 0) {
-            started = 1;
-            if (digit < 10)
-                bios_putchar('0' + digit);
-            else
-                bios_putchar('a' + (digit - 10));
-        }
-    }
-}
 
 static int getchar() {
     while (1) {
@@ -204,8 +178,6 @@ static int echoed_getchar() {
     int ch = getchar();
     bios_putchar(ch);
     if (ch == 127) bios_putstr("\b \b");
-    // writeint(ch);
-    if (ch == '\r') bios_putchar('\n');
     return ch;
 }
 

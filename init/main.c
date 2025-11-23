@@ -151,7 +151,7 @@ static void init_syscall(void) {
     // TODO: [p2-task3] initialize system call table.
     syscall[SYSCALL_SLEEP] = (long (*)())do_sleep;
     syscall[SYSCALL_YIELD] = (long (*)())do_scheduler;
-    syscall[SYSCALL_WRITE] = (long (*)())port_write;
+    syscall[SYSCALL_WRITE] = (long (*)())screen_write;
     syscall[SYSCALL_READCH] = (long (*)())port_read_ch;
     syscall[SYSCALL_CURSOR] = (long (*)())screen_move_cursor;
     syscall[SYSCALL_CURSOR_COL] = (long (*)())screen_move_cursor_col;

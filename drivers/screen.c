@@ -20,6 +20,18 @@ static void vt100_move_cursor(int x, int y)
     printv("%c[%d;%dH", 27, y, x);
 }
 
+static void vt100_move_cursor_x(int x)
+{
+    // \033[xG
+    printv("%c[%dG", 27, x);
+}
+
+static void vt100_move_cursor_y(int y)
+{
+    // \033[y;1H
+    printv("%c[%dd", 27, y);
+}
+
 /* clear screen */
 static void vt100_clear()
 {
@@ -47,6 +59,13 @@ void screen_write_ch(char ch)
     else if (ch == '\b' || ch == '\177')
     {	
         // TODO: [P3] support backspace here
+        int sum = current_running->cursor_y * SCREEN_WIDTH + current_running->cursor_x;
+        if (sum == 0) {
+            return;
+        }
+        if (current_running->cursor_x > 0)
+            new_screen[SCREEN_LOC(current_running->cursor_x - 1, current_running->cursor_y)] = ' ';
+        current_running->cursor_x--;
     }
     else
     {
@@ -101,6 +120,26 @@ void screen_move_cursor(int x, int y)
     vt100_move_cursor(x + 1, y + 1);
 }
 
+
+void screen_move_cursor_row(int row)
+{
+    if (row >= SCREEN_HEIGHT)
+        row = SCREEN_HEIGHT - 1;
+    else if (row < 0)
+        row = 0;
+    current_running->cursor_y = row;
+    vt100_move_cursor_y(row);
+}
+
+void screen_move_cursor_col(int col)
+{
+    if (col >= SCREEN_WIDTH)
+        col = SCREEN_WIDTH - 1;
+    else if (col < 0)
+        col = 0;
+    current_running->cursor_x = col;
+    vt100_move_cursor_x(col);
+}
 
 
 void screen_write(char *buff)

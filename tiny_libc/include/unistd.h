@@ -9,6 +9,8 @@ void sys_sleep(uint32_t time);
 void sys_yield(void);
 void sys_write(char* buff);
 void sys_move_cursor(int x, int y);
+void sys_move_cursor_row(int row);
+void sys_move_cursor_col(int col);
 void sys_reflush(void);
 long sys_get_timebase(void);
 long sys_get_tick(void);

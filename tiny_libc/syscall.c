@@ -36,6 +36,14 @@ void sys_move_cursor(int x, int y) {
     invoke_syscall(SYSCALL_CURSOR, (long)x, (long)y, IGNORE, IGNORE, IGNORE);
 }
 
+void sys_move_cursor_row(int row) {
+    invoke_syscall(SYSCALL_CURSOR_ROW, (long)row, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
+void sys_move_cursor_col(int col) {
+    invoke_syscall(SYSCALL_CURSOR_COL, (long)col, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 void sys_write(char* buff) {
     /* TODO: [p2-task1] call call_jmptab to implement sys_write */
     /* TODO: [p2-task3] call invoke_syscall to implement sys_write */
@@ -126,6 +134,7 @@ pid_t sys_getpid()
 int  sys_getchar(void)
 {
     /* TODO: [p3-task1] call invoke_syscall to implement sys_getchar */
+    return invoke_syscall(SYSCALL_READCH, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int  sys_barrier_init(int key, int goal)

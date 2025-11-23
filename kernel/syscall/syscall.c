@@ -16,9 +16,9 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     assert(!is_irq);
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     if (exception_code == 8) {
-        pretty_log(LOG_INFO, "handling ecall from U-mode");
+        // pretty_log(LOG_INFO, "handling ecall from U-mode");
     } else if (exception_code == 9) {
-        pretty_log(LOG_INFO, "handling ecall from S-mode");
+        // pretty_log(LOG_INFO, "handling ecall from S-mode");
     } else {
         assert(false);
     }
@@ -29,9 +29,9 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     int arg3 = regs->regs[REG_A3];
     int arg4 = regs->regs[REG_A4];
     int arg5 = regs->regs[REG_A5];
-    pretty_log(
-        LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3, arg4,
-        arg5);
+    // pretty_log(
+    //     LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3, arg4,
+    //     arg5);
     long ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
     regs->regs[REG_A0] = ret;
     regs->regs[REG_SEPC] += 4;

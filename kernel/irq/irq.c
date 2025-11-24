@@ -37,7 +37,7 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
     // TODO: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
     uint64_t ticks = get_ticks();
-    pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval, scause);
+    // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval, scause);
     reset_timer();
     do_scheduler();
 }

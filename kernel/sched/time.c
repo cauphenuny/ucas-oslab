@@ -53,11 +53,11 @@ void check_sleeping(void)
     // TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
 
     uint64_t current_time = get_timer();
-    pretty_log(LOG_INFO, "current_time: %d", current_time);
+    // pretty_log(LOG_INFO, "current_time: %d", current_time);
     for (list_node_t *cur = sleep_queue.head.next, *next = NULL; cur != &sleep_queue.head; cur = next) {
         next = cur->next;
         pcb_t* pcb = container_of(cur, pcb_t, list);
-        pretty_log(LOG_INFO, "checking pid %d with wakeup_time %d", pcb->pid, pcb->wakeup_time);
+        // pretty_log(LOG_INFO, "checking pid %d with wakeup_time %d", pcb->pid, pcb->wakeup_time);
         if (current_time >= pcb->wakeup_time) {
             list_delete(cur);
             list_append(&ready_queue, cur);

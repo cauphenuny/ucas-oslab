@@ -163,14 +163,14 @@ pcb_t* pick_process() {
     pcb_t* proc = NULL;
     proc = pick_process_impl(&ready_queue, filterout_kernel, update_by_consumption_init, update_by_consumption);
     if (!proc) {
-        pretty_log(LOG_WARN, "process insufficient, may fallback to init");
+        // pretty_log(LOG_WARN, "process insufficient, may fallback to init");
         proc = pick_process_impl(&ready_queue, filter_affinity, NULL, update_by_first);
     }
     asserts(proc, "no process to run");
 
-    pretty_log(
-        LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", proc->pid,
-        proc->task_id, proc->task_workload, proc->slice_cnt);
+    // pretty_log(
+    //     LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", proc->pid,
+    //     proc->task_id, proc->task_workload, proc->slice_cnt);
     if (time_slice_history[time_slice_history_index]) {
         time_slice_history[time_slice_history_index]->slice_cnt--;
     }
@@ -197,13 +197,13 @@ void do_scheduler(void) {
         current_running->status = TASK_READY;
         list_append(&ready_queue, &current_running->list);
     }
-    print_all_pcb();
-    print_pcb_list(&ready_queue);
+    // print_all_pcb();
+    // print_pcb_list(&ready_queue);
     pcb_t* next_running = pick_process();
     list_delete(&next_running->list);
-    pretty_log(
-        LOG_INFO, "switch from pid %d(%s) to pid %d(%s).", current_running->pid,
-        current_running->name, next_running->pid, next_running->name);
+    // pretty_log(
+    //     LOG_INFO, "switch from pid %d(%s) to pid %d(%s).", current_running->pid,
+    //     current_running->name, next_running->pid, next_running->name);
     next_running->status = TASK_RUNNING;
 
     // TODO: [p2-task1] switch_to current_running

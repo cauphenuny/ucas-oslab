@@ -24,9 +24,8 @@ extern int task_num;
 extern task_info_t tasks[TASK_MAXNUM];
 
 task_info_t* find_task(const char* name);
-void add_virtual_task(const char* name, uint64_t entrance);
 void show_tasks(void);
-void fetch_pcb_info(pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra);
+void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra);
 void init_pcb_stack(
     pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv);
 pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, int user_mem);

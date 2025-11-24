@@ -13,14 +13,15 @@
 #include <printk.h>
 #include <screen.h>
 
-pcb_t pcb_array[NUM_MAX_TASK];
-pcb_t* kernel_pcb[NR_CPUS];
+pcb_t pcb_user[NUM_MAX_TASK];
+pcb_t pcb_kernel[NR_CPUS];
+pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb() {
     pcb_t* selected_pcb = NULL;
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        if (pcb_array[i].status == TASK_EXITED) {
-            selected_pcb = &pcb_array[i];
+        if (pcb_user[i].status == TASK_EXITED) {
+            selected_pcb = &pcb_user[i];
             break;
         }
     }
@@ -32,9 +33,13 @@ pcb_t* alloc_pcb() {
 }
 
 pcb_t* find_pcb(pid_t pid) {
+    if (pid < NR_CPUS) {
+        asserts(pcb_kernel[pid].pid == pid, "kernel pcb broken");
+        return &pcb_kernel[pid];
+    }
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        if (pcb_array[i].pid == pid && pcb_array[i].status != TASK_EXITED) {
-            return &pcb_array[i];
+        if (pcb_user[i].pid == pid && pcb_user[i].status != TASK_EXITED) {
+            return &pcb_user[i];
         }
     }
     return NULL;
@@ -49,7 +54,7 @@ LIST(ready_queue, "ready");
 LIST(sleep_queue, "sleep");
 
 /* global process id */
-pid_t process_id = 0;
+pid_t process_id = NR_CPUS;
 
 // #define SCHED_FRAME_OFFSET   "72"
 // #define SCHED_FRAME_OFFSET_I 72
@@ -57,16 +62,16 @@ pid_t process_id = 0;
 // #define LOAD_SCHED_RA(var, sp) \
 //     asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
 
-void print_all_pcb() {
-    for (int i = 0; i < NUM_MAX_TASK; i++) {
-        if (pcb_array[i].status == TASK_EXITED) continue;
+void print_pcb_array(const pcb_t pcb[], int n) {
+    for (int i = 0; i < n; i++) {
+        if (pcb[i].status == TASK_EXITED) continue;
         ptr_t kernel_ra, user_ra;
-        fetch_pcb_info(&pcb_array[i], &kernel_ra, &user_ra);
+        fetch_pcb_info(&pcb[i], &kernel_ra, &user_ra);
         pretty_log(
-            LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb_array[i].pid,
-            pcb_array[i].name, pcb_array[i].status,
-            pcb_array[i].list.container ? pcb_array[i].list.container->name : "NULL", kernel_ra,
-            pcb_array[i].kernel_sp, user_ra, pcb_array[i].user_sp);
+            LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb[i].pid,
+            pcb[i].name, pcb[i].status,
+            pcb[i].list.container ? pcb[i].list.container->name : "NULL", kernel_ra,
+            pcb[i].kernel_sp, user_ra, pcb[i].user_sp);
     }
 }
 
@@ -86,6 +91,11 @@ void print_pcb_list(const list_t* list) {
     }
 }
 
+void print_all_pcb() {
+    print_pcb_array(pcb_kernel, NR_CPUS);
+    print_pcb_array(pcb_user, NUM_MAX_TASK);
+}
+
 #define TIME_SLICE_HISTORY_SIZE 100
 
 pcb_t* time_slice_history[TIME_SLICE_HISTORY_SIZE];
@@ -101,6 +111,9 @@ pcb_t* pick_process() {
     list_foreach_node(iter, &ready_queue.head) {
         pcb_t* proc = container_of(iter, pcb_t, list);
         int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
+        if (proc->pid < NR_CPUS) {
+            continue; // skip kernel proc
+        }
         if (proc->task_id < min_task_id) {
             selected_proc = proc;
             min_task_id = proc->task_id;
@@ -113,7 +126,7 @@ pcb_t* pick_process() {
         }
     }
     if (!selected_proc) {
-        pretty_loge("no candidate selected, fallback to first (pid 0)");
+        pretty_log(LOG_WARN, "no candidate selected, fallback to first");
         selected_proc = container_of(ready_queue.head.next, pcb_t, list);
     }
     assert(selected_proc);
@@ -260,8 +273,8 @@ void do_process_show() {
     printk("CHANNEL"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
     printk("TIME");
     printk("\n");
-    for (int i = 0; i < NUM_MAX_TASK; i++) {
-        pcb_t* proc = &pcb_array[i];
+    for (int i = 0; i < NUM_MAX_PCB; i++) {
+        pcb_t* proc = pcb_all[i];
         if (proc->status == TASK_EXITED) continue;
         printk("%d", proc->pid);
         screen_move_cursor_col(PID_LEN);
@@ -271,6 +284,8 @@ void do_process_show() {
         screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN);
         if (proc->list.container) {
             printk("%s", proc->list.container->name);
+        } else {
+            printk("N/A");
         }
         screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
         printk("%d", proc->slice_cnt);

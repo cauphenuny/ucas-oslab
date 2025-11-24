@@ -31,7 +31,7 @@
 #include <type.h>
 
 // NOTE: for debug
-#define TIMER_INTERVAL 100000
+#define TIMER_INTERVAL (time_base / 100)
 
 // NOTE: for emulatation
 // #define TIMER_INTERVAL 10000

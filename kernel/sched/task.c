@@ -21,13 +21,6 @@ task_info_t* find_task(const char* name) {
     return NULL;
 }
 
-void add_virtual_task(const char* name, uint64_t entrance) {
-    strcpy(tasks[task_num].name, name);
-    tasks[task_num].entrance = entrance;
-    tasks[task_num].phyaddr_end = tasks[task_num].phyaddr_start = 0;
-    task_num++;
-}
-
 void show_tasks(void) {
     const int NAME_LEN = 16;
     const int ENTRANCE_LEN = 12;
@@ -58,7 +51,7 @@ extern void ret_from_exception();
 
 #define SP_ALIGNMENT 16
 
-void fetch_pcb_info(pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
+void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
     void* ksp = (void*)pcb->kernel_sp, *usp = (void*)pcb->user_sp;
     switchto_context_t* swtch_context = ksp;
     regs_context_t* regs = ksp + sizeof(switchto_context_t);

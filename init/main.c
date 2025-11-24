@@ -63,18 +63,28 @@ static void init_pcb(void) {
         load_task_img(tasks[i]);
     }
 
-    for (int i = 0; i < NUM_MAX_TASK; i++) {
-        pcb_array[i].status = TASK_EXITED;
-    }
-
-    add_virtual_task("init", 0);
+    int cnt = 0;
 
     for (int i = 0; i < NR_CPUS; i++) {
-        kernel_pcb[i] = construct_pcb("init", 0, NULL, 1, 1);
-        asserts(kernel_pcb[i], "failed to create kernel_pcb");
+        pcb_kernel[i] = (pcb_t){
+            .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .user_sp = 0,
+            .pid = i,
+            .status = TASK_READY,
+        };
+        strcpy(pcb_kernel[i].name, "init");
+        list_init(&pcb_kernel[i].wait_list, "proc");
+        pcb_all[cnt++] = &pcb_kernel[i];
     }
 
-    current_running = kernel_pcb[0];
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        pcb_user[i].status = TASK_EXITED;
+        pcb_all[cnt++] = &pcb_user[i];
+    }
+
+    asserts(cnt == (sizeof(pcb_all) / sizeof(pcb_all[0])), "pcb_all size broken");
+    asserts(get_current_cpu_id() == 0, "init_pcb called on sub-hart");
+    current_running = &pcb_kernel[0];
     current_running->status = TASK_RUNNING;
 }
 
@@ -214,18 +224,22 @@ int main(int argc, char** argv) {
     } else {
         while (!start);
         lock_kernel();
-        current_running = kernel_pcb[hartid];
-        current_running->status = TASK_RUNNING;
         setup_exception();
         reset_timer();
+        current_running = &pcb_kernel[hartid];
+        current_running->status = TASK_RUNNING;
     }
 
     pretty_log(LOG_INFO, "hart %d started", hartid);
-    unlock_kernel();
-    // breakpoint();
+
+    reg_t stack_pointer;
+    asm volatile("mv %0, sp" : "=r"(stack_pointer));
+    current_running->kernel_sp = stack_pointer;
+    pretty_log(LOG_INFO, "stack pointer: 0x%x", stack_pointer);
 
     asm volatile("csrw sscratch, tp");
 
+    unlock_kernel();
     while (true) {
         enable_preempt();
         asm volatile("wfi");

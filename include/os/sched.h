@@ -157,8 +157,12 @@ extern list_t sleep_queue;
 register pcb_t* current_running asm("tp");
 extern pid_t process_id;
 
-extern pcb_t pcb_array[NUM_MAX_TASK];
-extern pcb_t* kernel_pcb[NR_CPUS];
+extern pcb_t pcb_user[NUM_MAX_TASK];
+extern pcb_t pcb_kernel[NR_CPUS];
+
+#define NUM_MAX_PCB ((NUM_MAX_TASK) + (NR_CPUS))
+
+extern pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb();
 

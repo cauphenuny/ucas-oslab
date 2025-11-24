@@ -456,7 +456,7 @@ void semaphore_init(semaphore_t* sema) {
     sema->key = -1;
     sema->count = 0;
     spin_lock_init(&sema->lock);
-    list_init(&sema->wait_list, "semaphore");
+    list_init(&sema->wait_list, "sema");
 }
 
 void semaphore_destruct(semaphore_t* sema) {

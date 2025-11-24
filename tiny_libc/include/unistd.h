@@ -71,6 +71,12 @@ int sys_mbox_open(char* name);
 void sys_mbox_close(int mbox_id);
 int sys_mbox_send(int mbox_idx, void* msg, int msg_length);
 int sys_mbox_recv(int mbox_idx, void* msg, int msg_length);
+
+int sys_semaphore_init(int key, int init);
+void sys_semaphore_destroy(int sema_idx);
+void sys_semaphore_up(int sema_idx);
+void sys_semaphore_down(int sema_idx);
+
 /************************************************************/
 
 #endif

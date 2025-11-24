@@ -57,14 +57,6 @@ static void init_jmptab(void) {
 
 /************************************************************/
 
-static void spin() {
-    // NOTE: this function should NOT use stack pointer (because user_sp is 0 for kernel pcb)
-    // NOTE: this function is runned under u-mode
-    while (true) {
-        asm volatile("wfi");
-    }
-}
-
 static void init_pcb(void) {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
     for (int i = 0; i < task_num; i++) {
@@ -72,13 +64,13 @@ static void init_pcb(void) {
     }
 
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        pcb[i].status = TASK_EXITED;
+        pcb_array[i].status = TASK_EXITED;
     }
 
-    add_virtual_task("init", (ptr_t)spin);
+    add_virtual_task("init", 0);
 
     for (int i = 0; i < NR_CPUS; i++) {
-        kernel_pcb[i] = construct_pcb("init", 0, NULL, 1, 0);
+        kernel_pcb[i] = construct_pcb("init", 0, NULL, 1, 1);
         asserts(kernel_pcb[i], "failed to create kernel_pcb");
     }
 
@@ -215,21 +207,28 @@ int main(int argc, char** argv) {
         reset_timer();
 
         start = 1;
+        lock_kernel();
         pretty_log(LOG_INFO, "[INIT] All done! Waking up other harts");
         wakeup_other_hart();
 
     } else {
         while (!start);
+        lock_kernel();
         current_running = kernel_pcb[hartid];
         current_running->status = TASK_RUNNING;
         setup_exception();
         reset_timer();
     }
 
-    lock_kernel();
     pretty_log(LOG_INFO, "hart %d started", hartid);
+    unlock_kernel();
+    // breakpoint();
 
     asm volatile("csrw sscratch, tp");
-    do_scheduler();
+
+    while (true) {
+        enable_preempt();
+        asm volatile("wfi");
+    }
     return 0;
 }

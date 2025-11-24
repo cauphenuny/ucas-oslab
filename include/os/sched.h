@@ -70,11 +70,6 @@
 #define REG_T5   (OFFSET_REG_T5 >> RISCV_LGPTR)
 #define REG_T6   (OFFSET_REG_T6 >> RISCV_LGPTR)
 
-#define REG_SSTATUS  (OFFSET_REG_SSTATUS >> RISCV_LGPTR)
-#define REG_SEPC     (OFFSET_REG_SEPC >> RISCV_LGPTR)
-#define REG_SBADADDR (OFFSET_REG_SBADADDR >> RISCV_LGPTR)
-#define REG_SCAUSE   (OFFSET_REG_SCAUSE >> RISCV_LGPTR)
-
 /* used to save register infomation */
 typedef struct regs_context {
     /* Saved main processor registers.*/
@@ -162,7 +157,7 @@ extern list_t sleep_queue;
 register pcb_t* current_running asm("tp");
 extern pid_t process_id;
 
-extern pcb_t pcb[NUM_MAX_TASK];
+extern pcb_t pcb_array[NUM_MAX_TASK];
 extern pcb_t* kernel_pcb[NR_CPUS];
 
 pcb_t* alloc_pcb();

@@ -13,14 +13,14 @@
 #include <printk.h>
 #include <screen.h>
 
-pcb_t pcb[NUM_MAX_TASK];
+pcb_t pcb_array[NUM_MAX_TASK];
 pcb_t* kernel_pcb[NR_CPUS];
 
 pcb_t* alloc_pcb() {
     pcb_t* selected_pcb = NULL;
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        if (pcb[i].status == TASK_EXITED) {
-            selected_pcb = &pcb[i];
+        if (pcb_array[i].status == TASK_EXITED) {
+            selected_pcb = &pcb_array[i];
             break;
         }
     }
@@ -33,8 +33,8 @@ pcb_t* alloc_pcb() {
 
 pcb_t* find_pcb(pid_t pid) {
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        if (pcb[i].pid == pid && pcb[i].status != TASK_EXITED) {
-            return &pcb[i];
+        if (pcb_array[i].pid == pid && pcb_array[i].status != TASK_EXITED) {
+            return &pcb_array[i];
         }
     }
     return NULL;
@@ -57,6 +57,19 @@ pid_t process_id = 0;
 // #define LOAD_SCHED_RA(var, sp) \
 //     asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
 
+void print_all_pcb() {
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        if (pcb_array[i].status == TASK_EXITED) continue;
+        ptr_t kernel_ra, user_ra;
+        fetch_pcb_info(&pcb_array[i], &kernel_ra, &user_ra);
+        pretty_log(
+            LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb_array[i].pid,
+            pcb_array[i].name, pcb_array[i].status,
+            pcb_array[i].list.container ? pcb_array[i].list.container->name : "NULL", kernel_ra,
+            pcb_array[i].kernel_sp, user_ra, pcb_array[i].user_sp);
+    }
+}
+
 void print_pcb_list(const list_t* list) {
     size_t size = list_size(list);
     pretty_log(LOG_INFO, "there are %d tasks in the %s/%x channel.", size, list->name, list);
@@ -66,7 +79,9 @@ void print_pcb_list(const list_t* list) {
         ptr_t kernel_ra, user_ra;
         fetch_pcb_info(pcb, &kernel_ra, &user_ra);
         pretty_log(
-            LOG_DEBUG, "(%d) %s: stat=%d, kra=%x, ksp=%x, ura=%x, usp=%x", pcb->pid, pcb->name, pcb->status, kernel_ra, pcb->kernel_sp, user_ra, pcb->user_sp);
+            LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb->pid,
+            pcb->name, pcb->status, pcb->list.container ? pcb->list.container->name : "NULL",
+            kernel_ra, pcb->kernel_sp, user_ra, pcb->user_sp);
         current = current->next;
     }
 }
@@ -132,6 +147,7 @@ void do_scheduler(void) {
         current_running->status = TASK_READY;
         list_append(&ready_queue, &current_running->list);
     }
+    print_all_pcb();
     print_pcb_list(&ready_queue);
     pcb_t* next_running = pick_process();
     list_delete(&next_running->list);
@@ -223,7 +239,7 @@ pid_t do_exec(char* name, int argc, char* argv[]) {
     }
     pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
     list_append(&ready_queue, &pcb->list);
-    print_pcb_list(&ready_queue);
+    print_all_pcb();
     return pcb->pid;
 }
 
@@ -231,6 +247,7 @@ void do_process_show() {
     const int PID_LEN = 5;
     const int NAME_LEN = 16;
     const int STAT_LEN = 10;
+    const int CHAN_LEN = 10;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",
@@ -240,10 +257,11 @@ void do_process_show() {
     printk("PID"), screen_move_cursor_col(PID_LEN);
     printk("NAME"), screen_move_cursor_col(PID_LEN + NAME_LEN);
     printk("STATUS"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN);
-    printk("CHANNEL");
+    printk("CHANNEL"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
+    printk("TIME");
     printk("\n");
     for (int i = 0; i < NUM_MAX_TASK; i++) {
-        pcb_t* proc = &pcb[i];
+        pcb_t* proc = &pcb_array[i];
         if (proc->status == TASK_EXITED) continue;
         printk("%d", proc->pid);
         screen_move_cursor_col(PID_LEN);
@@ -254,6 +272,8 @@ void do_process_show() {
         if (proc->list.container) {
             printk("%s", proc->list.container->name);
         }
+        screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
+        printk("%d", proc->slice_cnt);
         printk("\n");
     }
     return;

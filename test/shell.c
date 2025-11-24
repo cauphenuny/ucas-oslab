@@ -32,7 +32,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <vt100.h>
+
+#define COLOR_RED 31
+#define COLOR_GREEN 32
+#define COLOR_RESET 0
 
 #define SHELL_BEGIN 10
 #define SHELL_END 30
@@ -53,7 +56,7 @@ typedef int (*handler_t)(int argc, char** argv);
 
 typedef struct task {
     char* name;
-    void (*subcmd_linter)(char* dest[], int argc, char** argv);
+    void (*subcmd_linter)(int dest[], int argc, char** argv);
     handler_t handler;
 } task_t;
 
@@ -100,7 +103,7 @@ int shifti(int* argc, char*** argv) {
     return atoi(buffer);
 }
 
-task_t* lint(char* dest[], int argc, char** argv) {
+task_t* lint(int dest[], int argc, char** argv) {
     memset((void*)dest, 0, sizeof(dest[0]) * argc);
     task_t* matched = NULL;
     if (!argv[0]) return matched;
@@ -120,23 +123,21 @@ task_t* lint(char* dest[], int argc, char** argv) {
     return matched;
 }
 
-void render(char* dest, char** dest_color, int maxn, char* buffer, int argc, char** colors) {
-    memset(dest, 0, maxn);
-    memset((void*)dest_color, 0, maxn);
-    char* top = dest;
-    char* current_color = NULL;
-    int arg_id = -1, prev_space = 1;
+void render(char* buffer, int argc, int colors[]) {
+    sys_screen_clear_color();
+    int arg_id = -1;
     for (int i = 0; buffer[i]; i++) {
-        if (!isspace(i) && prev_space) {
-            arg_id++;
-            if (colors[arg_id]) {
-                current_color = colors[arg_id];
-            }
+        while (buffer[i] && isspace(buffer[i])) i++;
+        if (!buffer[i]) break;
+        arg_id++;
+        int start = i;
+        while (buffer[i] && !isspace(buffer[i])) i++;
+        int end = i;
+        if (colors[arg_id]) {
+            sys_screen_set_color(start + prompt_len, end + prompt_len, colors[arg_id], 0);
         }
-        prev_space = isspace(buffer[i]);
-        *top++ = buffer[i];
-        *dest_color++ = current_color;
     }
+    sys_reflush();
 }
 
 #define BACKSPACE 127
@@ -162,9 +163,7 @@ typedef struct {
 command_t readline() {
     int pos = 0;
     char buffer[BUFFER_LEN] = {0};
-    char* color_buffer[ARGUMENT_LEN] = {0};
-    char display_buffer[BUFFER_LEN] = {0};
-    char* display_color_buffer[BUFFER_LEN] = {0};
+    int color_buffer[ARGUMENT_LEN] = {0};
     char args_buffer[BUFFER_LEN] = {0};
     int ch;
     args_t args;
@@ -196,9 +195,7 @@ command_t readline() {
         strcpy(args_buffer, buffer);
         args = parse(args_buffer, BUFFER_LEN);
         task = lint(color_buffer, args.argc, args.argv);
-        // render(
-        //     display_buffer, display_color_buffer, sizeof(display_buffer), buffer, args.argc,
-        //     color_buffer);
+        render(buffer, args.argc, color_buffer);
         // display(display_buffer, display_color_buffer);
     }
     printf("\n");
@@ -238,7 +235,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void subcmd_lint(char** dest, int argc, char** argv) { dest[0] = COLOR_RESET; }
+void subcmd_lint(int dest[], int argc, char** argv) { dest[0] = COLOR_RESET; }
 
 int keycode(int argc, char** argv) {
     int ch = getchar();

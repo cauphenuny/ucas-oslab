@@ -1,3 +1,4 @@
+#include "logger.h"
 #include <screen.h>
 #include <printk.h>
 #include <os/string.h>
@@ -12,7 +13,9 @@
 /* screen buffer */
 char new_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 char old_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
+int old_color[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 int scroll_start = -1, scroll_end = -1;
+int color_trigger[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 
 /* cursor position */
 static void vt100_move_cursor(int x, int y)
@@ -55,11 +58,13 @@ void screen_scroll(int start_row, int end_row)
         for (j = 0; j < SCREEN_WIDTH; j++)
         {
             new_screen[SCREEN_LOC(j, i)] = new_screen[SCREEN_LOC(j, i + 1)];
+            color_trigger[SCREEN_LOC(j, i)] = color_trigger[SCREEN_LOC(j, i + 1)];
         }
     }
     for (j = 0; j < SCREEN_WIDTH; j++)
     {
         new_screen[SCREEN_LOC(j, end_row)] = ' ';
+        color_trigger[SCREEN_LOC(j, end_row)] = 0;
     }
 }
 
@@ -185,17 +190,34 @@ void screen_reflush(void)
 {
     int i, j;
 
+    int color = 0;
+    static int last_color = 0;
     /* here to reflush screen buffer to serial port */
     for (i = 0; i < SCREEN_HEIGHT; i++)
     {
         for (j = 0; j < SCREEN_WIDTH; j++)
         {
+            if (color_trigger[SCREEN_LOC(j, i)] != 0) {
+                if (color_trigger[SCREEN_LOC(j, i)] > 0) {
+                    color = color_trigger[SCREEN_LOC(j, i)];
+                    // pretty_log(LOG_INFO, "trigger set color to %d at (%d, %d)", color, j, i);
+                } else {
+                    color = 0;
+                    // pretty_log(LOG_INFO, "trigger reset color at (%d, %d)", j, i);
+                }
+            }
             /* We only print the data of the modified location. */
-            if (new_screen[SCREEN_LOC(j, i)] != old_screen[SCREEN_LOC(j, i)])
+            if ((new_screen[SCREEN_LOC(j, i)] != old_screen[SCREEN_LOC(j, i)]) || (color != old_color[SCREEN_LOC(j, i)]))
             {
                 vt100_move_cursor(j + 1, i + 1);
+                if (color != old_color[SCREEN_LOC(j, i)] || last_color != color) {
+                    printv("%c[%dm", 27, color);
+                    // pretty_log(LOG_INFO, "set color to %d at (%d, %d)", color, j, i);
+                }
                 bios_putchar(new_screen[SCREEN_LOC(j, i)]);
                 old_screen[SCREEN_LOC(j, i)] = new_screen[SCREEN_LOC(j, i)];
+                old_color[SCREEN_LOC(j, i)] = color;
+                last_color = color;
             }
         }
     }
@@ -225,12 +247,15 @@ void screen_clear_scroll(void)
 
 void screen_set_color(int start_col, int end_col, int foreground, int background)
 {
-
+    color_trigger[SCREEN_LOC(start_col, current_running->cursor_y)] = foreground;
+    color_trigger[SCREEN_LOC(end_col, current_running->cursor_y)] = -foreground;
 }
 
 void screen_clear_color(void)
 {
-
+    for (int i = 0; i < SCREEN_WIDTH; i++) {
+        color_trigger[SCREEN_LOC(i, current_running->cursor_y)] = 0;
+    }
 }
 
 void screen_delete_line(int nlines)
@@ -243,6 +268,7 @@ void screen_delete_line(int nlines)
         for (j = 0; j < SCREEN_WIDTH - 1; j++)
         {
             new_screen[SCREEN_LOC(j, current_running->cursor_y)] = ' ';
+            color_trigger[SCREEN_LOC(j, current_running->cursor_y)] = 0;
         }
         current_running->cursor_y--;
     }

@@ -19,6 +19,9 @@ ENTRY(_start)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
+  csrr t0, mhartid
+  bnez t0, .stack // skip bss clearing when hartid != 0
+
   /* TODO: [p1-task2] clear BSS for flat non-ELF images */
 
   la t0, __bss_start
@@ -32,6 +35,7 @@ ENTRY(_start)
 
   /* TODO: [p1-task2] setup C environment */
 
+.stack:
   li t0, KERNEL_STACK
   csrr t1, mhartid
   addi t1, t1, 1
@@ -40,6 +44,7 @@ ENTRY(_start)
   add t0, t0, t3
   mv sp, t0 // sp = KERNEL_STACK + (hartid + 1) * page_size
 
+.main:
   jal main
 
 

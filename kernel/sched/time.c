@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <logger.h>
 #include <os/kernel.h>
 #include <os/list.h>
@@ -30,7 +31,7 @@ void reset_timer()
 uint64_t get_timer()
 {
     uint64_t ticks = get_ticks();
-    pretty_log(LOG_DEBUG, "ticks: %d, time_base: %d", ticks, time_base);
+    asserts(time_base, "time base uninitialized");
     return ticks / time_base;
 }
 

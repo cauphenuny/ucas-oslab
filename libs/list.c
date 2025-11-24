@@ -89,6 +89,7 @@ void list_init(list_t* list, const char* name) {
     list_node_t* head = &list->head;
     head->next = head;
     head->prev = head;
+    list->name = name;
 }
 
 bool list_holding(list_node_t* node) {

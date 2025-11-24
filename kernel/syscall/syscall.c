@@ -39,7 +39,7 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     //     arg5);
     long ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
     regs->regs[REG_A0] = ret;
-    regs->regs[REG_SEPC] += 4;
+    regs->sepc += 4;
 }
 
 /***************** proc *****************/

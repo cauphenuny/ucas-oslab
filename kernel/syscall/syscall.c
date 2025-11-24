@@ -49,6 +49,12 @@ long sys_sleep(uint32_t time) {
     return 0;
 }
 
+long sys_msleep(uint32_t msec) {
+    uint32_t sleep_time = (msec + time_base - 1) / time_base;
+    do_sleep(sleep_time);
+    return 0;
+}
+
 long sys_yield(void) {
     do_scheduler();
     return 0;
@@ -94,8 +100,7 @@ long sys_getpid() {
 }
 
 long sys_process_show() {
-    do_process_show();
-    return 0;
+    return do_process_show();
 }
 
 long sys_task_show() {
@@ -103,23 +108,28 @@ long sys_task_show() {
     return 0;
 }
 
-long sys_set_scroll(int start_row, int end_row) {
+long sys_screen_set_scroll(int start_row, int end_row) {
     screen_set_scroll(start_row, end_row);
     return 0;
 }
 
-long sys_clear_scroll(void) {
+long sys_screen_clear_scroll(void) {
     screen_clear_scroll();
     return 0;
 }
 
-long sys_set_color(int start_col, int end_col, int foreground, int background) {
+long sys_screen_set_color(int start_col, int end_col, int foreground, int background) {
     screen_set_color(start_col, end_col, foreground, background);
     return 0;
 }
 
-long sys_clear_color(void) {
+long sys_screen_clear_color(void) {
     screen_clear_color();
+    return 0;
+}
+
+long sys_screen_delete_line(int nlines) {
+    screen_delete_line(nlines);
     return 0;
 }
 

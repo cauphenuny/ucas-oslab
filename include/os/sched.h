@@ -194,7 +194,7 @@ extern pid_t do_exec(char* name, int argc, char* argv[], unsigned affinity_mask)
 extern void do_exit(void);
 extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
-extern void do_process_show();
+extern int do_process_show();
 extern pid_t do_getpid();
 /************************************************************/
 

@@ -96,7 +96,7 @@ void print_all_pcb() {
     print_pcb_array(pcb_user, NUM_MAX_TASK);
 }
 
-#define TIME_SLICE_HISTORY_SIZE 100
+#define TIME_SLICE_HISTORY_SIZE (100 * NR_CPUS)
 
 pcb_t* time_slice_history[TIME_SLICE_HISTORY_SIZE];
 int time_slice_history_index;
@@ -295,7 +295,7 @@ pid_t do_exec(char* name, int argc, char* argv[], unsigned affinity_mask) {
     return pcb->pid;
 }
 
-void do_process_show() {
+int do_process_show() {
     const int PID_LEN = 5;
     const int NAME_LEN = 16;
     const int STAT_LEN = 10;
@@ -314,6 +314,7 @@ void do_process_show() {
     printk("TIME"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
     printk("AFF");
     printk("\n");
+    int count = 0;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* proc = pcb_all[i];
         if (proc->status == TASK_EXITED) continue;
@@ -333,14 +334,15 @@ void do_process_show() {
             }
         }
         screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
-        printk("%d", proc->slice_cnt);
+        printk("%d%%", proc->slice_cnt);
         screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
         for (int i = 0; i < NR_CPUS; i++) {
             printk("%d", (proc->affinity & (1 << i)) != 0);
         }
         printk("\n");
+        count++;
     }
-    return;
+    return count;
 }
 
 void do_exit() {

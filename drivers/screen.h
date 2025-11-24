@@ -49,5 +49,6 @@ void screen_set_scroll(int start_row, int end_row);
 void screen_clear_scroll(void);
 void screen_set_color(int start_col, int end_col, int foreground, int background);
 void screen_clear_color(void);
+void screen_delete_line(int nlines);
 
 #endif

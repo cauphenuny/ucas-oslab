@@ -211,7 +211,7 @@ void preamble() {
 }
 
 int main(int argc, char** argv) {
-    sys_set_scroll(SHELL_BEGIN + 1, SHELL_END);
+    sys_screen_set_scroll(SHELL_BEGIN + 1, SHELL_END);
     prompt_len = strlen(prompt);
     preamble();
 
@@ -287,17 +287,19 @@ int exec(int argc, char** argv) {
     pid_t pid = sys_exec(argv[0], argc, argv);
     if (!pid) {
         log_info("exec failed");
-        return 0;
+        return 1;
     }
     if (wait) {
         sys_waitpid(pid);
     }
-    return pid;
+    return 0;
 }
 
 int kill(int argc, char** argv) {
     int pid = atoi(argv[1]);
-    return sys_kill(pid);
+    pid = sys_kill(pid);
+    if (pid) return 0;
+    return 1;
 }
 
 int clear(int argc, char** argv) {
@@ -322,7 +324,7 @@ int taskset(int argc, char** argv) {
         } else {
             log_info("set pid %d with affinity 0x%x", pid, mask);
         }
-        return success;
+        return !success;
     } else {
         unsigned mask = shifti(&argc, &argv);
         int wait;
@@ -335,13 +337,27 @@ int taskset(int argc, char** argv) {
         int pid = sys_exec_with_affinity(argv[0], argc, argv, mask);
         if (!pid) {
             log_info("exec failed");
-            return 0;
+            return 1;
         }
         if (wait) {
             sys_waitpid(pid);
         }
-        return pid;
+        return 0;
     }
+}
+
+int top(int argc, char** argv) {
+    while (1) {
+        int nproc = sys_ps();
+        sys_sleep(1);
+        int ch = sys_getchar();
+        if (ch != -1) {
+            break;
+        }
+        sys_screen_delete_line(nproc + 2);
+        printf("\n");
+    }
+    return 0;
 }
 
 const task_t COMMAND_TABLE[] = {
@@ -354,6 +370,7 @@ const task_t COMMAND_TABLE[] = {
     {"decompose", subcmd_lint, decompose},
     {"keycode", subcmd_lint, keycode},
     {"taskset", subcmd_lint, taskset},
+    {"top", subcmd_lint, top},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

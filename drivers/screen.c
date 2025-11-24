@@ -232,3 +232,24 @@ void screen_clear_color(void)
 {
 
 }
+
+void screen_delete_line(int nlines)
+{
+    if (nlines <= 0)
+        return;
+    int i, j;
+    for (i = 0; i < nlines; i++)
+    {
+        for (j = 0; j < SCREEN_WIDTH - 1; j++)
+        {
+            new_screen[SCREEN_LOC(j, current_running->cursor_y)] = ' ';
+        }
+        current_running->cursor_y--;
+    }
+    current_running->cursor_x = 0;
+    for (i = 0; i < SCREEN_WIDTH - 1; i++) {
+        if (new_screen[SCREEN_LOC(i, current_running->cursor_y)] != ' ') {
+            current_running->cursor_x = i;
+        }
+    }
+}

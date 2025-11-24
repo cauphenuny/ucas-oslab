@@ -111,8 +111,12 @@ void sys_screen_delete_line(int nlines) {
     invoke_syscall(SYSCALL_DELETE_LINE, (long)nlines, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
-int sys_exec_by_entry(char* name, int entrance, int argc, char* argv[]) {
+int sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]) {
     return invoke_syscall(SYSCALL_EXEC_BY_ENTRY, (long)name, (long)entrance, (long)argc, (long)argv, IGNORE);
+}
+
+int sys_display_info(int argc, char** argv) {
+    return invoke_syscall(SYSCALL_DISPLAY_INFO, (long)argc, (long)argv, IGNORE, IGNORE, IGNORE);
 }
 
 /************************************************************/

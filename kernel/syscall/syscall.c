@@ -2,6 +2,7 @@
 #include <os/task.h>
 #include <os/lock.h>
 #include <os/sched.h>
+#include <os/string.h>
 #include <os/time.h>
 #include <screen.h>
 #include <assert.h>
@@ -73,7 +74,7 @@ long sys_exec(char *name, int argc, char *argv[]) {
     return sys_exec_with_affinity(name, argc, argv, current_running->affinity);
 }
 
-long sys_exec_by_entry(char* name, int entrance, int argc, char* argv[]) {
+long sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]) {
     return do_exec(name, entrance, argc, argv, current_running->affinity);
 }
 
@@ -114,6 +115,26 @@ long sys_process_show() {
 
 long sys_task_show() {
     show_tasks();
+    return 0;
+}
+
+long sys_display_info(int argc, char** argv) {
+    if (argc <= 0) return 1;
+    if (strcmp(argv[0], "task") == 0) {
+        show_tasks();
+    } else if (strcmp(argv[0], "proc") == 0) {
+        do_process_show();
+    } else if (strcmp(argv[0], "mbox") == 0) {
+        show_mailboxes();
+    } else if (strcmp(argv[0], "cond") == 0) {
+        show_conditions();
+    } else if (strcmp(argv[0], "mutex") == 0) {
+        show_mutexes();
+    } else if (strcmp(argv[0], "bar") == 0) {
+        show_barriers();
+    } else {
+        return 1;
+    }
     return 0;
 }
 

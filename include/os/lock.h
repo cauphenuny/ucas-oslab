@@ -62,6 +62,8 @@ int do_mutex_lock_init(int key);
 void do_mutex_lock_acquire(int mlock_idx);
 void do_mutex_lock_release(int mlock_idx);
 
+void show_mutexes();
+
 void init_locks(void);
 
 void cleanup_mutex(pid_t pid);
@@ -82,6 +84,8 @@ int do_barrier_init(int key, int goal);
 void do_barrier_wait(int bar_idx);
 void do_barrier_destroy(int bar_idx);
 
+void show_barriers();
+
 typedef struct condition {
     int key;
     spin_lock_t lock;
@@ -97,6 +101,8 @@ void do_condition_signal(int cond_idx);
 void do_condition_broadcast(int cond_idx);
 void do_condition_destroy(int cond_idx);
 
+void show_conditions();
+
 typedef struct semaphore {
     int key;
     int count;
@@ -111,6 +117,8 @@ int do_semaphore_init(int key, int init);
 void do_semaphore_up(int sema_idx);
 void do_semaphore_down(int sema_idx);
 void do_semaphore_destroy(int sema_idx);
+
+void show_semaphores();
 
 #define MAX_MBOX_NAME   32
 #define MAX_MBOX_LENGTH (64)
@@ -134,6 +142,8 @@ int do_mbox_send(int mbox_idx, void* msg, int msg_length);
 
 /// @return 1: blocked, 0: immediately received
 int do_mbox_recv(int mbox_idx, void* msg, int msg_length);
+
+void show_mailboxes();
 
 /************************************************************/
 

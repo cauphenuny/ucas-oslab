@@ -397,6 +397,12 @@ int top(int argc, char** argv) {
     return 0;
 }
 
+int info(int argc, char** argv) {
+    if (argc < 1) return 1;
+    shift(&argc, &argv);
+    return sys_display_info(argc, argv);
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", subcmd_lint, echo},
     {"ts", subcmd_lint, ts},
@@ -408,6 +414,7 @@ const task_t COMMAND_TABLE[] = {
     {"keycode", subcmd_lint, keycode},
     {"taskset", subcmd_lint, taskset},
     {"top", subcmd_lint, top},
+    {"info", subcmd_lint, info},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

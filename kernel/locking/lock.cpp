@@ -190,6 +190,17 @@ void cleanup_mutex(pid_t pid) {
     }
 }
 
+void show_mutexes() {
+    for (int i = 0; i < LOCK_NUM; i++) {
+        with_spin guard(mlocks[i].lock);
+        if (mlock_used[i]) {
+            printk(
+                "mutex lock %d: key=%d, acquired=%d, pid=%d\n", i, mlocks[i].key, mlocks[i].acquired,
+                mlocks[i].pid);
+        }
+    }
+}
+
 barrier_t barriers[BARRIER_NUM];
 int barrier_used[BARRIER_NUM] = {0};
 
@@ -288,6 +299,17 @@ void do_barrier_destroy(int bar_idx) {
     barrier_used[bar_idx] = 0;
     barrier_destruct(bar);
     pretty_log(LOG_INFO, "destroyed barrier %d", bar_idx);
+}
+
+void show_barriers() {
+    for (int i = 0; i < BARRIER_NUM; i++) {
+        with_spin guard(barriers[i].lock);
+        if (barrier_used[i]) {
+            printk(
+                "barrier %d: key=%d, goal=%d, current=%d\n", i, barriers[i].key, barriers[i].goal,
+                barriers[i].current);
+        }
+    }
 }
 
 condition_t conditions[CONDITION_NUM];
@@ -417,6 +439,16 @@ void do_condition_destroy(int cond_idx) {
     condition_destruct(&conditions[cond_idx]);
 }
 
+void show_conditions() {
+    for (int i = 0; i < CONDITION_NUM; i++) {
+        with_spin guard(conditions[i].lock);
+        if (cond_used[i]) {
+            int waiting = list_size(&conditions[i].wait_list);
+            printk("condition %d: key=%d, waiting_count=%d\n", i, conditions[i].key, waiting);
+        }
+    }
+}
+
 semaphore_t semaphores[SEMAPHORE_NUM];
 int sema_used[SEMAPHORE_NUM] = {0};
 
@@ -522,6 +554,18 @@ void do_semaphore_destroy(int sema_idx) {
     pretty_log(LOG_INFO, "destroying semaphore %d", sema_idx);
     sema_used[sema_idx] = 0;
     semaphore_destruct(sema);
+}
+
+void show_semaphores() {
+    for (int i = 0; i < SEMAPHORE_NUM; i++) {
+        with_spin guard(semaphores[i].lock);
+        if (sema_used[i]) {
+            int waiting = list_size(&semaphores[i].wait_list);
+            printk(
+                "semaphore %d: key=%d, remain=%d, waiting_count=%d\n", i, semaphores[i].key,
+                semaphores[i].count, waiting);
+        }
+    }
 }
 
 mailbox_t mailboxes[MBOX_NUM];
@@ -681,5 +725,16 @@ int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
     }
     condition_signal(&mbox->full);
     return blocked;
+}
+
+void show_mailboxes() {
+    for (int i = 0; i < MBOX_NUM; i++) {
+        with_spin guard(mbox_locks[i]);
+        if (mbox_allocated[i]) {
+            printk(
+                "mailbox %d: name=%s, nref=%d, used=%d\n", i, mailboxes[i].name, mailboxes[i].nref,
+                mailboxes[i].used);
+        }
+    }
 }
 }

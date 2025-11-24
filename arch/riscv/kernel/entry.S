@@ -5,6 +5,7 @@
 .macro SAVE_CONTEXT
   /* TODO: [p2-task3] save all general purpose registers here! */
   /* HINT: Pay attention to the function of tp and sp, and save them carefully! */
+  // before: tp=user_tp, sscratch=kernel_tp
   csrrw tp, sscratch, tp // after this inst, tp=kernel_tp, sscratch=user_tp
   sd    sp, PCB_USER_SP(tp) // save user_sp to pcb
   ld    sp, PCB_KERNEL_SP(tp) // load kernel_sp to sp
@@ -44,11 +45,12 @@
   sd t6,    OFFSET_REG_T6(sp)
 
   ld t0, PCB_USER_SP(tp) // recover user_sp from pcb
-  sd t0, OFFSET_REG_SP(sp)
+  sd t0, OFFSET_REG_SP(sp) // save user_sp on stack
 
+  // before: tp=kernel_tp, sscratch=user_tp, sp=kernel_sp
   csrrw tp, sscratch, tp // after this inst, tp=user_tp, sscratch=kernel_tp
-  sd tp, OFFSET_REG_TP(sp)
-  csrr tp, sscratch
+  sd tp, OFFSET_REG_TP(sp) // save user_tp on stack
+  csrr tp, sscratch // after this inst, tp=kernel_sp
 
   /*
    * Disable user-mode memory access as it should only be set in the
@@ -61,8 +63,6 @@
 
   /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
 
-  csrr t1, sscratch
-  sd t1, OFFSET_REG_SP(sp) // user_sp
   csrr t1, sstatus
   sd t1, OFFSET_REG_SSTATUS(sp)
   csrr t1, sepc
@@ -87,6 +87,7 @@
   sd  t0,   PCB_KERNEL_SP(tp)
 
   ld  t0,   OFFSET_REG_TP(sp)
+  // save user_tp to sscratch
   csrw sscratch, t0
 
   ld  zero,  OFFSET_REG_ZERO(sp)
@@ -122,8 +123,8 @@
   ld  t5,   OFFSET_REG_T5(sp)
   ld  t6,   OFFSET_REG_T6(sp)
 
-  // sp <-- tp.kernel
-  // tp.kernel <--> sscratch(tp.user)
+  // sp <-- kernel_tp(current_running).user_sp
+  // tp(kernel_tp) <--> sscratch(user_tp)
   ld  sp,   PCB_USER_SP(tp)
   csrrw tp, sscratch, tp
 

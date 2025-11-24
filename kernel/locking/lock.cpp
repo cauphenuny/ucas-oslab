@@ -1,3 +1,4 @@
+#include "atomic.h"
 extern "C" {
 
 // #include <atomic.h>
@@ -83,15 +84,16 @@ int spin_lock_try_acquire(spin_lock_t* lock) {
 void spin_lock_acquire(spin_lock_t* lock) {
     /* TODO: [p2-task2] acquire spin lock */
 
+    while (atomic_cmpxchg(UNLOCKED, LOCKED, (ptr_t)&lock->status) != UNLOCKED);
     // WARN: check failure order
-    lock_status_t expected = UNLOCKED;
-    while (!__atomic_compare_exchange_n(
-        &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
+    // lock_status_t expected = UNLOCKED;
+    // while (!__atomic_compare_exchange_n(
+    //     &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
 }
 
 void spin_lock_release(spin_lock_t* lock) {
     /* TODO: [p2-task2] release spin lock */
-    __atomic_store_n(&lock->status, UNLOCKED, __ATOMIC_RELEASE);
+    __atomic_store_n(&lock->status, UNLOCKED, __ATOMIC_SEQ_CST);
 }
 
 int do_mutex_lock_init(int key) {

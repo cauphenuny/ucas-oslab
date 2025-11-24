@@ -8,7 +8,7 @@
 
 #define KERNEL_STACK		0x50500000
 
-.equ kernel_stack, 0x50500000+4096
+.equ page_size, 4096
 
 .extern __bss_start
 .extern __BSS_END__
@@ -32,7 +32,13 @@ ENTRY(_start)
 
   /* TODO: [p1-task2] setup C environment */
 
-  la sp, kernel_stack
+  li t0, KERNEL_STACK
+  csrr t1, mhartid
+  addi t1, t1, 1
+  la t2, page_size
+  mul t3, t1, t2
+  add t0, t0, t3
+  mv sp, t0 // sp = KERNEL_STACK + (hartid + 1) * page_size
 
   jal main
 

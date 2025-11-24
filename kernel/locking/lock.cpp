@@ -23,6 +23,7 @@ void mutex_init(mutex_lock_t* mlock) {
 
 void init_locks(void) {
     /* TODO: [p2-task2] initialize mlocks */
+    spin_lock_init(&kernel_lock);
     for (int i = 0; i < LOCK_NUM; i++) {
         mlock_used[i] = false;
     }

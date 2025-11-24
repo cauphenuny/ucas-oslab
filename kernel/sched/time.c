@@ -1,11 +1,17 @@
-#include "os/time.h"
-#include "logger.h"
+#include <logger.h>
+#include <os/kernel.h>
 #include <os/list.h>
 #include <os/sched.h>
+#include <os/time.h>
 #include <type.h>
 
 uint64_t time_elapsed = 0;
 uint64_t time_base = 0;
+
+void init_timer()
+{
+    time_base = bios_read_fdt(TIMEBASE);
+}
 
 uint64_t get_ticks()
 {
@@ -23,7 +29,9 @@ void reset_timer()
 
 uint64_t get_timer()
 {
-    return get_ticks() / time_base;
+    uint64_t ticks = get_ticks();
+    pretty_log(LOG_DEBUG, "ticks: %d, time_base: %d", ticks, time_base);
+    return ticks / time_base;
 }
 
 uint64_t get_time_base()

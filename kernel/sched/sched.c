@@ -6,6 +6,7 @@
 #include <os/lock.h>
 #include <os/mm.h>
 #include <os/sched.h>
+#include <os/smp.h>
 #include <os/string.h>
 #include <os/task.h>
 #include <os/time.h>
@@ -13,14 +14,7 @@
 #include <screen.h>
 
 pcb_t pcb[NUM_MAX_TASK];
-const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
-pcb_t pid0_pcb = {
-    .kernel_sp = (ptr_t)pid0_stack,
-    .user_sp = (ptr_t)pid0_stack,
-    .wait_list = {&pid0_pcb.wait_list, &pid0_pcb.wait_list},
-    .pid = 0,
-    .name = "init",
-};
+pcb_t* kernel_pcb[NR_CPUS];
 
 pcb_t* alloc_pcb() {
     pcb_t* selected_pcb = NULL;
@@ -55,7 +49,7 @@ LIST_HEAD(ready_queue);
 LIST_HEAD(sleep_queue);
 
 /* global process id */
-pid_t process_id = 1;
+pid_t process_id = 0;
 
 // #define SCHED_FRAME_OFFSET   "72"
 // #define SCHED_FRAME_OFFSET_I 72
@@ -222,7 +216,7 @@ void cleanup_proc(pcb_t* pcb) {
 
 pid_t do_exec(char* name, int argc, char* argv[]) {
     pretty_log(LOG_DEBUG, "handling exec for %s", name);
-    pcb_t* pcb = construct_pcb(name, argc, argv);
+    pcb_t* pcb = construct_pcb(name, argc, argv, 1, 4);
     if (!pcb) {
         pretty_log(LOG_WARN, "exec %s failed!", name);
         return 0;
@@ -245,19 +239,15 @@ void do_process_show() {
     printk("PID"), screen_move_cursor_col(PID_LEN);
     printk("NAME"), screen_move_cursor_col(PID_LEN + NAME_LEN);
     printk("STATUS\n");
-#define display_proc(proc)                      \
-    printk("%d", (proc)->pid);                  \
-    screen_move_cursor_col(PID_LEN);            \
-    printk("%s", (proc)->name);                 \
-    screen_move_cursor_col(PID_LEN + NAME_LEN); \
-    printk("%s\n", status_str[(proc)->status]);
-    display_proc(&pid0_pcb);
     for (int i = 0; i < NUM_MAX_TASK; i++) {
         pcb_t* proc = &pcb[i];
         if (proc->status == TASK_EXITED) continue;
-        display_proc(proc);
+        printk("%d", (proc)->pid);
+        screen_move_cursor_col(PID_LEN);
+        printk("%s", (proc)->name);
+        screen_move_cursor_col(PID_LEN + NAME_LEN);
+        printk("%s\n", status_str[(proc)->status]);
     }
-#undef display_proc
     return;
 }
 

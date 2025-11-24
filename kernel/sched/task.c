@@ -21,6 +21,13 @@ task_info_t* find_task(const char* name) {
     return NULL;
 }
 
+void add_virtual_task(const char* name, uint64_t entrance) {
+    strcpy(tasks[task_num].name, name);
+    tasks[task_num].entrance = entrance;
+    tasks[task_num].phyaddr_end = tasks[task_num].phyaddr_start = 0;
+    task_num++;
+}
+
 void show_tasks(void) {
     const int NAME_LEN = 16;
     const int ENTRANCE_LEN = 12;
@@ -51,7 +58,7 @@ extern void ret_from_exception();
 
 #define SP_ALIGNMENT 16
 
-static void init_pcb_stack(
+void init_pcb_stack(
     pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv) {
     /* TODO: [p2-task3] initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
@@ -68,6 +75,7 @@ static void init_pcb_stack(
         (switchto_context_t*)((ptr_t)pt_regs - sizeof(switchto_context_t));
 
     // copy arguments to user_stack
+    asserts(user_stack != 0 || argc == 0, "pass arguments needs user_stack != 0");
     user_stack -= sizeof(char*) * argc;
     char** user_argv = (char**)user_stack;
     for (int i = 0; i < argc; i++) {
@@ -90,10 +98,7 @@ static void init_pcb_stack(
     pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
 }
 
-#define KERNEL_STACK_PAGES 1
-#define USER_STACK_PAGES   4
-
-pcb_t* construct_pcb(const char* name, int argc, char* argv[]) {
+pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, int user_mem) {
     pretty_log(LOG_DEBUG, "constructing pcb for task %s", name);
     task_info_t* task = find_task(name);
     if (!task) return NULL;
@@ -102,8 +107,8 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[]) {
     asserts(pcb->status == TASK_EXITED, "PCB is not free");
     pretty_log(LOG_DEBUG, "alloced pcb at 0x%x, node: 0x%x", pcb, &pcb->list);
 
-    int kernel_stack_top = allocKernelPage(KERNEL_STACK_PAGES) + KERNEL_STACK_PAGES * PAGE_SIZE;
-    int user_stack_top = allocUserPage(USER_STACK_PAGES) + USER_STACK_PAGES * PAGE_SIZE;
+    ptr_t kernel_stack_top = allocKernelPage(kernel_mem) + kernel_mem * PAGE_SIZE;
+    ptr_t user_stack_top = allocUserPage(user_mem) + user_mem * PAGE_SIZE;
 
     memset(pcb, 0, sizeof(pcb_t));
     pcb->pid = process_id++;
@@ -111,7 +116,6 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[]) {
     pcb->status = TASK_READY;
     strcpy(pcb->name, task->name);
     init_pcb_stack(pcb, kernel_stack_top, user_stack_top, task->entrance, argc, argv);
-    pretty_log(LOG_DEBUG, "process id: %d", pcb->pid);
-    pretty_log(LOG_DEBUG, "%s: ksp: 0x%x, usp: 0x%x", name, kernel_stack_top, user_stack_top);
+    pretty_log(LOG_DEBUG, "pid %d: %s: ksp: 0x%x, usp: 0x%x", pcb->pid, name, kernel_stack_top, user_stack_top);
     return pcb;
 }

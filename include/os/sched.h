@@ -33,6 +33,7 @@
 #include <asm/regs.h>
 #include <os/list.h>
 #include <type.h>
+#include <os/smp.h>
 
 #define NUM_MAX_TASK 16
 
@@ -162,8 +163,7 @@ register pcb_t* current_running asm("tp");
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
-extern pcb_t pid0_pcb;
-extern const ptr_t pid0_stack;
+extern pcb_t* kernel_pcb[NR_CPUS];
 
 pcb_t* alloc_pcb();
 

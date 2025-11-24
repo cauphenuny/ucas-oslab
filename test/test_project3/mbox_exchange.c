@@ -10,7 +10,6 @@ int mbox1, mbox2;
 
 typedef struct {
     int mutex;
-    int sem;
     char buf[8];
 } proc_data_t;
 
@@ -20,7 +19,6 @@ int proc0_thread0(int argc, char** argv) {
     int cnt = 0;
     char local_buf[8];
     while (1) {
-        sys_semaphore_up(p0_data.sem);
         sys_mbox_recv(mbox1, local_buf, 8);
         sys_move_cursor(0, 0);
         printf("%s: recved %d msgs from mbox1\n", argv[0], ++cnt);
@@ -35,7 +33,6 @@ int proc0_thread1(int argc, char** argv) {
     int cnt = 0;
     char local_buf[8];
     while (1) {
-        sys_semaphore_down(p0_data.sem);
         sys_mbox_send(mbox2, local_buf, 8);
         sys_move_cursor(0, 1);
         printf("%s: sent %d msgs to mbox2\n", argv[0], ++cnt);
@@ -47,7 +44,6 @@ int proc0_thread1(int argc, char** argv) {
 }
 
 int proc0(int argc, char** argv) {
-    p0_data.sem = sys_semaphore_init(0, 0);
     p0_data.mutex = sys_mutex_init(0);
     thread_t t0, t1;
     thread_create(&t0, proc0_thread0, 1, (char*[]){"p0t0"});
@@ -61,7 +57,6 @@ int proc1_thread0(int argc, char** argv) {
     int cnt = 0;
     char local_buf[8];
     while (1) {
-        sys_semaphore_up(p1_data.sem);
         sys_mbox_recv(mbox2, local_buf, 8);
         sys_move_cursor(0, 2);
         printf("%s: recved %d msgs from mbox2\n", argv[0], ++cnt);
@@ -76,7 +71,6 @@ int proc1_thread1(int argc, char** argv) {
     int cnt = 0;
     char local_buf[8];
     while (1) {
-        sys_semaphore_down(p1_data.sem);
         sys_mbox_send(mbox1, local_buf, 8);
         sys_move_cursor(0, 3);
         printf("%s: sent %d msgs to mbox1\n", argv[0], ++cnt);
@@ -88,7 +82,6 @@ int proc1_thread1(int argc, char** argv) {
 }
 
 int proc1(int argc, char** argv) {
-    p1_data.sem = sys_semaphore_init(1, 0);
     p1_data.mutex = sys_mutex_init(1);
     thread_t t0, t1;
     thread_create(&t0, proc1_thread0, 1, (char*[]){"p1t0"});

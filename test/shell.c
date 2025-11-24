@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
         }
         int ret = cmd.task->handler(cmd.args.argc, cmd.args.argv);
         if (ret) {
-            log_info("command %s exited with code %d", cmd.args.argv[0], ret);
+            printf("%s: command %s exited with code %d", argv[0], cmd.args.argv[0], ret);
         }
 
         /************************************************************/

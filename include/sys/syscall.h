@@ -87,4 +87,10 @@ long sys_mbox_close(int mbox_id);
 long sys_set_workload(int);
 long sys_set_affinity(int pid, unsigned affinity_mask);
 
+long sys_set_scroll(int start_row, int end_row);
+long sys_clear_scroll(void);
+
+long sys_set_color(int start_col, int end_col, int foreground, int background);
+long sys_clear_color(void);
+
 #endif

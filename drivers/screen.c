@@ -12,6 +12,7 @@
 /* screen buffer */
 char new_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
 char old_screen[SCREEN_HEIGHT * SCREEN_WIDTH] = {0};
+int scroll_start = -1, scroll_end = -1;
 
 /* cursor position */
 static void vt100_move_cursor(int x, int y)
@@ -46,6 +47,22 @@ static void vt100_hidden_cursor()
     printv("%c[?25l", 27);
 }
 
+void screen_scroll(int start_row, int end_row)
+{
+    int i, j;
+    for (i = start_row; i < end_row; i++)
+    {
+        for (j = 0; j < SCREEN_WIDTH; j++)
+        {
+            new_screen[SCREEN_LOC(j, i)] = new_screen[SCREEN_LOC(j, i + 1)];
+        }
+    }
+    for (j = 0; j < SCREEN_WIDTH; j++)
+    {
+        new_screen[SCREEN_LOC(j, end_row)] = ' ';
+    }
+}
+
 /* write a char */
 /* write a char */
 void screen_write_ch(char ch)
@@ -53,8 +70,13 @@ void screen_write_ch(char ch)
     if (ch == '\n')
     {
         current_running->cursor_x = 0;
-        if (current_running->cursor_y < SCREEN_HEIGHT)
-            current_running->cursor_y++;
+        if (current_running->cursor_y == scroll_end) {
+            screen_scroll(scroll_start, scroll_end);
+        } else {
+            if (current_running->cursor_y < SCREEN_HEIGHT) {
+                current_running->cursor_y++;
+            }
+        }
     }
     else if (ch == '\b' || ch == '\177')
     {	
@@ -180,4 +202,33 @@ void screen_reflush(void)
 
     /* recover cursor position */
     vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
+}
+
+void screen_set_scroll(int start_row, int end_row)
+{
+    if (start_row < 0 || start_row >= SCREEN_HEIGHT ||
+        end_row < 0 || end_row >= SCREEN_HEIGHT ||
+        start_row >= end_row)
+    {
+        return;
+    }
+    scroll_start = start_row;
+    scroll_end = end_row;
+}
+
+void screen_clear_scroll(void)
+{
+    scroll_start = -1;
+    scroll_end = -1;
+}
+
+
+void screen_set_color(int start_col, int end_col, int foreground, int background)
+{
+
+}
+
+void screen_clear_color(void)
+{
+
 }

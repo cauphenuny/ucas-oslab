@@ -91,6 +91,22 @@ int sys_exec_with_affinity(char* name, int argc, char *argv[], int affinity_mask
     return invoke_syscall(SYSCALL_EXEC_WITH_AFF, (long)name, (long)argc, (long)argv, (long)affinity_mask, IGNORE);
 }
 
+void sys_set_scroll(int start_row, int end_row) {
+    invoke_syscall(SYSCALL_SET_SCROLL, (long)start_row, (long)end_row, IGNORE, IGNORE, IGNORE);
+}
+
+void sys_clear_scroll(void) {
+    invoke_syscall(SYSCALL_CLEAR_SCROLL, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
+void sys_set_color(int start_col, int end_col, int foreground, int background) {
+    invoke_syscall(SYSCALL_SET_COLOR, (long)start_col, (long)end_col, (long)foreground, (long)background, IGNORE);
+}
+
+void sys_clear_color(void) {
+    invoke_syscall(SYSCALL_CLEAR_COLOR, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)

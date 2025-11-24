@@ -141,6 +141,11 @@ static void init_syscall(void) {
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_SET_AFFINITY] = sys_set_affinity;
+
+    syscall[SYSCALL_SET_SCROLL] = sys_set_scroll;
+    syscall[SYSCALL_CLEAR_SCROLL] = sys_clear_scroll;
+    syscall[SYSCALL_SET_COLOR] = sys_set_color;
+    syscall[SYSCALL_CLEAR_COLOR] = sys_clear_color;
 }
 
 /************************************************************/

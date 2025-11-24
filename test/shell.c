@@ -35,6 +35,7 @@
 #include <vt100.h>
 
 #define SHELL_BEGIN 10
+#define SHELL_END 30
 
 #define BUFFER_LEN   64
 #define COMMAND_LEN  16
@@ -210,6 +211,7 @@ void preamble() {
 }
 
 int main(int argc, char** argv) {
+    sys_set_scroll(SHELL_BEGIN + 1, SHELL_END);
     prompt_len = strlen(prompt);
     preamble();
 

@@ -44,4 +44,10 @@ void screen_move_cursor(int x, int y);
 void screen_move_cursor_row(int row);
 void screen_move_cursor_col(int col);
 
+/* set screen properties */
+void screen_set_scroll(int start_row, int end_row);
+void screen_clear_scroll(void);
+void screen_set_color(int start_col, int end_col, int foreground, int background);
+void screen_clear_color(void);
+
 #endif

@@ -30,6 +30,11 @@ int sys_exec_with_affinity(char *, int, char **, int);
 
 void sys_task_show(void);
 
+void sys_set_scroll(int start_row, int end_row);
+void sys_clear_scroll(void);
+void sys_set_color(int start_col, int end_col, int foreground, int background);
+void sys_clear_color(void);
+
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
 void sys_ps(void);

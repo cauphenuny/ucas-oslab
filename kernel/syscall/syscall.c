@@ -103,6 +103,26 @@ long sys_task_show() {
     return 0;
 }
 
+long sys_set_scroll(int start_row, int end_row) {
+    screen_set_scroll(start_row, end_row);
+    return 0;
+}
+
+long sys_clear_scroll(void) {
+    screen_clear_scroll();
+    return 0;
+}
+
+long sys_set_color(int start_col, int end_col, int foreground, int background) {
+    screen_set_color(start_col, end_col, foreground, background);
+    return 0;
+}
+
+long sys_clear_color(void) {
+    screen_clear_color();
+    return 0;
+}
+
 /***************** sync *****************/
 
 long sys_lock_init(int key) {

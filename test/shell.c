@@ -146,6 +146,7 @@ void render(char* dest, char** dest_color, int maxn, char* buffer, int argc, cha
 }
 
 #define BACKSPACE 127
+#define CTRL_U 21
 #define NEWLINE   '\r'
 
 int getchar() {
@@ -175,15 +176,28 @@ command_t readline() {
     args_t args;
     task_t* task = NULL;
     while ((ch = getchar()) != NEWLINE) {
-        if (ch == BACKSPACE) {
-            if (pos) {
-                pos--;
-                buffer[pos] = '\0';
-                printf("\b \b");
+        switch (ch) {
+            case BACKSPACE: {
+                if (pos) {
+                    pos--;
+                    buffer[pos] = '\0';
+                    printf("\b \b");
+                }
+                break;
             }
-        } else {
-            buffer[pos++] = ch;
-            printf("%c", ch);
+            case CTRL_U: {
+                while (pos) {
+                    pos--;
+                    buffer[pos] = '\0';
+                    printf("\b \b");
+                }
+                break;
+            }
+            default: {
+                buffer[pos++] = ch;
+                printf("%c", ch);
+                break;
+            }
         }
         strcpy(args_buffer, buffer);
         args = parse(args_buffer, BUFFER_LEN);

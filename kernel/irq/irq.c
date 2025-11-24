@@ -18,7 +18,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
     // call corresponding handler by the value of `scause`
     int is_irq = (scause & SCAUSE_IRQ_FLAG) == 1ull;
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
-    // pretty_log(LOG_DEBUG, "is_irq: %d, exception_code: %lu", is_irq, exception_code);
+    // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid, is_irq, exception_code);
     if (!((is_irq && exception_code < IRQC_COUNT) || (~is_irq && exception_code < EXCC_COUNT))) {
         pretty_log(LOG_ERROR, "invalid interrupt: is_irq=%d, exception_code=%lu", is_irq, exception_code);
         handle_other(regs, stval, scause);

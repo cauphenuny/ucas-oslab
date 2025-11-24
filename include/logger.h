@@ -2,8 +2,9 @@
 #define _INCLUDE_LOG_H_
 
 #include <breakpoint.h>
-#include <printk.h>
 #include <common.h>
+#include <printk.h>
+#include <os/smp.h>
 
 #define COLOR_BLACK   "\033[0;30m"
 #define COLOR_BOLD    "\033[1m"
@@ -30,11 +31,11 @@ const static char* log_level_str_color[] = {
     COLOR_RED "[FATAL]" COLOR_RESET,
 };
 
-#define pretty_log(level, fmt, ...)                                                              \
-    do {                                                                                         \
-        printl(                                                                                  \
-            "%s " COLOR_BLACK "%s:%d (%s): \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
-            __FILE__, __LINE__, __func__, ##__VA_ARGS__);                                        \
+#define pretty_log(level, fmt, ...)                                                                \
+    do {                                                                                           \
+        printl(                                                                                    \
+            "%s " COLOR_BLACK "%d|%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
+            get_current_cpu_id(), __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
     } while (0)
 
 #define pretty_loge(fmt, ...)                      \

@@ -21,12 +21,15 @@ void wakeup_other_hart()
 
 void lock_kernel()
 {
-    pretty_log(LOG_INFO, "locking kernel...");
+    // static int tot = 0;
+    // int id = tot++;
+    // pretty_log(LOG_INFO, "locking kernel... (#%d, cur=%d)", id, kernel_lock.status);
     spin_lock_acquire(&kernel_lock);
+    // pretty_log(LOG_INFO, "locked (#%d)", id);
 }
 
 void unlock_kernel()
 {
-    pretty_log(LOG_INFO, "kernel unlocked...");
+    // pretty_log(LOG_INFO, "kernel unlocked.");
     spin_lock_release(&kernel_lock);
 }

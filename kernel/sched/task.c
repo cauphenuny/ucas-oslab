@@ -73,6 +73,7 @@ void init_pcb_stack(
      * NOTE: To run the task in user mode, you should set corresponding bits
      *     of sstatus(SPP, SPIE, etc.).
      */
+    pretty_log(LOG_DEBUG, "building pcb task at %x with sp=%x, ra=%x", kernel_stack, user_stack, entry_point);
     regs_context_t* pt_regs = (regs_context_t*)(kernel_stack - sizeof(regs_context_t));
 
     /* TODO: [p2-task1] set sp to simulate just returning from switch_to

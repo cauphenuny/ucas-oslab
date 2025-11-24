@@ -145,6 +145,10 @@ typedef struct pcb {
     int task_id;
     int task_workload;
     int slice_cnt;
+
+    /* process cpu affinity */
+    unsigned affinity; // bitmask
+    int cpu; // last running cpu id
 } pcb_t;
 
 /* ready queue to run */
@@ -165,6 +169,7 @@ extern pcb_t pcb_kernel[NR_CPUS];
 extern pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb();
+pcb_t* find_pcb(pid_t pid);
 
 extern void switch_to(pcb_t* prev, pcb_t* next);
 void do_scheduler(void);
@@ -184,7 +189,7 @@ void print_pcb_list(const list_t* queue);
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
-extern pid_t do_exec(char* name, int argc, char* argv[]);
+extern pid_t do_exec(char* name, int argc, char* argv[], unsigned affinity_mask);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

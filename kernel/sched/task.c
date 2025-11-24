@@ -121,3 +121,9 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, i
     pretty_log(LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_top, user_stack_top, task->entrance);
     return pcb;
 }
+
+void set_proc_affinity(pcb_t* pcb, unsigned affinity_mask) {
+    unsigned valid_mask = (1 << NR_CPUS) - 1;
+    asserts(affinity_mask & valid_mask, "affinity mask invalid");
+    pcb->affinity = affinity_mask;
+}

@@ -68,8 +68,8 @@ void print_pcb_array(const pcb_t pcb[], int n) {
         ptr_t kernel_ra, user_ra;
         fetch_pcb_info(&pcb[i], &kernel_ra, &user_ra);
         pretty_log(
-            LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb[i].pid,
-            pcb[i].name, pcb[i].status,
+            LOG_DEBUG, "pid=%d, name=%s, aff=0x%x, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb[i].pid,
+            pcb[i].name, pcb[i].affinity, pcb[i].status,
             pcb[i].list.container ? pcb[i].list.container->name : "NULL", kernel_ra,
             pcb[i].kernel_sp, user_ra, pcb[i].user_sp);
     }
@@ -100,47 +100,84 @@ void print_all_pcb() {
 
 pcb_t* time_slice_history[TIME_SLICE_HISTORY_SIZE];
 int time_slice_history_index;
+int min_task_id = 0x7f7f7f7f;
+int min_slice_cnt = 0x7f7f7f7f;
+
+bool update_by_first(pcb_t* selected, pcb_t* next) {
+    if (!selected) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void update_by_consumption_init() {
+    min_task_id = 0x7f7f7f7f;
+    min_slice_cnt = 0x7f7f7f7f;
+}
+
+bool update_by_consumption(pcb_t* selected, pcb_t* proc) {
+    int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
+    if (proc->task_id < min_task_id) {
+        min_task_id = proc->task_id;
+        min_slice_cnt = normalized_cnt;
+        return true;
+    } else if (proc->task_id == min_task_id) {
+        if (normalized_cnt < min_slice_cnt) {
+            min_slice_cnt = normalized_cnt;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool filter_affinity(pcb_t* proc) {
+    int hartid = get_current_cpu_id();
+    unsigned mask = 1 << hartid;
+    return proc->affinity & mask;
+}
+
+bool filterout_kernel(pcb_t* proc) {
+    if (proc->pid < NR_CPUS) {
+        return false;
+    }
+    return filter_affinity(proc);
+}
+
+pcb_t* pick_process_impl(
+    list_t* ready_queue, bool (*filter)(pcb_t* proc), void (*init)(),
+    bool (*update)(pcb_t* selected, pcb_t* next)) {
+    if (init) init();
+    pcb_t* selected = NULL;
+    list_foreach_node(iter, &ready_queue->head) {
+        pcb_t* next = container_of(iter, pcb_t, list);
+        if (!filter(next)) continue;
+        if (update(selected, next)) {
+            selected = next;
+        }
+    }
+    return selected;
+}
 
 pcb_t* pick_process() {
-    assert(ready_queue.head.next != &ready_queue.head);
-    int min_task_id = 0x7f7f7f7f;
-    int min_slice_cnt = 0x7f7f7f7f;
-    // return container_of(ready_queue.next, pcb_t, list);
-    pcb_t* selected_proc = NULL;
-    assert(ready_queue.head.next != &ready_queue.head);
-    list_foreach_node(iter, &ready_queue.head) {
-        pcb_t* proc = container_of(iter, pcb_t, list);
-        int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
-        if (proc->pid < NR_CPUS) {
-            continue; // skip kernel proc
-        }
-        if (proc->task_id < min_task_id) {
-            selected_proc = proc;
-            min_task_id = proc->task_id;
-            min_slice_cnt = normalized_cnt;
-        } else if (proc->task_id == min_task_id) {
-            if (normalized_cnt < min_slice_cnt) {
-                selected_proc = proc;
-                min_slice_cnt = normalized_cnt;
-            }
-        }
+    pcb_t* proc = NULL;
+    proc = pick_process_impl(&ready_queue, filterout_kernel, update_by_consumption_init, update_by_consumption);
+    if (!proc) {
+        pretty_log(LOG_WARN, "process insufficient, may fallback to init");
+        proc = pick_process_impl(&ready_queue, filter_affinity, NULL, update_by_first);
     }
-    if (!selected_proc) {
-        pretty_log(LOG_WARN, "no candidate selected, fallback to first");
-        selected_proc = container_of(ready_queue.head.next, pcb_t, list);
-    }
-    assert(selected_proc);
+    asserts(proc, "no process to run");
 
     pretty_log(
-        LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", selected_proc->pid,
-        selected_proc->task_id, selected_proc->task_workload, selected_proc->slice_cnt);
+        LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", proc->pid,
+        proc->task_id, proc->task_workload, proc->slice_cnt);
     if (time_slice_history[time_slice_history_index]) {
         time_slice_history[time_slice_history_index]->slice_cnt--;
     }
-    time_slice_history[time_slice_history_index] = selected_proc;
-    selected_proc->slice_cnt++;
+    time_slice_history[time_slice_history_index] = proc;
+    proc->slice_cnt++;
     time_slice_history_index = (time_slice_history_index + 1) % TIME_SLICE_HISTORY_SIZE;
-    return selected_proc;
+    return proc;
 }
 
 void do_scheduler(void) {
@@ -172,6 +209,7 @@ void do_scheduler(void) {
     // TODO: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
     screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
+    current_running->cpu = get_current_cpu_id();
 
     // breakpoint();
 }
@@ -243,7 +281,7 @@ void cleanup_proc(pcb_t* pcb) {
     free_pcb(pcb);
 }
 
-pid_t do_exec(char* name, int argc, char* argv[]) {
+pid_t do_exec(char* name, int argc, char* argv[], unsigned affinity_mask) {
     pretty_log(LOG_DEBUG, "handling exec for %s", name);
     pcb_t* pcb = construct_pcb(name, argc, argv, 1, 4);
     if (!pcb) {
@@ -251,6 +289,7 @@ pid_t do_exec(char* name, int argc, char* argv[]) {
         return 0;
     }
     pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
+    set_proc_affinity(pcb, affinity_mask);
     list_append(&ready_queue, &pcb->list);
     print_all_pcb();
     return pcb->pid;
@@ -261,6 +300,7 @@ void do_process_show() {
     const int NAME_LEN = 16;
     const int STAT_LEN = 10;
     const int CHAN_LEN = 10;
+    const int TIME_LEN = 6;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",
@@ -271,7 +311,8 @@ void do_process_show() {
     printk("NAME"), screen_move_cursor_col(PID_LEN + NAME_LEN);
     printk("STATUS"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN);
     printk("CHANNEL"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
-    printk("TIME");
+    printk("TIME"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
+    printk("AFF");
     printk("\n");
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* proc = pcb_all[i];
@@ -285,10 +326,18 @@ void do_process_show() {
         if (proc->list.container) {
             printk("%s", proc->list.container->name);
         } else {
-            printk("N/A");
+            if (proc->status == TASK_RUNNING) {
+                printk("cpu%d", proc->cpu);
+            } else {
+                printk("N/A");
+            }
         }
         screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
         printk("%d", proc->slice_cnt);
+        screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
+        for (int i = 0; i < NR_CPUS; i++) {
+            printk("%d", (proc->affinity & (1 << i)) != 0);
+        }
         printk("\n");
     }
     return;

@@ -55,7 +55,20 @@ long sys_yield(void) {
 }
 
 long sys_exec(char *name, int argc, char *argv[]) {
-    return do_exec(name, argc, argv);
+    return do_exec(name, argc, argv, current_running->affinity);
+}
+
+long sys_exec_with_affinity(char* name, int argc, char* argv[], int affinity) {
+    return do_exec(name, argc, argv, affinity);
+}
+
+long sys_set_affinity(int pid, unsigned affinity_mask) {
+    pcb_t* pcb = find_pcb(pid);
+    if (pcb) {
+        set_proc_affinity(pcb, affinity_mask);
+        return 1;
+    }
+    return 0;
 }
 
 long sys_set_workload(int workload) {

@@ -25,6 +25,8 @@ void sys_mutex_release(int mutex_idx);
 // TODO: WARN:
 
 void sys_set_sche_workload(int workload);
+int sys_set_affinity(int pid, unsigned int affinity_mask);
+int sys_exec_with_affinity(char *, int, char **, int);
 
 void sys_task_show(void);
 

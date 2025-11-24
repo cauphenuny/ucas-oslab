@@ -48,16 +48,6 @@
 const char* prompt = "> root@UCAS_OS: ";
 int prompt_len;
 
-int ts(int, char**);
-int ps(int, char**);
-int exec(int, char**);
-int kill(int, char**);
-int clear(int, char**);
-int echo(int, char**);
-int decompose(int, char**);
-int keycode(int, char**);
-void subcmd_lint(char**, int, char**);
-
 typedef int (*handler_t)(int argc, char** argv);
 
 typedef struct task {
@@ -66,18 +56,8 @@ typedef struct task {
     handler_t handler;
 } task_t;
 
-const task_t COMMAND_TABLE[] = {
-    {"echo", subcmd_lint, echo},
-    {"ts", subcmd_lint, ts},
-    {"ps", subcmd_lint, ps},
-    {"exec", subcmd_lint, exec},
-    {"kill", subcmd_lint, kill},
-    {"clear", subcmd_lint, clear},
-    {"decompose", subcmd_lint, decompose},
-    {"keycode", subcmd_lint, keycode},
-};
-
-const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);
+extern const task_t COMMAND_TABLE[];
+extern const int NUM_CMD;
 
 typedef struct {
     int argc;
@@ -104,6 +84,19 @@ args_t parse(char* raw, int maxn) {
         }
     }
     return result;
+}
+
+char* shift(int* argc, char*** argv) {
+    if (*argc == 0) return NULL;
+    char* ret = (*argv)[0];
+    (*argc)--;
+    (*argv)++;
+    return ret;
+}
+
+int shifti(int* argc, char*** argv) {
+    char* buffer = shift(argc, argv);
+    return atoi(buffer);
 }
 
 task_t* lint(char* dest[], int argc, char** argv) {
@@ -146,7 +139,7 @@ void render(char* dest, char** dest_color, int maxn, char* buffer, int argc, cha
 }
 
 #define BACKSPACE 127
-#define CTRL_U 21
+#define CTRL_U    21
 #define NEWLINE   '\r'
 
 int getchar() {
@@ -284,10 +277,16 @@ int exec(int argc, char** argv) {
     int wait;
     if (strcmp(argv[argc - 1], "&") == 0) {
         wait = 0;
+        argc--;
     } else {
         wait = 1;
     }
-    pid_t pid = sys_exec(argv[1], argc - 1, argv + 1);
+    shift(&argc, &argv);
+    pid_t pid = sys_exec(argv[0], argc, argv);
+    if (!pid) {
+        log_info("exec failed");
+        return 0;
+    }
     if (wait) {
         sys_waitpid(pid);
     }
@@ -304,3 +303,55 @@ int clear(int argc, char** argv) {
     preamble();
     return 0;
 }
+
+int taskset(int argc, char** argv) {
+    if (argc < 3) {
+        log_info("usage: taskset {mask} {name} | taskset -p {mask} {pid}");
+        return 0;
+    }
+    shift(&argc, &argv);
+    if (strcmp(argv[0], "-p") == 0) {
+        shift(&argc, &argv);
+        unsigned mask = shifti(&argc, &argv);
+        int pid = shifti(&argc, &argv);
+        int success = sys_set_affinity(pid, mask);
+        if (!success) {
+            log_info("set_affinity failed");
+        } else {
+            log_info("set pid %d with affinity 0x%x", pid, mask);
+        }
+        return success;
+    } else {
+        unsigned mask = shifti(&argc, &argv);
+        int wait;
+        if (strcmp(argv[argc - 1], "&") == 0) {
+            wait = 0;
+            argc--;
+        } else {
+            wait = 1;
+        }
+        int pid = sys_exec_with_affinity(argv[0], argc, argv, mask);
+        if (!pid) {
+            log_info("exec failed");
+            return 0;
+        }
+        if (wait) {
+            sys_waitpid(pid);
+        }
+        return pid;
+    }
+}
+
+const task_t COMMAND_TABLE[] = {
+    {"echo", subcmd_lint, echo},
+    {"ts", subcmd_lint, ts},
+    {"ps", subcmd_lint, ps},
+    {"exec", subcmd_lint, exec},
+    {"kill", subcmd_lint, kill},
+    {"clear", subcmd_lint, clear},
+    {"decompose", subcmd_lint, decompose},
+    {"keycode", subcmd_lint, keycode},
+    {"taskset", subcmd_lint, taskset},
+};
+
+const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

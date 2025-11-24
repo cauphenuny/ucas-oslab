@@ -83,6 +83,14 @@ void sys_task_show(void) {
     invoke_syscall(SYSCALL_TASK_SHOW, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+int sys_set_affinity(int pid, unsigned int affinity_mask) {
+    return invoke_syscall(SYSCALL_SET_AFFINITY, (long)pid, (long)affinity_mask, IGNORE, IGNORE, IGNORE);
+}
+
+int sys_exec_with_affinity(char* name, int argc, char *argv[], int affinity_mask) {
+    return invoke_syscall(SYSCALL_EXEC_WITH_AFF, (long)name, (long)argc, (long)argv, (long)affinity_mask, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)

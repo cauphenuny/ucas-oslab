@@ -71,6 +71,7 @@ static void init_pcb(void) {
             .user_sp = 0,
             .pid = i,
             .status = TASK_READY,
+            .affinity = 1 << i,
         };
         strcpy(pcb_kernel[i].name, "init");
         list_init(&pcb_kernel[i].wait_list, "proc");
@@ -86,18 +87,22 @@ static void init_pcb(void) {
     asserts(get_current_cpu_id() == 0, "init_pcb called on sub-hart");
     current_running = &pcb_kernel[0];
     current_running->status = TASK_RUNNING;
+    current_running->cpu = 0;
 }
 
 static void init_syscall(void) {
     // TODO: [p2-task3] initialize system call table.
     syscall[SYSCALL_EXEC] = sys_exec;
     syscall[SYSCALL_EXIT] = sys_exit;
+    syscall[SYSCALL_EXEC_WITH_AFF] = sys_exec_with_affinity;
     syscall[SYSCALL_SLEEP] = sys_sleep;
     syscall[SYSCALL_KILL] = sys_kill;
     syscall[SYSCALL_WAITPID] = sys_waitpid;
-    syscall[SYSCALL_PS] = sys_process_show;
     syscall[SYSCALL_GETPID] = sys_getpid;
     syscall[SYSCALL_YIELD] = sys_yield;
+
+    syscall[SYSCALL_PS] = sys_process_show;
+    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
 
     syscall[SYSCALL_WRITE] = sys_write;
     syscall[SYSCALL_READCH] = sys_readch;
@@ -135,7 +140,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_MBOX_RECV] = sys_mbox_recv;
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
-    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
+    syscall[SYSCALL_SET_AFFINITY] = sys_set_affinity;
 }
 
 /************************************************************/
@@ -211,7 +216,7 @@ int main(int argc, char** argv) {
         // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
         // NOTE: The function of sstatus.sie is different from sie's
 
-        do_exec("shell", 1, (char*[]){"shell"});
+        do_exec("shell", 1, (char*[]){"shell"}, (unsigned)-1);
         pretty_log(LOG_INFO, "[INIT] Created shell process.");
 
         reset_timer();
@@ -228,6 +233,7 @@ int main(int argc, char** argv) {
         reset_timer();
         current_running = &pcb_kernel[hartid];
         current_running->status = TASK_RUNNING;
+        current_running->cpu = hartid;
     }
 
     pretty_log(LOG_INFO, "hart %d started", hartid);

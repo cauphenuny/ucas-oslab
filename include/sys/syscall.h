@@ -40,6 +40,7 @@ extern void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause
 long sys_sleep(uint32_t);
 long sys_yield(void);
 long sys_exec(char*, int, char**);
+long sys_exec_with_affinity(char*, int, char**, int);
 long sys_exit(void);
 long sys_kill(pid_t);
 long sys_waitpid(pid_t);
@@ -84,5 +85,6 @@ long sys_mbox_send(int mbox_idx, void* msg, int msg_length);
 long sys_mbox_close(int mbox_id);
 
 long sys_set_workload(int);
+long sys_set_affinity(int pid, unsigned affinity_mask);
 
 #endif

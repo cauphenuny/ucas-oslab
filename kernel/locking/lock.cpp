@@ -295,7 +295,7 @@ int cond_used[CONDITION_NUM] = {0};
 
 void condition_init(condition_t* cond) {
     spin_lock_init(&cond->lock);
-    list_init(&cond->wait_list, "condition");
+    list_init(&cond->wait_list, "cond");
 }
 
 void condition_destruct(condition_t* cond) {

@@ -299,7 +299,7 @@ int do_process_show() {
     const int PID_LEN = 5;
     const int NAME_LEN = 16;
     const int STAT_LEN = 10;
-    const int CHAN_LEN = 10;
+    const int CHAN_LEN = 9;
     const int TIME_LEN = 6;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",

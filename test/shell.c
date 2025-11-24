@@ -140,8 +140,11 @@ void render(char* buffer, int argc, int colors[]) {
     sys_reflush();
 }
 
-#define BACKSPACE 127
-#define CTRL_U    21
+#define BACKSPACE  127
+#define CTRL_U     21
+#define CTRL_W     23
+#define ARROW_UP   65
+#define ARROW_DOWN 66
 #define NEWLINE   '\r'
 
 int getchar() {
@@ -162,9 +165,11 @@ typedef struct {
 
 command_t readline() {
     int pos = 0;
+    static int last_pos = 0;
     char buffer[BUFFER_LEN] = {0};
+    static char last_buffer[BUFFER_LEN] = {0};
     int color_buffer[ARGUMENT_LEN] = {0};
-    char args_buffer[BUFFER_LEN] = {0};
+    static char args_buffer[BUFFER_LEN];
     int ch;
     args_t args;
     task_t* task = NULL;
@@ -186,6 +191,19 @@ command_t readline() {
                 }
                 break;
             }
+            case CTRL_W: {
+                if (pos) {
+                    pos--;
+                    buffer[pos] = '\0';
+                    printf("\b \b");
+                    while (pos && !isspace(buffer[pos - 1])) {
+                        pos--;
+                        buffer[pos] = '\0';
+                        printf("\b \b");
+                    }
+                }
+                break;
+            }
             default: {
                 buffer[pos++] = ch;
                 printf("%c", ch);
@@ -199,6 +217,8 @@ command_t readline() {
         // display(display_buffer, display_color_buffer);
     }
     printf("\n");
+    strcpy(last_buffer, buffer);
+    last_pos = pos;
     return (command_t){task, args};
 }
 
@@ -225,7 +245,10 @@ int main(int argc, char** argv) {
             printf("%s: no such command: %s\n", argv[0], cmd.args.argv[0]);
             continue;
         }
-        cmd.task->handler(cmd.args.argc, cmd.args.argv);
+        int ret = cmd.task->handler(cmd.args.argc, cmd.args.argv);
+        if (ret) {
+            log_info("command %s exited with code %d", cmd.args.argv[0], ret);
+        }
 
         /************************************************************/
         /* Do not touch this comment. Reserved for future projects. */

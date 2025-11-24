@@ -125,5 +125,5 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, i
 void set_proc_affinity(pcb_t* pcb, unsigned affinity_mask) {
     unsigned valid_mask = (1 << NR_CPUS) - 1;
     asserts(affinity_mask & valid_mask, "affinity mask invalid");
-    pcb->affinity = affinity_mask;
+    pcb->affinity = affinity_mask & valid_mask;
 }

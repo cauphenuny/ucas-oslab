@@ -143,8 +143,8 @@ void render(char* buffer, int argc, int colors[]) {
 #define BACKSPACE  127
 #define CTRL_U     21
 #define CTRL_W     23
-#define ARROW_UP   65
-#define ARROW_DOWN 66
+#define CTRL_N     14
+#define CTRL_P     16
 #define NEWLINE   '\r'
 
 int getchar() {
@@ -201,6 +201,23 @@ command_t readline() {
                         buffer[pos] = '\0';
                         printf("\b \b");
                     }
+                }
+                break;
+            }
+            case CTRL_N:
+            case CTRL_P: {
+                for (int i = 0; i < pos; i++) {
+                    printf("\b \b");
+                }
+                char tmp[BUFFER_LEN];
+                memcpy(tmp, buffer, BUFFER_LEN);
+                memcpy(buffer, last_buffer, BUFFER_LEN);
+                memcpy(last_buffer, tmp, BUFFER_LEN);
+                int tp = pos;
+                pos = last_pos;
+                last_pos = tp;
+                for (int i = 0; i < pos; i++) {
+                    printf("%c", buffer[i]);
                 }
                 break;
             }

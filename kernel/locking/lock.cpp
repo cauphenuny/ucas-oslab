@@ -18,7 +18,7 @@ void mutex_init(mutex_lock_t* mlock) {
     mlock->acquired = 0;
     mlock->pid = -1;
     mlock->key = -1;
-    list_init(&mlock->block_list);
+    list_init(&mlock->block_list, "mutex");
 }
 
 void init_locks(void) {
@@ -195,7 +195,7 @@ void barrier_init(barrier_t* barrier) {
     barrier->goal = 0;
     barrier->current = 0;
     spin_lock_init(&barrier->lock);
-    list_init(&barrier->block_list);
+    list_init(&barrier->block_list, "barrier");
 }
 
 void barrier_destruct(barrier_t* barrier) {
@@ -293,7 +293,7 @@ int cond_used[CONDITION_NUM] = {0};
 
 void condition_init(condition_t* cond) {
     spin_lock_init(&cond->lock);
-    list_init(&cond->wait_list);
+    list_init(&cond->wait_list, "condition");
 }
 
 void condition_destruct(condition_t* cond) {
@@ -422,7 +422,7 @@ void semaphore_init(semaphore_t* sema) {
     sema->key = -1;
     sema->count = 0;
     spin_lock_init(&sema->lock);
-    list_init(&sema->wait_list);
+    list_init(&sema->wait_list, "semaphore");
 }
 
 void semaphore_destruct(semaphore_t* sema) {

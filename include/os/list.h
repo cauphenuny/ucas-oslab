@@ -39,15 +39,21 @@
 
 #include <type.h>
 
+struct list;
+
 // double-linked list
 typedef struct list_node {
     struct list_node *next, *prev;
+    struct list *container;
 } list_node_t;
 
-typedef list_node_t list_head;
+typedef struct list {
+    list_node_t head;
+    const char* name;
+} list_t;
 
 // LIST_HEAD is used to define the head of a list.
-#define LIST_HEAD(name) struct list_node name = {&(name), &(name)}
+#define LIST(ident, name) list_t ident = {{&((ident).head), &((ident).head)}, name}
 
 #define container_of(ptr, type, member)                       \
     ({                                                        \
@@ -57,32 +63,32 @@ typedef list_node_t list_head;
 
 /* TODO: [p2-task1] implement your own list API */
 
-void list_init(list_head* head);
+void list_init(list_t* head, const char* name);
 
 /**
  * @brief Add a node to the beginning of the list.
  */
-void list_prepend(list_head* head, list_node_t* node);
+void list_prepend(list_t* head, list_node_t* node);
 /**
  * @brief Add a node to the end of the list.
  */
-void list_append(list_head* head, list_node_t* node);
+void list_append(list_t* head, list_node_t* node);
 /**
  * @brief Pop a node from the beginning of the list.
  */
-list_node_t* list_shift(list_head* head);
+list_node_t* list_shift(list_t* head);
 /**
  * @brief Pop a node from the end of the list.
  */
-list_node_t* list_pop(list_head* head);
+list_node_t* list_pop(list_t* head);
 
 bool list_holding(list_node_t* node);
 
 void list_delete(list_node_t* node);
 
-size_t list_size(const list_head* head);
+size_t list_size(const list_t* head);
 
-void list_traverse(list_head* head, void (*func)(list_node_t* node));
+void list_traverse(list_t* head, void (*func)(list_node_t* node));
 
 #define list_foreach_item(iter, head, type, member)                                             \
     for (type* iter = head->next == head ? NULL : container_of(head->next, type, member); iter; \

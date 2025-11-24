@@ -45,7 +45,7 @@ extern spin_lock_t kernel_lock;
 
 typedef struct mutex_lock {
     spin_lock_t lock;
-    list_head block_list;  // container type: pcb_t
+    list_t block_list;  // container type: pcb_t
     int acquired, pid;
     int key;
 } mutex_lock_t;
@@ -72,7 +72,7 @@ typedef struct barrier {
     int goal;
     int current;
     spin_lock_t lock;
-    list_head block_list;  // container type: pcb_t
+    list_t block_list;  // container type: pcb_t
 } barrier_t;
 
 #define BARRIER_NUM 16
@@ -85,7 +85,7 @@ void do_barrier_destroy(int bar_idx);
 typedef struct condition {
     int key;
     spin_lock_t lock;
-    list_head wait_list;  // container type: pcb_t
+    list_t wait_list;  // container type: pcb_t
 } condition_t;
 
 #define CONDITION_NUM 16
@@ -101,7 +101,7 @@ typedef struct semaphore {
     int key;
     int count;
     spin_lock_t lock;
-    list_head wait_list;  // container type: pcb_t
+    list_t wait_list;  // container type: pcb_t
 } semaphore_t;
 
 #define SEMAPHORE_NUM 16

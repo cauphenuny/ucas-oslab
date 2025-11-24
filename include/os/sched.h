@@ -128,7 +128,7 @@ typedef struct pcb {
 
     /* previous, next pointer */
     list_node_t list;  // NOTE: used for scheduling queues, only able to be in one queue
-    list_head wait_list;
+    list_t wait_list;
 
     /* process id */
     pid_t pid;
@@ -153,10 +153,10 @@ typedef struct pcb {
 } pcb_t;
 
 /* ready queue to run */
-extern list_head ready_queue;
+extern list_t ready_queue;
 
 /* sleep queue to be blocked in */
-extern list_head sleep_queue;
+extern list_t sleep_queue;
 
 /* current running task PCB */
 register pcb_t* current_running asm("tp");
@@ -171,14 +171,14 @@ extern void switch_to(pcb_t* prev, pcb_t* next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
-void do_block(list_node_t*, list_head* queue);
+void do_block(list_node_t*, list_t* queue);
 void do_unblock(list_node_t*);
 
-void unblock_list(list_head* list, const char* name);
+void unblock_list(list_t* list, const char* name);
 
 void set_process_workload(int workload);
 
-void print_sched_queue(const list_head* queue, const char* name);
+void print_pcb_list(const list_t* queue);
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/

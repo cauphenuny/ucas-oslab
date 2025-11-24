@@ -54,7 +54,7 @@ void check_sleeping(void)
 
     uint64_t current_time = get_timer();
     pretty_log(LOG_INFO, "current_time: %d", current_time);
-    for (list_node_t *cur = sleep_queue.next, *next = NULL; cur != &sleep_queue; cur = next) {
+    for (list_node_t *cur = sleep_queue.head.next, *next = NULL; cur != &sleep_queue.head; cur = next) {
         next = cur->next;
         pcb_t* pcb = container_of(cur, pcb_t, list);
         pretty_log(LOG_INFO, "checking pid %d with wakeup_time %d", pcb->pid, pcb->wakeup_time);

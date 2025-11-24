@@ -58,6 +58,14 @@ extern void ret_from_exception();
 
 #define SP_ALIGNMENT 16
 
+void fetch_pcb_info(pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
+    void* ksp = (void*)pcb->kernel_sp, *usp = (void*)pcb->user_sp;
+    switchto_context_t* swtch_context = ksp;
+    regs_context_t* regs = ksp + sizeof(switchto_context_t);
+    *kernel_ra = swtch_context->regs[SWITCHTO_REG_RA];
+    *user_ra = regs->sepc;
+}
+
 void init_pcb_stack(
     pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv) {
     /* TODO: [p2-task3] initialization of registers on kernel stack
@@ -112,10 +120,10 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, i
 
     memset(pcb, 0, sizeof(pcb_t));
     pcb->pid = process_id++;
-    list_init(&pcb->wait_list);
+    list_init(&pcb->wait_list, "proc");
     pcb->status = TASK_READY;
     strcpy(pcb->name, task->name);
     init_pcb_stack(pcb, kernel_stack_top, user_stack_top, task->entrance, argc, argv);
-    pretty_log(LOG_DEBUG, "pid %d: %s: ksp: 0x%x, usp: 0x%x", pcb->pid, name, kernel_stack_top, user_stack_top);
+    pretty_log(LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_top, user_stack_top, task->entrance);
     return pcb;
 }

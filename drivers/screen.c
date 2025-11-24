@@ -129,6 +129,7 @@ void screen_clear(void)
     }
     current_running->cursor_x = 0;
     current_running->cursor_y = 0;
+    memset(color_trigger, 0, sizeof(color_trigger));
     screen_reflush();
 }
 

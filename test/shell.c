@@ -35,6 +35,8 @@
 
 #define COLOR_RED 31
 #define COLOR_GREEN 32
+#define COLOR_YELLOW 33
+#define COLOR_BLUE 34
 #define COLOR_RESET 0
 
 #define SHELL_BEGIN 10
@@ -264,7 +266,7 @@ int main(int argc, char** argv) {
         }
         int ret = cmd.task->handler(cmd.args.argc, cmd.args.argv);
         if (ret) {
-            printf("%s: command %s exited with code %d", argv[0], cmd.args.argv[0], ret);
+            printf("%s: command %s exited with code %d\n", argv[0], cmd.args.argv[0], ret);
         }
 
         /************************************************************/
@@ -275,7 +277,24 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void subcmd_lint(int dest[], int argc, char** argv) { dest[0] = COLOR_RESET; }
+void subcmd_lint(int dest[], int argc, char** argv) {
+    dest[0] = COLOR_RESET;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "&") == 0) {
+            dest[i] = COLOR_BLUE;
+        } else if (strcmp(argv[i], "&&") == 0) {
+            dest[i] = COLOR_BLUE;
+        } else if (strcmp(argv[i], "||") == 0) {
+            dest[i] = COLOR_BLUE;
+        } else if (strcmp(argv[i], "|") == 0) {
+            dest[i] = COLOR_BLUE;
+        } else if (argv[i][0] == '-') {
+            dest[i] = COLOR_YELLOW;
+        } else {
+            dest[i] = COLOR_RESET;
+        }
+    }
+}
 
 int keycode(int argc, char** argv) {
     int ch = getchar();

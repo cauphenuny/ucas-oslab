@@ -95,6 +95,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_EXEC] = sys_exec;
     syscall[SYSCALL_EXIT] = sys_exit;
     syscall[SYSCALL_EXEC_WITH_AFF] = sys_exec_with_affinity;
+    syscall[SYSCALL_EXEC_BY_ENTRY] = sys_exec_by_entry;
     syscall[SYSCALL_SLEEP] = sys_sleep;
     syscall[SYSCALL_KILL] = sys_kill;
     syscall[SYSCALL_WAITPID] = sys_waitpid;
@@ -222,7 +223,8 @@ int main(int argc, char** argv) {
         // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
         // NOTE: The function of sstatus.sie is different from sie's
 
-        do_exec("shell", 1, (char*[]){"shell"}, (unsigned)-1);
+        task_info_t* shell_task = find_task("shell");
+        do_exec("shell", shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
         pretty_log(LOG_INFO, "[INIT] Created shell process.");
 
         reset_timer();

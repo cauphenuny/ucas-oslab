@@ -111,6 +111,10 @@ void sys_screen_delete_line(int nlines) {
     invoke_syscall(SYSCALL_DELETE_LINE, (long)nlines, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+int sys_exec_by_entry(char* name, int entrance, int argc, char* argv[]) {
+    return invoke_syscall(SYSCALL_EXEC_BY_ENTRY, (long)name, (long)entrance, (long)argc, (long)argv, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)

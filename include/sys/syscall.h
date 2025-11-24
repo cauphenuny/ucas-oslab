@@ -41,6 +41,7 @@ long sys_sleep(uint32_t);
 long sys_yield(void);
 long sys_exec(char*, int, char**);
 long sys_exec_with_affinity(char*, int, char**, int);
+long sys_exec_by_entry(char* name, int entrance, int argc, char* argv[]);
 long sys_exit(void);
 long sys_kill(pid_t);
 long sys_waitpid(pid_t);

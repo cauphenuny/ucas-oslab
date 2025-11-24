@@ -100,10 +100,8 @@ void init_pcb_stack(
     pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
 }
 
-pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, int user_mem) {
+pcb_t* construct_pcb(const char* name, ptr_t entrance, int argc, char* argv[], int kernel_mem, int user_mem) {
     pretty_log(LOG_DEBUG, "constructing pcb for task %s", name);
-    task_info_t* task = find_task(name);
-    if (!task) return NULL;
     pcb_t* pcb = alloc_pcb();
     if (!pcb) return NULL;
     asserts(pcb->status == TASK_EXITED, "PCB is not free");
@@ -116,9 +114,9 @@ pcb_t* construct_pcb(const char* name, int argc, char* argv[], int kernel_mem, i
     pcb->pid = process_id++;
     list_init(&pcb->wait_list, "proc");
     pcb->status = TASK_READY;
-    strcpy(pcb->name, task->name);
-    init_pcb_stack(pcb, kernel_stack_top, user_stack_top, task->entrance, argc, argv);
-    pretty_log(LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_top, user_stack_top, task->entrance);
+    strcpy(pcb->name, name);
+    init_pcb_stack(pcb, kernel_stack_top, user_stack_top, entrance, argc, argv);
+    pretty_log(LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_top, user_stack_top, entrance);
     return pcb;
 }
 

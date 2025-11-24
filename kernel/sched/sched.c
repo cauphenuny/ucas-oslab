@@ -281,11 +281,11 @@ void cleanup_proc(pcb_t* pcb) {
     free_pcb(pcb);
 }
 
-pid_t do_exec(char* name, int argc, char* argv[], unsigned affinity_mask) {
+pid_t do_exec(const char* name, int entrance, int argc, char* argv[], unsigned affinity_mask) {
     pretty_log(LOG_DEBUG, "handling exec for %s", name);
-    pcb_t* pcb = construct_pcb(name, argc, argv, 1, 4);
+    pcb_t* pcb = construct_pcb(name, entrance, argc, argv, 1, 4);
     if (!pcb) {
-        pretty_log(LOG_WARN, "exec %s failed!", name);
+        pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", name);
         return 0;
     }
     pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);

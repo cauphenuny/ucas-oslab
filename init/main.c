@@ -153,8 +153,8 @@ static void init_syscall(void) {
 
 /************************************************************/
 
-void write_batchfile(char* cmd, int location) { bios_sd_write((unsigned int)cmd, 1, location); }
-void read_batchfile(char* cmd, int location) { bios_sd_read((unsigned int)cmd, 1, location); }
+void write_batchfile(char* cmd, int location) { bios_sd_write((uint64_t)cmd, 1, location); }
+void read_batchfile(char* cmd, int location) { bios_sd_read((uint64_t)cmd, 1, location); }
 
 spin_lock_t kernel_lock;
 

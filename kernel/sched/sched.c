@@ -56,12 +56,6 @@ LIST(sleep_queue, "sleep");
 /* global process id */
 pid_t process_id = NR_CPUS;
 
-// #define SCHED_FRAME_OFFSET   "72"
-// #define SCHED_FRAME_OFFSET_I 72
-//
-// #define LOAD_SCHED_RA(var, sp) \
-//     asm volatile("ld %0, " SCHED_FRAME_OFFSET "(%1)" : "=r"(var) : "r"(sp))
-
 void print_pcb_array(const pcb_t pcb[], int n) {
     for (int i = 0; i < n; i++) {
         if (pcb[i].status == TASK_EXITED) continue;

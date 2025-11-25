@@ -22,7 +22,7 @@ uint64_t load_task_img(task_info_t task) {
     int sum_len = task.phyaddr_end - task.phyaddr_start;
 
     for (int i = 0; i < nblocks; i++) {
-        bios_sd_read((unsigned int)buffer, 1, src_blockid + i);
+        bios_sd_read((uint64_t)buffer, 1, src_blockid + i);
         int delta_len = min(sum_len, SECTOR_SIZE - offset);
         memcpy((void*)dest, buffer + offset, delta_len);
         dest += delta_len;

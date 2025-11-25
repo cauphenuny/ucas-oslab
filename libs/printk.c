@@ -297,6 +297,19 @@ int printk(const char *fmt, ...)
     return ret;
 }
 
+// fast printk
+int printkf(const char *fmt, ...)
+{
+    int ret = 0;
+    va_list va;
+
+    va_start(va, fmt);
+    ret = _vprint(fmt, va, screen_write);
+    va_end(va);
+
+    return ret;
+}
+
 int printv(const char *fmt, ...)
 {
     int ret = 0;

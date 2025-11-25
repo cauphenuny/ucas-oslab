@@ -6,6 +6,9 @@
 /* kernel print */
 int printk(const char *fmt, ...);
 
+/* kernel fast print */
+int printkf(const char *fmt, ...);
+
 /* vt100 print */
 int printv(const char *fmt, ...);
 

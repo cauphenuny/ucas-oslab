@@ -442,7 +442,6 @@ int top(int argc, char** argv) {
             break;
         }
         sys_screen_delete_line(nproc + 2);
-        printf("\n");
     }
     return 0;
 }

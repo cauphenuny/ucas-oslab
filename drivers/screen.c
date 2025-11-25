@@ -273,10 +273,5 @@ void screen_delete_line(int nlines)
         }
         current_running->cursor_y--;
     }
-    current_running->cursor_x = 0;
-    for (i = 0; i < SCREEN_WIDTH - 1; i++) {
-        if (new_screen[SCREEN_LOC(i, current_running->cursor_y)] != ' ') {
-            current_running->cursor_x = i;
-        }
-    }
+    current_running->cursor_x = 0, current_running->cursor_y++;
 }

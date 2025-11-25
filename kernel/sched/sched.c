@@ -337,59 +337,60 @@ int do_process_show() {
         [TASK_RUNNING] = "RUNNING",
         [TASK_EXITED] = "EXITED",
     };
-    printk("PID"), screen_move_cursor_col(PID_SUM);
-    printk("PPID"), screen_move_cursor_col(PPID_SUM);
-    printk("NAME"), screen_move_cursor_col(NAME_SUM);
-    printk("STATUS"), screen_move_cursor_col(STAT_SUM);
-    printk("CHANNEL"), screen_move_cursor_col(CHAN_SUM);
-    printk("CPU"), screen_move_cursor_col(TIME_SUM);
-    printk("AFF"), screen_move_cursor_col(AFF_SUM);
-    printk("MEM/K"), screen_move_cursor_col(MEM_SUM);
-    printk("MEM/U"), screen_move_cursor_col(UMEM_SUM);
-    printk("\n");
+    printkf("PID"), screen_move_cursor_col(PID_SUM);
+    printkf("PPID"), screen_move_cursor_col(PPID_SUM);
+    printkf("NAME"), screen_move_cursor_col(NAME_SUM);
+    printkf("STATUS"), screen_move_cursor_col(STAT_SUM);
+    printkf("CHANNEL"), screen_move_cursor_col(CHAN_SUM);
+    printkf("CPU"), screen_move_cursor_col(TIME_SUM);
+    printkf("AFF"), screen_move_cursor_col(AFF_SUM);
+    printkf("MEM/K"), screen_move_cursor_col(MEM_SUM);
+    printkf("MEM/U"), screen_move_cursor_col(UMEM_SUM);
+    printkf("\n");
     int count = 0;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* proc = pcb_all[i];
         if (proc->status == TASK_EXITED) continue;
-        printk("%d", proc->pid);
+        printkf("%d", proc->pid);
         screen_move_cursor_col(PID_SUM);
         if (proc->parent) {
-            printk("%d", proc->parent->pid);
+            printkf("%d", proc->parent->pid);
         } else {
-            printk("N/A");
+            printkf("N/A");
         }
         screen_move_cursor_col(PPID_SUM);
-        printk("%s", proc->name);
+        printkf("%s", proc->name);
         screen_move_cursor_col(NAME_SUM);
-        printk("%s", status_str[proc->status]);
+        printkf("%s", status_str[proc->status]);
         screen_move_cursor_col(STAT_SUM);
         if (proc->sched_node.container) {
-            printk("%s", proc->sched_node.container->name);
+            printkf("%s", proc->sched_node.container->name);
         } else {
             if (proc->status == TASK_RUNNING) {
-                printk("cpu%d", proc->cpu);
+                printkf("cpu%d", proc->cpu);
             } else {
-                printk("N/A");
+                printkf("N/A");
             }
         }
         screen_move_cursor_col(CHAN_SUM);
-        printk("%d%%", proc->slice_cnt);
+        printkf("%d%%", proc->slice_cnt);
         screen_move_cursor_col(TIME_SUM);
         for (int i = 0; i < NR_CPUS; i++) {
-            printk("%d", (proc->affinity & (1 << i)) != 0);
+            printkf("%d", (proc->affinity & (1 << i)) != 0);
         }
         screen_move_cursor_col(AFF_SUM);
-        printk("%d", proc->kernel_stack_top - proc->kernel_sp);
+        printkf("%d", proc->kernel_stack_top - proc->kernel_sp);
         screen_move_cursor_col(MEM_SUM);
         if (proc->pid >= NR_CPUS) {
-            printk("%d", proc->user_stack_top - proc->user_sp);
+            printkf("%d", proc->user_stack_top - proc->user_sp);
         } else {
-            printk("N/A");
+            printkf("N/A");
         }
         screen_move_cursor_col(UMEM_SUM);
-        printk("\n");
+        printkf("\n");
         count++;
     }
+    screen_reflush();
     return count;
 }
 

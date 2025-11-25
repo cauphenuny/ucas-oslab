@@ -15,7 +15,6 @@
 
 pcb_t pcb_kernel[NR_CPUS];
 pcb_t pcb_user[NUM_MAX_TASK];
-pcb_t* pcb_start = pcb_kernel;
 pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb() {
@@ -49,7 +48,13 @@ pcb_t* find_pcb(pid_t pid) {
 int get_pcb_index(pid_t pid) {
     pcb_t* pcb = find_pcb(pid);
     asserts(pcb, "cannot find pcb in get_pcb_index");
-    return pcb - pcb_start;
+    for (int i = 0; i < NUM_MAX_PCB; i++) {
+        if (pcb_all[i] == pcb) {
+            return i;
+        }
+    }
+    asserts(0, "pcb not found in pcb_all");
+    return -1;
 }
 
 void free_pcb(pcb_t* pcb) {
@@ -363,6 +368,53 @@ int do_process_show() {
         count++;
     }
     return count;
+}
+
+int have_next[NUM_MAX_TASK];
+
+void dfs(int depth, pcb_t* pcb) {
+    if (!pcb || pcb->status == TASK_EXITED) {
+        return;
+    }
+    for (int i = 0; i < depth - 1; i++) {
+        if (have_next[i]) {
+            printk("|   ");
+        } else {
+            printk("    ");
+        }
+    }
+    if (depth > 0) {
+        if (have_next[depth - 1]) {
+            printk("|-- ");
+        } else {
+            printk("+-- ");
+        }
+    }
+    printk("%s (pid=%d)\n", pcb->name, pcb->pid);
+    list_foreach_node(iter, &pcb->child_list.head) {
+        pcb_t* child = container_of(iter, pcb_t, relation_node);
+        if (iter->next != &pcb->child_list.head) {
+            have_next[depth] = 1;
+        } else {
+            have_next[depth] = 0;
+        }
+        dfs(depth + 1, child);
+    }
+}
+
+void show_process_tree() {
+    memset(have_next, 0, sizeof(have_next));
+    for (int i = 0; i < NUM_MAX_PCB; i++) {
+        pcb_t* pcb = pcb_all[i];
+        if (!pcb || pcb->status == TASK_EXITED) {
+            continue;
+        }
+        pcb_t* parent = pcb->parent;
+        if (parent && parent->status != TASK_EXITED) {
+            continue;
+        }
+        dfs(0, pcb);
+    }
 }
 
 void do_exit() {

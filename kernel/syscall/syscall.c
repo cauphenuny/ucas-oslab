@@ -134,6 +134,13 @@ long sys_display_info(int argc, char** argv) {
         show_barriers();
     } else if (strcmp(argv[0], "time") == 0) {
         show_timer();
+    } else if (strcmp(argv[0], "sync") == 0) {
+        show_mutexes();
+        show_conditions();
+        show_semaphores();
+        show_barriers();
+    } else if (strcmp(argv[0], "ptree") == 0) {
+        show_process_tree();
     } else {
         return 1;
     }

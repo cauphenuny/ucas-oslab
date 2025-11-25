@@ -171,7 +171,6 @@ extern pcb_t pcb_kernel[NR_CPUS];
 
 #define NUM_MAX_PCB ((NUM_MAX_TASK) + (NR_CPUS))
 
-extern pcb_t* pcb_start;
 extern pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb();
@@ -190,6 +189,7 @@ void unblock_list(list_t* list, const char* name);
 void set_process_workload(int workload);
 
 void print_pcb_list(const list_t* queue);
+void show_process_tree();
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/

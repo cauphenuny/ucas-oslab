@@ -134,7 +134,7 @@ void cleanup_mutexes(pid_t pid) {
 
 int do_mutex_lock_init(int key) {
     /* TODO: [p2-task2] initialize mutex lock */
-    int pcb_index = current_running - pcb_start;
+    int pcb_index = get_pcb_index(current_running->pid);
     int id = -1;
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
@@ -257,7 +257,7 @@ void cleanup_barriers(pid_t pid) {
 
 int do_barrier_init(int key, int goal) {
     int id = -1;
-    int pcb_index = current_running - pcb_start;
+    int pcb_index = get_pcb_index(current_running->pid);
     for (int i = 0; id == -1 && i < BARRIER_NUM; i++) {
         with_spin guard(barriers[i].lock);
         if (barrier_used[i] && barriers[i].key == key) {
@@ -399,7 +399,7 @@ int do_condition_init(int key) {
         }
     }
     assert(id >= 0);
-    int pcb_index = current_running - pcb_start;
+    int pcb_index = get_pcb_index(current_running->pid);
     cond_used[id] |= (1ull << pcb_index);
     return id;
 }
@@ -558,7 +558,7 @@ int do_semaphore_init(int key, int init) {
         }
     }
     assert(id >= 0);
-    int pcb_index = current_running - pcb_start;
+    int pcb_index = get_pcb_index(current_running->pid);
     sema_used[id] |= (1ull << pcb_index);
     return id;
 }
@@ -715,7 +715,7 @@ int do_mbox_open(char* name) {
         }
     }
     assert(id >= 0);
-    int pcb_index = current_running - pcb_start;
+    int pcb_index = get_pcb_index(current_running->pid);
     mbox_allocated[id] |= (1ull << pcb_index);
     return id;
 }

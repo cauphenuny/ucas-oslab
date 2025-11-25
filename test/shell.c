@@ -47,7 +47,7 @@
 int shell_begin = SHELL_BEGIN;
 int shell_end = SHELL_END;
 
-#define BUFFER_LEN   64
+#define BUFFER_LEN   80
 #define COMMAND_LEN  16
 #define ARGUMENT_LEN 16
 
@@ -155,6 +155,7 @@ void render(char* buffer, int argc, int colors[]) {
 #define CTRL_N     14
 #define CTRL_P     16
 #define NEWLINE    13
+#define TAB        9
 
 int getchar() {
     int ch;
@@ -182,6 +183,8 @@ int issymbol(char ch) {
     return 0;
 }
 
+const char* complete(const char* start, const char* end);
+
 command_t readline() {
     int pos = 0;
     static int last_pos = 0;
@@ -192,6 +195,7 @@ command_t readline() {
     int ch;
     args_t args;
     task_t* task = NULL;
+
     while ((ch = getchar()) != NEWLINE) {
         switch (ch) {
             case BACKSPACE:
@@ -203,6 +207,7 @@ command_t readline() {
                 }
                 break;
             }
+
             case CTRL_U: {
                 while (pos) {
                     pos--;
@@ -211,6 +216,7 @@ command_t readline() {
                 }
                 break;
             }
+
             case CTRL_W: {
                 if (pos) {
                     pos--;
@@ -224,6 +230,7 @@ command_t readline() {
                 }
                 break;
             }
+
             case CTRL_N:
             case CTRL_P: {
                 for (int i = 0; i < pos; i++) {
@@ -241,6 +248,20 @@ command_t readline() {
                 }
                 break;
             }
+
+            case TAB: {
+                const char* completion = complete(buffer, buffer + pos);
+                if (completion) {
+                    while (*completion) {
+                        printf("%c", *completion);
+                        buffer[pos++] = *completion++;
+                    }
+                    printf(" ");
+                    buffer[pos++] = ' ';
+                }
+                break;
+            }
+
             default: {
                 if (isalpha(ch) || isdigit(ch) || isspace(ch) || issymbol(ch)) {
                     buffer[pos++] = ch;
@@ -249,12 +270,14 @@ command_t readline() {
                 break;
             }
         }
+
         strcpy(args_buffer, buffer);
         args = parse(args_buffer, BUFFER_LEN);
         task = lint(color_buffer, args.argc, args.argv);
         render(buffer, args.argc, color_buffer);
         // display(display_buffer, display_color_buffer);
     }
+
     printf("\n");
     strcpy(last_buffer, buffer);
     last_pos = pos;
@@ -311,13 +334,9 @@ void subcmd_lint(int dest[], int argc, char** argv) {
 }
 
 void subcmd_lint_taskset(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
     if (argc >= 1 && strcmp("-p", argv[0]) == 0) {
         dest[0] = COLOR_YELLOW;
-    } else {
-        dest[0] = COLOR_RESET;
-    }
-    for (int i = 1; i < argc; i++) {
-        dest[i] = COLOR_RESET;
     }
 }
 
@@ -496,3 +515,17 @@ const task_t COMMAND_TABLE[] = {
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);
+
+const char* complete(const char* start, const char* end) {
+    int len = end - start;
+    const char* matched = NULL;
+    for (int i = 0; i < NUM_CMD; i++) {
+        if (strncmp(start, COMMAND_TABLE[i].name, len) == 0) {
+            if (matched) {
+                return NULL;
+            }
+            matched = COMMAND_TABLE[i].name + len;
+        }
+    }
+    return matched;
+}

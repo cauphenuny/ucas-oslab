@@ -33,16 +33,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#define COLOR_RED 31
-#define COLOR_GREEN 32
+#define COLOR_RED    31
+#define COLOR_GREEN  32
 #define COLOR_YELLOW 33
-#define COLOR_BLUE 34
-#define COLOR_BLACK 30
-#define COLOR_RESET 0
-#define COLOR_DIM 2
+#define COLOR_BLUE   34
+#define COLOR_BLACK  30
+#define COLOR_RESET  0
+#define COLOR_DIM    2
 
 #define SHELL_BEGIN 10
-#define SHELL_END 30
+#define SHELL_END   30
 
 int shell_begin = SHELL_BEGIN;
 int shell_end = SHELL_END;
@@ -192,8 +192,9 @@ command_t readline() {
     static char last_buffer[BUFFER_LEN] = {0};
     int color_buffer[ARGUMENT_LEN] = {0};
     static char args_buffer[BUFFER_LEN];
+    memset(args_buffer, 0, BUFFER_LEN);
     int ch;
-    args_t args;
+    args_t args = {0};
     task_t* task = NULL;
 
     while ((ch = getchar()) != NEWLINE) {
@@ -304,7 +305,9 @@ int main(int argc, char** argv) {
         printf("> root@UCAS_OS: ");
         command_t cmd = readline();
         if (!cmd.task) {
-            printf("%s: no such command: %s\n", argv[0], cmd.args.argv[0]);
+            if (cmd.args.argc) {
+                printf("%s: no such command: %s\n", argv[0], cmd.args.argv[0]);
+            }
             continue;
         }
         int ret = cmd.task->handler(cmd.args.argc, cmd.args.argv);
@@ -340,6 +343,13 @@ void subcmd_lint_taskset(int dest[], int argc, char** argv) {
     }
 }
 
+void subcmd_lint_help(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
+    if (argc >= 1 && strcmp("-a", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+    }
+}
+
 int keycode(int argc, char** argv) {
     int ch = getchar();
     do {
@@ -353,13 +363,6 @@ int echo(int argc, char** argv) {
         printf("%s ", argv[i]);
     }
     printf("\n");
-    return 0;
-}
-
-int decompose(int argc, char** argv) {
-    for (int i = 0; i < argc; i++) {
-        log_info("[%d]: %s", i, argv[i]);
-    }
     return 0;
 }
 
@@ -452,10 +455,15 @@ int taskset(int argc, char** argv) {
     }
 }
 
+void delay(int n) {
+    for (volatile int i = 0; i < n * 100000; i++);
+}
+
 int top(int argc, char** argv) {
     while (1) {
         int nproc = sys_ps();
-        sys_sleep(1);
+        // sys_sleep(1);
+        delay(100);
         int ch = sys_getchar();
         if (ch != -1) {
             break;
@@ -488,13 +496,19 @@ int set_height(int argc, char** argv) {
 
 int help(int argc, char** argv) {
     printf("usage: command [subcmd ...]\n");
-    const int CMD_LEN = 12;
+    const int CMD_LEN = 14;
+    int display_all = (argc > 1 && strcmp("-a", argv[1]) == 0);
     for (int i = 0; i < NUM_CMD; i++) {
-        if (COMMAND_TABLE[i].name[0] == '.') continue;
+        if (!display_all && COMMAND_TABLE[i].name[0] == '.') continue;
         printf("  %s:", COMMAND_TABLE[i].name);
         sys_move_cursor_col(CMD_LEN);
         printf("%s\n", COMMAND_TABLE[i].desc);
     }
+    return 0;
+}
+
+int exit(int argc, char** argv) {
+    sys_exit();
     return 0;
 }
 
@@ -505,13 +519,13 @@ const task_t COMMAND_TABLE[] = {
     {"exec", "execute program", subcmd_lint, exec},
     {"kill", "kill process", subcmd_lint, kill},
     {"clear", "clear screen", subcmd_lint, clear},
-    {".decompose", "decompose command", subcmd_lint, decompose},
-    {".keycode", "show keycode", subcmd_lint, keycode},
     {"taskset", "set task affinity", subcmd_lint_taskset, taskset},
     {"top", "show top processes", subcmd_lint, top},
     {"info", "show system info", subcmd_lint, info},
-    {"seth", "set shell height", subcmd_lint, set_height},
-    {"help", "show help information", subcmd_lint, help},
+    {"set_height", "set shell height", subcmd_lint, set_height},
+    {"help", "show help information", subcmd_lint_help, help},
+    {"exit", "exit shell", subcmd_lint, exit},
+    {".keycode", "show keycode", subcmd_lint, keycode},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

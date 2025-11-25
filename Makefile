@@ -42,9 +42,11 @@ MINICOM         ?= minicom
 # -----------------------------------------------------------------------
 
 CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
-CFLAGS          += -O0
+CFLAGS          += -O2
 CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
 CXXFLAGS        = -std=gnu++20 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -fno-exceptions -fno-rtti
+CXXFLAGS        += -O2
+CXXFLAGS        += -Wno-register
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds

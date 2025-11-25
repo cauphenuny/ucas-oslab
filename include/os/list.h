@@ -86,6 +86,8 @@ bool list_holding(list_node_t* node);
 
 void list_delete(list_node_t* node);
 
+void list_node_destruct(list_node_t* node);
+
 size_t list_size(const list_t* head);
 
 void list_traverse(list_t* head, void (*func)(list_node_t* node));

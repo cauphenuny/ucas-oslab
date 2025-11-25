@@ -13,8 +13,9 @@
 #include <printk.h>
 #include <screen.h>
 
-pcb_t pcb_user[NUM_MAX_TASK];
 pcb_t pcb_kernel[NR_CPUS];
+pcb_t pcb_user[NUM_MAX_TASK];
+pcb_t* pcb_start = pcb_kernel;
 pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb() {
@@ -45,6 +46,12 @@ pcb_t* find_pcb(pid_t pid) {
     return NULL;
 }
 
+int get_pcb_index(pid_t pid) {
+    pcb_t* pcb = find_pcb(pid);
+    asserts(pcb, "cannot find pcb in get_pcb_index");
+    return pcb - pcb_start;
+}
+
 void free_pcb(pcb_t* pcb) {
     if (!pcb) return;
     pcb->status = TASK_EXITED;
@@ -62,9 +69,9 @@ void print_pcb_array(const pcb_t pcb[], int n) {
         ptr_t kernel_ra, user_ra;
         fetch_pcb_info(&pcb[i], &kernel_ra, &user_ra);
         pretty_log(
-            LOG_DEBUG, "pid=%d, name=%s, aff=0x%x, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb[i].pid,
-            pcb[i].name, pcb[i].affinity, pcb[i].status,
-            pcb[i].list.container ? pcb[i].list.container->name : "NULL", kernel_ra,
+            LOG_DEBUG, "pid=%d, name=%s, aff=0x%x, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x",
+            pcb[i].pid, pcb[i].name, pcb[i].affinity, pcb[i].status,
+            pcb[i].sched_node.container ? pcb[i].sched_node.container->name : "NULL", kernel_ra,
             pcb[i].kernel_sp, user_ra, pcb[i].user_sp);
     }
 }
@@ -74,13 +81,14 @@ void print_pcb_list(const list_t* list) {
     pretty_log(LOG_INFO, "there are %d tasks in the %s/%x channel.", size, list->name, list);
     list_node_t* current = list->head.next;
     while (current != &list->head) {
-        pcb_t* pcb = container_of(current, pcb_t, list);
+        pcb_t* pcb = container_of(current, pcb_t, sched_node);
         ptr_t kernel_ra, user_ra;
         fetch_pcb_info(pcb, &kernel_ra, &user_ra);
         pretty_log(
             LOG_DEBUG, "pid=%d, name=%s, stat=%d, chan=%s, kctx=%x/%x, uctx=%x/%x", pcb->pid,
-            pcb->name, pcb->status, pcb->list.container ? pcb->list.container->name : "NULL",
-            kernel_ra, pcb->kernel_sp, user_ra, pcb->user_sp);
+            pcb->name, pcb->status,
+            pcb->sched_node.container ? pcb->sched_node.container->name : "NULL", kernel_ra,
+            pcb->kernel_sp, user_ra, pcb->user_sp);
         current = current->next;
     }
 }
@@ -144,7 +152,7 @@ pcb_t* pick_process_impl(
     if (init) init();
     pcb_t* selected = NULL;
     list_foreach_node(iter, &ready_queue->head) {
-        pcb_t* next = container_of(iter, pcb_t, list);
+        pcb_t* next = container_of(iter, pcb_t, sched_node);
         if (!filter(next)) continue;
         if (update(selected, next)) {
             selected = next;
@@ -189,12 +197,12 @@ void do_scheduler(void) {
 
     if (current_running->status == TASK_RUNNING) {
         current_running->status = TASK_READY;
-        list_append(&ready_queue, &current_running->list);
+        list_append(&ready_queue, &current_running->sched_node);
     }
     // print_all_pcb();
     // print_pcb_list(&ready_queue);
     pcb_t* next_running = pick_process();
-    list_delete(&next_running->list);
+    list_delete(&next_running->sched_node);
     // pretty_log(
     //     LOG_INFO, "switch from pid %d(%s) to pid %d(%s).", current_running->pid,
     //     current_running->name, next_running->pid, next_running->name);
@@ -220,7 +228,7 @@ void do_sleep(uint32_t sleep_time) {
         LOG_INFO, "pid %d sleeping for %d seconds (wake at %d)", current_running->pid, sleep_time,
         target);
     // breakpoint();
-    do_block(&current_running->list, &sleep_queue);
+    do_block(&current_running->sched_node, &sleep_queue);
     do_scheduler();
 }
 
@@ -228,7 +236,7 @@ void do_sleep(uint32_t sleep_time) {
 void do_block(list_node_t* pcb_node, list_t* queue) {
     // TODO: [p2-task2] block the pcb task into the block queue
     asserts(!pcb_node->next && !pcb_node->prev, "pcb_node is already in a list");
-    pcb_t* pcb = container_of(pcb_node, pcb_t, list);
+    pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
     pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
     if (pcb->status == TASK_BLOCKED) return;
     pcb->status = TASK_BLOCKED;
@@ -240,7 +248,7 @@ void do_block(list_node_t* pcb_node, list_t* queue) {
  */
 void do_unblock(list_node_t* pcb_node) {
     // TODO: [p2-task2] unblock the `pcb` from the block queue
-    pcb_t* pcb = container_of(pcb_node, pcb_t, list);
+    pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
     if (pcb->status != TASK_BLOCKED) {
         pretty_log(
             LOG_WARN, "unblocking a non-blocked task(pid=%d, status=%d)", pcb->pid, pcb->status);
@@ -255,7 +263,8 @@ void unblock_list(list_t* queue, const char* name) {
     while (node != &queue->head) {
         list_node_t* next = node->next;
         pretty_log(
-            LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, list)->pid, name);
+            LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, sched_node)->pid,
+            name);
         list_delete(node);
         do_unblock(node);
         node = next;
@@ -267,12 +276,20 @@ void exit_wakeup(pcb_t* pcb) { unblock_list(&pcb->wait_list, "pcb wait_list"); }
 void cleanup_proc(pcb_t* pcb) {
     pid_t pid = pcb->pid;
     pretty_log(LOG_INFO, "cleaning up pid %d", pid);
-    cleanup_mutex(pid);
-    if (list_holding(&pcb->list)) {
-        list_delete(&pcb->list);
-    }
+    cleanup_mutexes(pid);
+    cleanup_barriers(pid);
+    cleanup_conditions(pid);
+    cleanup_semaphores(pid);
+    cleanup_mailboxes(pid);
+    list_node_destruct(&pcb->sched_node);
+    list_node_destruct(&pcb->relation_node);
     exit_wakeup(pcb);
     free_pcb(pcb);
+}
+
+void attach_subprocess(pcb_t* parent, pcb_t* child) {
+    list_append(&parent->child_list, &child->relation_node);
+    child->parent = parent;
 }
 
 pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
@@ -284,28 +301,31 @@ pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsig
     }
     pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
     set_proc_affinity(pcb, affinity_mask);
-    list_append(&ready_queue, &pcb->list);
+    list_append(&ready_queue, &pcb->sched_node);
+    attach_subprocess(current_running, pcb);
     print_all_pcb();
     return pcb->pid;
 }
 
 int do_process_show() {
-    const int PID_LEN = 5;
-    const int NAME_LEN = 16;
-    const int STAT_LEN = 10;
-    const int CHAN_LEN = 9;
-    const int TIME_LEN = 6;
+    const int PID_LEN = 5, PID_SUM = PID_LEN;
+    const int PPID_LEN = 6, PPID_SUM = PID_SUM + PPID_LEN;
+    const int NAME_LEN = 16, NAME_SUM = PPID_SUM + NAME_LEN;
+    const int STAT_LEN = 10, STAT_SUM = NAME_SUM + STAT_LEN;
+    const int CHAN_LEN = 9, CHAN_SUM = STAT_SUM + CHAN_LEN;
+    const int TIME_LEN = 6, TIME_SUM = CHAN_SUM + TIME_LEN;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",
         [TASK_RUNNING] = "RUNNING",
         [TASK_EXITED] = "EXITED",
     };
-    printk("PID"), screen_move_cursor_col(PID_LEN);
-    printk("NAME"), screen_move_cursor_col(PID_LEN + NAME_LEN);
-    printk("STATUS"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN);
-    printk("CHANNEL"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
-    printk("TIME"), screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
+    printk("PID"), screen_move_cursor_col(PID_SUM);
+    printk("PPID"), screen_move_cursor_col(PPID_SUM);
+    printk("NAME"), screen_move_cursor_col(NAME_SUM);
+    printk("STATUS"), screen_move_cursor_col(STAT_SUM);
+    printk("CHANNEL"), screen_move_cursor_col(CHAN_SUM);
+    printk("TIME"), screen_move_cursor_col(TIME_SUM);
     printk("AFF");
     printk("\n");
     int count = 0;
@@ -313,13 +333,19 @@ int do_process_show() {
         pcb_t* proc = pcb_all[i];
         if (proc->status == TASK_EXITED) continue;
         printk("%d", proc->pid);
-        screen_move_cursor_col(PID_LEN);
+        screen_move_cursor_col(PID_SUM);
+        if (proc->parent) {
+            printk("%d", proc->parent->pid);
+        } else {
+            printk("N/A");
+        }
+        screen_move_cursor_col(PPID_SUM);
         printk("%s", proc->name);
-        screen_move_cursor_col(PID_LEN + NAME_LEN);
+        screen_move_cursor_col(NAME_SUM);
         printk("%s", status_str[proc->status]);
-        screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN);
-        if (proc->list.container) {
-            printk("%s", proc->list.container->name);
+        screen_move_cursor_col(STAT_SUM);
+        if (proc->sched_node.container) {
+            printk("%s", proc->sched_node.container->name);
         } else {
             if (proc->status == TASK_RUNNING) {
                 printk("cpu%d", proc->cpu);
@@ -327,9 +353,9 @@ int do_process_show() {
                 printk("N/A");
             }
         }
-        screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN);
+        screen_move_cursor_col(CHAN_SUM);
         printk("%d%%", proc->slice_cnt);
-        screen_move_cursor_col(PID_LEN + NAME_LEN + STAT_LEN + CHAN_LEN + TIME_LEN);
+        screen_move_cursor_col(TIME_SUM);
         for (int i = 0; i < NR_CPUS; i++) {
             printk("%d", (proc->affinity & (1 << i)) != 0);
         }
@@ -345,11 +371,33 @@ void do_exit() {
 }
 
 int do_kill(pid_t pid) {
-    pcb_t* pcb = find_pcb(pid);
-    if (!pcb || current_running->pid == pid) {
+    if (pid < NR_CPUS) {
+        pretty_log(LOG_WARN, "cannot kill kernel process(pid=%d)", pid);
         return 0;
     }
+    pcb_t *parent = current_running;
+    while (parent) {
+        if (parent->pid == pid) {
+            pretty_log(LOG_WARN, "cannot kill self or ancestor(pid=%d)", pid);
+            return 0;
+        }
+        parent = parent->parent;
+    }
+    pcb_t* pcb = find_pcb(pid);
+    if (!pcb) {
+        pretty_log(LOG_WARN, "cannot find process(pid=%d) to kill", pid);
+        return 0;
+    }
+    for (list_node_t* iter = pcb->child_list.head.next; iter != &pcb->child_list.head;) {
+        asserts(iter, "iterator is NULL");
+        list_node_t* next = iter->next;
+        pcb_t* child = container_of(iter, pcb_t, relation_node);
+        pretty_log(LOG_INFO, "killing child pid %d of pid %d", child->pid, pid);
+        do_kill(child->pid);
+        iter = next;
+    }
     cleanup_proc(pcb);
+    pretty_log(LOG_INFO, "killed process(pid=%d) successfully", pid);
     return 1;
 }
 
@@ -358,8 +406,7 @@ int do_waitpid(pid_t pid) {
     if (!pcb) {
         return 0;
     }
-    list_append(&pcb->wait_list, &current_running->list);
-    // list_delete(&current_running->list);
+    list_append(&pcb->wait_list, &current_running->sched_node);
     current_running->status = TASK_BLOCKED;
     do_scheduler();
     return pid;

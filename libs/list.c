@@ -97,3 +97,9 @@ bool list_holding(list_node_t* node) {
     asserts(!((node->next != NULL) ^ (node->container != NULL)), "node container broken");
     return node->next != NULL || node->prev != NULL;
 }
+
+void list_node_destruct(list_node_t* node) {
+    if (list_holding(node)) {
+        list_delete(node);
+    }
+}

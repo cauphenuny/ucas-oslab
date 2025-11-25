@@ -75,6 +75,7 @@ static void init_pcb(void) {
         };
         strcpy(pcb_kernel[i].name, "init");
         list_init(&pcb_kernel[i].wait_list, "proc");
+        list_init(&pcb_kernel[i].child_list, "child_list");
         pcb_all[cnt++] = &pcb_kernel[i];
     }
 

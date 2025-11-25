@@ -28,9 +28,17 @@
 #ifndef INCLUDE_LOCK_H_
 #define INCLUDE_LOCK_H_
 
+#include "type.h"
+
 #include <os/list.h>
 
 #define LOCK_NUM 16
+
+#if NUM_MAX_PCB <= 64
+typedef uint64_t pid_bitmap_t;
+#else
+#error "NUM_MAX_PCB too large!"
+#endif
 
 typedef enum {
     UNLOCKED,
@@ -66,7 +74,7 @@ void show_mutexes();
 
 void init_locks(void);
 
-void cleanup_mutex(pid_t pid);
+void cleanup_mutexes(pid_t pid);
 
 /************************************************************/
 typedef struct barrier {
@@ -83,6 +91,7 @@ void init_barriers(void);
 int do_barrier_init(int key, int goal);
 void do_barrier_wait(int bar_idx);
 void do_barrier_destroy(int bar_idx);
+void cleanup_barriers(pid_t pid);
 
 void show_barriers();
 
@@ -100,6 +109,7 @@ void do_condition_wait(int cond_idx, int mutex_idx);
 void do_condition_signal(int cond_idx);
 void do_condition_broadcast(int cond_idx);
 void do_condition_destroy(int cond_idx);
+void cleanup_conditions(pid_t pid);
 
 void show_conditions();
 
@@ -117,6 +127,7 @@ int do_semaphore_init(int key, int init);
 void do_semaphore_up(int sema_idx);
 void do_semaphore_down(int sema_idx);
 void do_semaphore_destroy(int sema_idx);
+void cleanup_semaphores(pid_t pid);
 
 void show_semaphores();
 
@@ -136,6 +147,7 @@ typedef struct mailbox {
 void init_mbox();
 int do_mbox_open(char* name);
 void do_mbox_close(int mbox_idx);
+void cleanup_mailboxes(pid_t pid);
 
 /// @return 1: blocked, 0: immediately sent
 int do_mbox_send(int mbox_idx, void* msg, int msg_length);

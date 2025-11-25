@@ -122,7 +122,7 @@ typedef struct pcb {
     ptr_t user_stack_base;
 
     /* previous, next pointer */
-    list_node_t list;  // NOTE: used for scheduling queues, only able to be in one queue
+    list_node_t sched_node;  // NOTE: used for scheduling queues, only able to be in one queue
     list_t wait_list;
 
     /* process id */
@@ -149,6 +149,11 @@ typedef struct pcb {
     /* process cpu affinity */
     unsigned affinity; // bitmask
     int cpu; // last running cpu id
+
+    /* process relationship */
+    struct pcb* parent;
+    list_node_t relation_node;
+    list_t child_list;
 } pcb_t;
 
 /* ready queue to run */
@@ -166,10 +171,12 @@ extern pcb_t pcb_kernel[NR_CPUS];
 
 #define NUM_MAX_PCB ((NUM_MAX_TASK) + (NR_CPUS))
 
+extern pcb_t* pcb_start;
 extern pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb();
 pcb_t* find_pcb(pid_t pid);
+int get_pcb_index(pid_t pid);
 
 extern void switch_to(pcb_t* prev, pcb_t* next);
 void do_scheduler(void);

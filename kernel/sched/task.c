@@ -121,8 +121,12 @@ pcb_t* construct_pcb(const char* name, ptr_t entrance, int argc, char* argv[], i
     return pcb;
 }
 
-void set_proc_affinity(pcb_t* pcb, unsigned affinity_mask) {
+int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask) {
     unsigned valid_mask = (1 << NR_CPUS) - 1;
-    asserts(affinity_mask & valid_mask, "affinity mask invalid");
+    if (!(affinity_mask & valid_mask)) {
+        pretty_log(LOG_WARN, "affinity mask 0x%x invalid, no valid cpu bits", affinity_mask);
+        return 1;
+    }
     pcb->affinity = affinity_mask & valid_mask;
+    return 0;
 }

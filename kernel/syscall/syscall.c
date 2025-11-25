@@ -81,8 +81,8 @@ long sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]) {
 long sys_set_affinity(int pid, unsigned affinity_mask) {
     pcb_t* pcb = find_pcb(pid);
     if (pcb) {
-        set_proc_affinity(pcb, affinity_mask);
-        return 1;
+        int err = set_proc_affinity(pcb, affinity_mask);
+        return !err;
     }
     return 0;
 }

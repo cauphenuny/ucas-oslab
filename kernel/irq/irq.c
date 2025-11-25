@@ -16,7 +16,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task3] & [p2-task4] interrupt handler.
     // call corresponding handler by the value of `scause`
-    int is_irq = (scause & SCAUSE_IRQ_FLAG) == 1ull;
+    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid, is_irq, exception_code);
     if (!((is_irq && exception_code < IRQC_COUNT) || (~is_irq && exception_code < EXCC_COUNT))) {
@@ -36,7 +36,7 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
-    uint64_t ticks = get_ticks();
+    // uint64_t ticks = get_ticks();
     // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval, scause);
     reset_timer();
     do_scheduler();
@@ -56,7 +56,7 @@ void init_exception()
     for (int i = 0; i < IRQC_COUNT; i++) {
         irq_table[i] = handle_other;
     }
-    exc_table[IRQC_M_TIMER] = exc_table[IRQC_U_TIMER] = exc_table[IRQC_S_TIMER] = handle_irq_timer;
+    irq_table[IRQC_M_TIMER] = irq_table[IRQC_U_TIMER] = irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
     /* TODO: [p2-task3] set up the entrypoint of exceptions */
     setup_exception();

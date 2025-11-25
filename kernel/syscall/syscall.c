@@ -18,7 +18,7 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
      * HINT: call syscall function like syscall[fn](arg0, arg1, arg2),
      * and pay attention to the return value and sepc
      */
-    int is_irq = (scause & SCAUSE_IRQ_FLAG) == 1ull;
+    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
     assert(!is_irq);
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     if (exception_code == 8) {

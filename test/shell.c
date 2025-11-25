@@ -37,7 +37,9 @@
 #define COLOR_GREEN 32
 #define COLOR_YELLOW 33
 #define COLOR_BLUE 34
+#define COLOR_BLACK 30
 #define COLOR_RESET 0
+#define COLOR_DIM 2
 
 #define SHELL_BEGIN 10
 #define SHELL_END 30
@@ -143,11 +145,12 @@ void render(char* buffer, int argc, int colors[]) {
 }
 
 #define BACKSPACE  127
+#define BACKSPACE2 8
 #define CTRL_U     21
 #define CTRL_W     23
 #define CTRL_N     14
 #define CTRL_P     16
-#define NEWLINE   '\r'
+#define NEWLINE    13
 
 int getchar() {
     int ch;
@@ -165,6 +168,16 @@ typedef struct {
     args_t args;
 } command_t;
 
+int issymbol(char ch) {
+    const char* symbols = "~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
+    for (int i = 0; symbols[i]; i++) {
+        if (ch == symbols[i]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 command_t readline() {
     int pos = 0;
     static int last_pos = 0;
@@ -177,7 +190,8 @@ command_t readline() {
     task_t* task = NULL;
     while ((ch = getchar()) != NEWLINE) {
         switch (ch) {
-            case BACKSPACE: {
+            case BACKSPACE:
+            case BACKSPACE2: {
                 if (pos) {
                     pos--;
                     buffer[pos] = '\0';
@@ -224,8 +238,10 @@ command_t readline() {
                 break;
             }
             default: {
-                buffer[pos++] = ch;
-                printf("%c", ch);
+                if (isalpha(ch) || isdigit(ch) || isspace(ch) || issymbol(ch)) {
+                    buffer[pos++] = ch;
+                    printf("%c", ch);
+                }
                 break;
             }
         }
@@ -279,19 +295,19 @@ int main(int argc, char** argv) {
 
 void subcmd_lint(int dest[], int argc, char** argv) {
     dest[0] = COLOR_RESET;
+    static const char* const OP[] = {"&", "&&", "||", "|"};
+    static const int NUM_OP = sizeof(OP) / sizeof(OP[0]);
     for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "&") == 0) {
-            dest[i] = COLOR_BLUE;
-        } else if (strcmp(argv[i], "&&") == 0) {
-            dest[i] = COLOR_BLUE;
-        } else if (strcmp(argv[i], "||") == 0) {
-            dest[i] = COLOR_BLUE;
-        } else if (strcmp(argv[i], "|") == 0) {
-            dest[i] = COLOR_BLUE;
-        } else if (argv[i][0] == '-') {
+        if (argv[i][0] == '-') {
             dest[i] = COLOR_YELLOW;
         } else {
             dest[i] = COLOR_RESET;
+        }
+        for (int j = 0; j < NUM_OP; j++) {
+            if (strcmp(argv[i], OP[j]) == 0) {
+                dest[i] = COLOR_RESET;
+                break;
+            }
         }
     }
 }
@@ -299,10 +315,8 @@ void subcmd_lint(int dest[], int argc, char** argv) {
 int keycode(int argc, char** argv) {
     int ch = getchar();
     do {
-        sys_move_cursor_col(0);
-        printf("%d   ", ch);
+        printf("%d\n", ch);
     } while ((ch = getchar()) != 27);
-    printf("\n");
     return 0;
 }
 
@@ -340,9 +354,13 @@ int exec(int argc, char** argv) {
         wait = 1;
     }
     shift(&argc, &argv);
+    if (argc <= 0) {
+        log_info("usage: exec {name} [args ...] [&]");
+        return 1;
+    }
     pid_t pid = sys_exec(argv[0], argc, argv);
     if (!pid) {
-        log_info("exec failed");
+        log_info("exec %s failed (argc=%d)", argv[0], argc);
         return 1;
     }
     if (wait) {

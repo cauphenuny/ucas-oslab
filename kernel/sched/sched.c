@@ -384,11 +384,7 @@ void dfs(int depth, pcb_t* pcb) {
         }
     }
     if (depth > 0) {
-        if (have_next[depth - 1]) {
-            printk("|-- ");
-        } else {
-            printk("+-- ");
-        }
+        printk("|-> ");
     }
     printk("%s (pid=%d)\n", pcb->name, pcb->pid);
     list_foreach_node(iter, &pcb->child_list.head) {

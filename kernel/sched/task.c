@@ -53,7 +53,7 @@ extern void ret_from_exception();
 #define SP_ALIGNMENT 16
 
 void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
-    void* ksp = (void*)pcb->kernel_sp, *usp = (void*)pcb->user_sp;
+    void* ksp = (void*)pcb->kernel_sp;
     switchto_context_t* swtch_context = ksp;
     regs_context_t* regs = ksp + sizeof(switchto_context_t);
     *kernel_ra = swtch_context->regs[SWITCHTO_REG_RA];

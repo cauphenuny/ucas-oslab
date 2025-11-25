@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
         }
         int ret = cmd.task->handler(cmd.args.argc, cmd.args.argv);
         if (ret) {
-            printf("%s: command %s exited with code %d\n", argv[0], cmd.args.argv[0], ret);
+            printf("%s: command `%s` exited with code %d\n", argv[0], cmd.args.argv[0], ret);
         }
 
         /************************************************************/
@@ -297,21 +297,26 @@ int main(int argc, char** argv) {
 }
 
 void subcmd_lint(int dest[], int argc, char** argv) {
-    dest[0] = COLOR_RESET;
     static const char* const OP[] = {"&", "&&", "||", "|"};
     static const int NUM_OP = sizeof(OP) / sizeof(OP[0]);
     for (int i = 0; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            dest[i] = COLOR_YELLOW;
-        } else {
-            dest[i] = COLOR_RESET;
-        }
         for (int j = 0; j < NUM_OP; j++) {
             if (strcmp(argv[i], OP[j]) == 0) {
-                dest[i] = COLOR_RESET;
+                dest[i] = COLOR_BLUE;
                 break;
             }
         }
+    }
+}
+
+void subcmd_lint_taskset(int dest[], int argc, char** argv) {
+    if (argc >= 1 && strcmp("-p", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+    } else {
+        dest[0] = COLOR_RESET;
+    }
+    for (int i = 1; i < argc; i++) {
+        dest[i] = COLOR_RESET;
     }
 }
 
@@ -388,10 +393,14 @@ int clear(int argc, char** argv) {
 int taskset(int argc, char** argv) {
     if (argc < 3) {
         log_info("usage: taskset {mask} {name} | taskset -p {mask} {pid}");
-        return 0;
+        return 1;
     }
     shift(&argc, &argv);
     if (strcmp(argv[0], "-p") == 0) {
+        if (argc != 3) {
+            log_info("usage: taskset -p {mask} {pid}");
+            return 1;
+        }
         shift(&argc, &argv);
         unsigned mask = shifti(&argc, &argv);
         int pid = shifti(&argc, &argv);
@@ -468,7 +477,7 @@ const task_t COMMAND_TABLE[] = {
     {"clear", subcmd_lint, clear},
     {"decompose", subcmd_lint, decompose},
     {"keycode", subcmd_lint, keycode},
-    {"taskset", subcmd_lint, taskset},
+    {"taskset", subcmd_lint_taskset, taskset},
     {"top", subcmd_lint, top},
     {"info", subcmd_lint, info},
     {"set_height", subcmd_lint, set_height},

@@ -44,6 +44,9 @@
 #define SHELL_BEGIN 10
 #define SHELL_END 30
 
+int shell_begin = SHELL_BEGIN;
+int shell_end = SHELL_END;
+
 #define BUFFER_LEN   64
 #define COMMAND_LEN  16
 #define ARGUMENT_LEN 16
@@ -258,12 +261,12 @@ command_t readline() {
 }
 
 void preamble() {
-    sys_move_cursor(0, SHELL_BEGIN);
+    sys_move_cursor(0, shell_begin);
     printf("------------------- COMMAND -------------------\n");
 }
 
 int main(int argc, char** argv) {
-    sys_screen_set_scroll(SHELL_BEGIN + 1, SHELL_END);
+    sys_screen_set_scroll(shell_begin + 1, shell_end);
     prompt_len = strlen(prompt);
     preamble();
 
@@ -440,6 +443,22 @@ int info(int argc, char** argv) {
     return sys_display_info(argc, argv);
 }
 
+int set_height(int argc, char** argv) {
+    if (argc != 3) {
+        log_info("usage: set_height {start_row} {end_row}");
+        return 1;
+    }
+    int start_row = atoi(argv[1]);
+    int end_row = atoi(argv[2]);
+    shell_begin = start_row;
+    shell_end = end_row;
+    sys_screen_clear_scroll();
+    sys_screen_set_scroll(start_row + 1, end_row);
+    sys_clear();
+    preamble();
+    return 0;
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", subcmd_lint, echo},
     {"ts", subcmd_lint, ts},
@@ -452,6 +471,7 @@ const task_t COMMAND_TABLE[] = {
     {"taskset", subcmd_lint, taskset},
     {"top", subcmd_lint, top},
     {"info", subcmd_lint, info},
+    {"set_height", subcmd_lint, set_height},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

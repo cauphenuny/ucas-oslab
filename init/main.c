@@ -202,11 +202,11 @@ int main(int argc, char** argv) {
         int check = bss_check();
         asserts(check, ".bss check failed");
 
+        init_task_info(argc, argv);
+
         pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
         pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
         pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
-
-        init_task_info(argc, argv);
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();

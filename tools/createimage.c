@@ -30,7 +30,7 @@ typedef struct {
     uint64_t entrance;
 } task_info_t;
 
-#define TASK_MAXNUM 16
+#define TASK_MAXNUM 32
 #define TASK_SIZE   0x10000
 static task_info_t taskinfo[TASK_MAXNUM];
 

@@ -35,7 +35,7 @@
 #include <type.h>
 #include <os/smp.h>
 
-#define NUM_MAX_TASK 16
+#define NUM_MAX_TASK 32
 
 #define REG_ZERO (OFFSET_REG_ZERO >> RISCV_LGPTR)
 #define REG_RA   (OFFSET_REG_RA >> RISCV_LGPTR)

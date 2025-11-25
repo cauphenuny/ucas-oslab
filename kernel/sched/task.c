@@ -45,6 +45,7 @@ void show_tasks(void) {
     if (task_num % 2 != 0) {
         printk("\n");
     }
+    printk("Total: %d tasks\n", task_num);
 }
 
 extern void ret_from_exception();

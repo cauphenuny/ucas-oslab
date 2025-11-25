@@ -145,8 +145,9 @@ const int NUM_INFO_COMMANDS = sizeof(INFO_COMMANDS) / sizeof(INFO_COMMANDS[0]);
 void show_sync() {
     show_mutexes();
     show_conditions();
-    show_semaphores();
     show_barriers();
+    show_semaphores();
+    show_mailboxes();
 }
 
 void show_help(int argc, char** argv) {

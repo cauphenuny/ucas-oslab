@@ -308,7 +308,7 @@ void attach_subprocess(pcb_t* parent, pcb_t* child) {
 
 pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
     pretty_log(LOG_DEBUG, "handling exec for %s", name);
-    pcb_t* pcb = construct_pcb(name, entrance, argc, argv, 1, 4);
+    pcb_t* pcb = construct_pcb(name, entrance, argc, argv, 2, 8);
     if (!pcb) {
         pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", name);
         return 0;
@@ -328,6 +328,9 @@ int do_process_show() {
     const int STAT_LEN = 10, STAT_SUM = NAME_SUM + STAT_LEN;
     const int CHAN_LEN = 9, CHAN_SUM = STAT_SUM + CHAN_LEN;
     const int TIME_LEN = 6, TIME_SUM = CHAN_SUM + TIME_LEN;
+    const int AFF_LEN = NR_CPUS + 3, AFF_SUM = TIME_SUM + AFF_LEN;
+    const int MEM_LEN = 7, MEM_SUM = AFF_SUM + MEM_LEN;
+    const int UMEM_LEN = 7, UMEM_SUM = MEM_SUM + UMEM_LEN;
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",
@@ -339,8 +342,10 @@ int do_process_show() {
     printk("NAME"), screen_move_cursor_col(NAME_SUM);
     printk("STATUS"), screen_move_cursor_col(STAT_SUM);
     printk("CHANNEL"), screen_move_cursor_col(CHAN_SUM);
-    printk("TIME"), screen_move_cursor_col(TIME_SUM);
-    printk("AFF");
+    printk("CPU"), screen_move_cursor_col(TIME_SUM);
+    printk("AFF"), screen_move_cursor_col(AFF_SUM);
+    printk("MEM/K"), screen_move_cursor_col(MEM_SUM);
+    printk("MEM/U"), screen_move_cursor_col(UMEM_SUM);
     printk("\n");
     int count = 0;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
@@ -373,6 +378,15 @@ int do_process_show() {
         for (int i = 0; i < NR_CPUS; i++) {
             printk("%d", (proc->affinity & (1 << i)) != 0);
         }
+        screen_move_cursor_col(AFF_SUM);
+        printk("%d", proc->kernel_stack_top - proc->kernel_sp);
+        screen_move_cursor_col(MEM_SUM);
+        if (proc->pid >= NR_CPUS) {
+            printk("%d", proc->user_stack_top - proc->user_sp);
+        } else {
+            printk("N/A");
+        }
+        screen_move_cursor_col(UMEM_SUM);
         printk("\n");
         count++;
     }

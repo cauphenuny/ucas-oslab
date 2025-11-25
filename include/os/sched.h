@@ -154,6 +154,10 @@ typedef struct pcb {
     struct pcb* parent;
     list_node_t relation_node;
     list_t child_list;
+
+    /* process memory info */
+    reg_t kernel_stack_top, kernel_stack_bottom;
+    reg_t user_stack_top, user_stack_bottom;
 } pcb_t;
 
 /* ready queue to run */

@@ -67,11 +67,15 @@ static void init_pcb(void) {
 
     for (int i = 0; i < NR_CPUS; i++) {
         pcb_kernel[i] = (pcb_t){
-            .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
             .user_sp = 0,
             .pid = i,
             .status = TASK_READY,
             .affinity = 1 << i,
+            .kernel_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * (i),
+            .kernel_stack_top = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .user_stack_bottom = 0,
+            .user_stack_top = 0,
         };
         strcpy(pcb_kernel[i].name, "init");
         list_init(&pcb_kernel[i].wait_list, "proc");

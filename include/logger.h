@@ -21,15 +21,8 @@ enum {
     LOG_FATAL,
 };
 
-const static char* log_level_str[] = {
-    "[DEBUG]", "[INFO ]", "[WARN] ", "[ERROR]", "[FATAL]",
-};
-
-const static char* log_level_str_color[] = {
-    COLOR_BLUE "[DEBUG]" COLOR_RESET,   COLOR_GREEN "[INFO ]" COLOR_RESET,
-    COLOR_YELLOW "[WARN] " COLOR_RESET, COLOR_RED "[ERROR]" COLOR_RESET,
-    COLOR_RED "[FATAL]" COLOR_RESET,
-};
+extern const char* log_level_str[];
+extern const char* log_level_str_color[];
 
 #define pretty_log(level, fmt, ...)                                                                \
     do {                                                                                           \

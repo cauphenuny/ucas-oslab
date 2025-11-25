@@ -175,6 +175,16 @@ static void init_task_info(int argc, char** argv) {
     batchfile_location = args[2];
 }
 
+const char* log_level_str[] = {
+    "[DEBUG]", "[INFO] ", "[WARN] ", "[ERROR]", "[FATAL]",
+};
+
+const char* log_level_str_color[] = {
+    COLOR_BLUE "[DEBUG]" COLOR_RESET,   COLOR_GREEN "[INFO] " COLOR_RESET,
+    COLOR_YELLOW "[WARN] " COLOR_RESET, COLOR_RED "[ERROR]" COLOR_RESET,
+    COLOR_RED "[FATAL]" COLOR_RESET,
+};
+
 int main(int argc, char** argv) {
 
     int hartid = get_current_cpu_id();

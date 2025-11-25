@@ -470,9 +470,12 @@ int set_height(int argc, char** argv) {
 
 int help(int argc, char** argv) {
     printf("usage: command [subcmd ...]\n");
+    const int CMD_LEN = 12;
     for (int i = 0; i < NUM_CMD; i++) {
         if (COMMAND_TABLE[i].name[0] == '.') continue;
-        printf("  %s: %s\n", COMMAND_TABLE[i].name, COMMAND_TABLE[i].desc);
+        printf("  %s:", COMMAND_TABLE[i].name);
+        sys_move_cursor_col(CMD_LEN);
+        printf("%s\n", COMMAND_TABLE[i].desc);
     }
     return 0;
 }
@@ -489,7 +492,7 @@ const task_t COMMAND_TABLE[] = {
     {"taskset", "set task affinity", subcmd_lint_taskset, taskset},
     {"top", "show top processes", subcmd_lint, top},
     {"info", "show system info", subcmd_lint, info},
-    {"set_height", "set shell height", subcmd_lint, set_height},
+    {"seth", "set shell height", subcmd_lint, set_height},
     {"help", "show help information", subcmd_lint, help},
 };
 

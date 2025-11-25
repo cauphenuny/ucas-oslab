@@ -150,9 +150,12 @@ void show_sync() {
 }
 
 void show_help(int argc, char** argv) {
+    const int CMD_LEN = 13;
     printk("usage: %s [subcmd ...]\n", argc ? argv[0] : "info");
     for (int i = 0; i < NUM_INFO_COMMANDS; i++) {
-        printk("  %s: %s\n", INFO_COMMANDS[i].name, INFO_COMMANDS[i].desc);
+        printk("  %s:", INFO_COMMANDS[i].name);
+        screen_move_cursor_col(CMD_LEN);
+        printk("%s\n", INFO_COMMANDS[i].desc);
     }
 }
 

@@ -216,7 +216,7 @@ void show_mutexes() {
         with_spin guard(mlocks[i].lock);
         if (mlock_ref[i]) {
             printk(
-                "mutex lock %d: key=%d, ref=0x%x, acquired=%d, pid=%d\n", i, mlocks[i].key,
+                "mutex %d: key=%d, ref=0x%x, acquired=%d, pid=%d\n", i, mlocks[i].key,
                 mlock_ref[i], mlocks[i].acquired, mlocks[i].pid);
         }
     }

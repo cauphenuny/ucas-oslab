@@ -212,9 +212,9 @@ command_t readline() {
                     printf("\b \b");
                 }
                 char tmp[BUFFER_LEN];
-                memcpy(tmp, buffer, BUFFER_LEN);
-                memcpy(buffer, last_buffer, BUFFER_LEN);
-                memcpy(last_buffer, tmp, BUFFER_LEN);
+                memcpy((uint8_t*)tmp, (uint8_t*)buffer, BUFFER_LEN);
+                memcpy((uint8_t*)buffer, (uint8_t*)last_buffer, BUFFER_LEN);
+                memcpy((uint8_t*)last_buffer, (uint8_t*)tmp, BUFFER_LEN);
                 int tp = pos;
                 pos = last_pos;
                 last_pos = tp;

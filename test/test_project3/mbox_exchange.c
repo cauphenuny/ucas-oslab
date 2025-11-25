@@ -6,6 +6,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define MCPY(a, b, n) memcpy((uint8_t*)(a), (uint8_t*)(b), n)
+
 int mbox1, mbox2;
 
 typedef struct {
@@ -23,7 +25,7 @@ int proc0_thread0(int argc, char** argv) {
         sys_move_cursor(0, 0);
         printf("%s: recved %d msgs from mbox1\n", argv[0], ++cnt);
         sys_mutex_acquire(p0_data.mutex);
-        memcpy(p0_data.buf, local_buf, 8);
+        MCPY(p0_data.buf, local_buf, 8);
         sys_mutex_release(p0_data.mutex);
     }
     return 0;
@@ -37,7 +39,7 @@ int proc0_thread1(int argc, char** argv) {
         sys_move_cursor(0, 1);
         printf("%s: sent %d msgs to mbox2\n", argv[0], ++cnt);
         sys_mutex_acquire(p0_data.mutex);
-        memcpy(local_buf, p0_data.buf, 8);
+        MCPY(local_buf, p0_data.buf, 8);
         sys_mutex_release(p0_data.mutex);
     }
     return 0;
@@ -61,7 +63,7 @@ int proc1_thread0(int argc, char** argv) {
         sys_move_cursor(0, 2);
         printf("%s: recved %d msgs from mbox2\n", argv[0], ++cnt);
         sys_mutex_acquire(p1_data.mutex);
-        memcpy(p1_data.buf, local_buf, 8);
+        MCPY(p1_data.buf, local_buf, 8);
         sys_mutex_release(p1_data.mutex);
     }
     return 0;
@@ -75,7 +77,7 @@ int proc1_thread1(int argc, char** argv) {
         sys_move_cursor(0, 3);
         printf("%s: sent %d msgs to mbox1\n", argv[0], ++cnt);
         sys_mutex_acquire(p1_data.mutex);
-        memcpy(local_buf, p1_data.buf, 8);
+        MCPY(local_buf, p1_data.buf, 8);
         sys_mutex_release(p1_data.mutex);
     }
     return 0;

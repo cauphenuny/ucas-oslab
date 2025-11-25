@@ -12,7 +12,7 @@ extern "C" {
 #include <os/string.h>
 
 mutex_lock_t mlocks[LOCK_NUM];
-pid_bitmap_t mlock_used[LOCK_NUM] = {0};
+pid_bitmap_t mlock_ref[LOCK_NUM] = {0};
 
 void mutex_init(mutex_lock_t* mlock) {
     spin_lock_init(&mlock->lock);
@@ -26,7 +26,7 @@ void init_locks(void) {
     /* TODO: [p2-task2] initialize mlocks */
     spin_lock_init(&kernel_lock);
     for (int i = 0; i < LOCK_NUM; i++) {
-        mlock_used[i] = 0;
+        mlock_ref[i] = 0;
     }
 }
 
@@ -106,14 +106,14 @@ void mutex_destruct(mutex_lock_t* mutex) {
     unblock_list(&mutex->block_list, "mutex block_list (destroyed)");
     if (mutex - mlocks >= 0 && mutex - mlocks < LOCK_NUM) {
         int idx = mutex - mlocks;
-        mlock_used[idx] = 0;
+        mlock_ref[idx] = 0;
     }
 }
 
 void cleanup_mutexes(pid_t pid) {
     for (int i = 0; i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
-        if (mlock_used[i] && mlocks[i].acquired && mlocks[i].pid == pid) {
+        if (mlock_ref[i] && mlocks[i].acquired && mlocks[i].pid == pid) {
             pretty_log(LOG_INFO, "cleaned up mutex lock %d for pid %d", i, pid);
             mutex_release(&mlocks[i]);
         }
@@ -121,10 +121,12 @@ void cleanup_mutexes(pid_t pid) {
     for (int i = 0; i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
         int pcb_index = get_pcb_index(pid);
-        if (mlock_used[i] & (1ull << pcb_index)) {
-            mlock_used[i] &= ~(1ull << pcb_index);
-            pretty_log(LOG_INFO, "released mutex lock %d allocation for pid %d, remaining=0x%x", i, pid, mlock_used[i]);
-            if (!mlock_used[i]) {
+        if (mlock_ref[i] & (1ull << pcb_index)) {
+            mlock_ref[i] &= ~(1ull << pcb_index);
+            pretty_log(
+                LOG_INFO, "released mutex lock %d allocation for pid %d, remaining=0x%x", i, pid,
+                mlock_ref[i]);
+            if (!mlock_ref[i]) {
                 pretty_log(LOG_INFO, "destroyed mutex lock %d as no one is using it", i);
                 mutex_destruct(&mlocks[i]);
             }
@@ -138,14 +140,14 @@ int do_mutex_lock_init(int key) {
     int id = -1;
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
-        if (mlock_used[i] && mlocks[i].key == key) {
+        if (mlock_ref[i] && mlocks[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing mutex lock %d for key %d", id, key);
         }
     }
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
-        if (!mlock_used[i]) {
+        if (!mlock_ref[i]) {
             mutex_init(&mlocks[i]);
             mlocks[i].key = key;
             id = i;
@@ -153,7 +155,7 @@ int do_mutex_lock_init(int key) {
         }
     }
     assert(id >= 0);
-    mlock_used[id] |= (1ull << pcb_index);
+    mlock_ref[id] |= (1ull << pcb_index);
     return id;
 }
 
@@ -197,7 +199,7 @@ void do_mutex_lock_release(int mlock_idx) {
     pretty_log(LOG_INFO, "pid %d releasing mutex lock %d", current_running->pid, mlock_idx);
     mutex_lock_t* mutex = &mlocks[mlock_idx];
     with_spin guard(mutex->lock);
-    if (!mlock_used[mlock_idx]) {
+    if (!mlock_ref[mlock_idx]) {
         pretty_loge("mutex lock %d is not initialized!", mlock_idx);
     } else if (mutex->pid != current_running->pid) {
         pretty_loge(
@@ -212,16 +214,16 @@ void do_mutex_lock_release(int mlock_idx) {
 void show_mutexes() {
     for (int i = 0; i < LOCK_NUM; i++) {
         with_spin guard(mlocks[i].lock);
-        if (mlock_used[i]) {
+        if (mlock_ref[i]) {
             printk(
-                "mutex lock %d: key=%d, acquired=%d, pid=%d\n", i, mlocks[i].key, mlocks[i].acquired,
-                mlocks[i].pid);
+                "mutex lock %d: key=%d, ref=0x%x, acquired=%d, pid=%d\n", i, mlocks[i].key,
+                mlock_ref[i], mlocks[i].acquired, mlocks[i].pid);
         }
     }
 }
 
 barrier_t barriers[BARRIER_NUM];
-pid_bitmap_t barrier_used[BARRIER_NUM] = {0};
+pid_bitmap_t barrier_ref[BARRIER_NUM] = {0};
 
 void barrier_init(barrier_t* barrier) {
     barrier->goal = 0;
@@ -236,7 +238,7 @@ void barrier_destruct(barrier_t* barrier) {
 
 void init_barriers(void) {
     for (int i = 0; i < BARRIER_NUM; i++) {
-        barrier_used[i] = 0;
+        barrier_ref[i] = 0;
     }
 }
 
@@ -244,10 +246,12 @@ void cleanup_barriers(pid_t pid) {
     for (int i = 0; i < BARRIER_NUM; i++) {
         with_spin guard(barriers[i].lock);
         int pcb_index = get_pcb_index(pid);
-        if (barrier_used[i] & (1ull << pcb_index)) {
-            barrier_used[i] &= ~(1ull << pcb_index);
-            pretty_log(LOG_INFO, "released barrier %d allocation for pid %d, remaining=0x%x", i, pid, barrier_used[i]);
-            if (!barrier_used[i]) {
+        if (barrier_ref[i] & (1ull << pcb_index)) {
+            barrier_ref[i] &= ~(1ull << pcb_index);
+            pretty_log(
+                LOG_INFO, "released barrier %d allocation for pid %d, remaining=0x%x", i, pid,
+                barrier_ref[i]);
+            if (!barrier_ref[i]) {
                 pretty_log(LOG_INFO, "destroyed barrier %d as no one is using it", i);
                 barrier_destruct(&barriers[i]);
             }
@@ -260,7 +264,7 @@ int do_barrier_init(int key, int goal) {
     int pcb_index = get_pcb_index(current_running->pid);
     for (int i = 0; id == -1 && i < BARRIER_NUM; i++) {
         with_spin guard(barriers[i].lock);
-        if (barrier_used[i] && barriers[i].key == key) {
+        if (barrier_ref[i] && barriers[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing barrier %d for key %d", id, key);
             if (barriers[i].goal != goal) {
@@ -272,7 +276,7 @@ int do_barrier_init(int key, int goal) {
     }
     for (int i = 0; id == -1 && i < BARRIER_NUM; i++) {
         with_spin guard(barriers[i].lock);
-        if (!barrier_used[i]) {
+        if (!barrier_ref[i]) {
             barrier_init(&barriers[i]);
             barriers[i].goal = goal;
             id = i;
@@ -280,7 +284,7 @@ int do_barrier_init(int key, int goal) {
         }
     }
     assert(id >= 0);
-    barrier_used[id] |= (1ull << pcb_index);
+    barrier_ref[id] |= (1ull << pcb_index);
     return id;
 }
 
@@ -293,7 +297,7 @@ void do_barrier_wait(int bar_idx) {
     barrier_t* bar = &barriers[bar_idx];
     with_spin guard(bar->lock);
 
-    if (!barrier_used[bar_idx]) {
+    if (!barrier_ref[bar_idx]) {
         pretty_loge("barrier %d is not initialized!", bar_idx);
         return;
     }
@@ -326,12 +330,12 @@ void do_barrier_destroy(int bar_idx) {
 
     barrier_t* bar = &barriers[bar_idx];
     with_spin guard(bar->lock);
-    if (!barrier_used[bar_idx]) {
+    if (!barrier_ref[bar_idx]) {
         pretty_loge("barrier %d is not initialized!", bar_idx);
         return;
     }
 
-    barrier_used[bar_idx] = 0;
+    barrier_ref[bar_idx] = 0;
     barrier_destruct(bar);
     pretty_log(LOG_INFO, "destroyed barrier %d", bar_idx);
 }
@@ -339,16 +343,16 @@ void do_barrier_destroy(int bar_idx) {
 void show_barriers() {
     for (int i = 0; i < BARRIER_NUM; i++) {
         with_spin guard(barriers[i].lock);
-        if (barrier_used[i]) {
+        if (barrier_ref[i]) {
             printk(
-                "barrier %d: key=%d, goal=%d, current=%d\n", i, barriers[i].key, barriers[i].goal,
-                barriers[i].current);
+                "barrier %d: key=%d, ref=0x%x, goal=%d, current=%d\n", i, barriers[i].key,
+                barrier_ref[i], barriers[i].goal, barriers[i].current);
         }
     }
 }
 
 condition_t conditions[CONDITION_NUM];
-pid_bitmap_t cond_used[CONDITION_NUM] = {0};
+pid_bitmap_t cond_ref[CONDITION_NUM] = {0};
 
 void condition_init(condition_t* cond) {
     spin_lock_init(&cond->lock);
@@ -361,7 +365,7 @@ void condition_destruct(condition_t* cond) {
 
 void init_conditions() {
     for (int i = 0; i < CONDITION_NUM; i++) {
-        cond_used[i] = 0;
+        cond_ref[i] = 0;
     }
 }
 
@@ -369,10 +373,12 @@ void cleanup_conditions(pid_t pid) {
     for (int i = 0; i < CONDITION_NUM; i++) {
         with_spin guard(conditions[i].lock);
         int pcb_index = get_pcb_index(pid);
-        if (cond_used[i] & (1ull << pcb_index)) {
-            cond_used[i] &= ~(1ull << pcb_index);
-            pretty_log(LOG_INFO, "released condition %d allocation for pid %d, remaining=0x%x", i, pid, cond_used[i]);
-            if (!cond_used[i]) {
+        if (cond_ref[i] & (1ull << pcb_index)) {
+            cond_ref[i] &= ~(1ull << pcb_index);
+            pretty_log(
+                LOG_INFO, "released condition %d allocation for pid %d, remaining=0x%x", i, pid,
+                cond_ref[i]);
+            if (!cond_ref[i]) {
                 pretty_log(LOG_INFO, "destroyed condition %d as no one is using it", i);
                 condition_destruct(&conditions[i]);
             }
@@ -384,14 +390,14 @@ int do_condition_init(int key) {
     int id = -1;
     for (int i = 0; id == -1 && i < CONDITION_NUM; i++) {
         with_spin guard(conditions[i].lock);
-        if (cond_used[i] && conditions[i].key == key) {
+        if (cond_ref[i] && conditions[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing condition %d for key %d", id, key);
         }
     }
     for (int i = 0; id == -1 && i < CONDITION_NUM; i++) {
         with_spin guard(conditions[i].lock);
-        if (!cond_used[i]) {
+        if (!cond_ref[i]) {
             condition_init(&conditions[i]);
             conditions[i].key = key;
             id = i;
@@ -400,7 +406,7 @@ int do_condition_init(int key) {
     }
     assert(id >= 0);
     int pcb_index = get_pcb_index(current_running->pid);
-    cond_used[id] |= (1ull << pcb_index);
+    cond_ref[id] |= (1ull << pcb_index);
     return id;
 }
 
@@ -440,7 +446,7 @@ void do_condition_wait(int cond_idx, int mutex_idx) {
         pretty_loge("mutex index %d out of range!", mutex_idx);
         return;
     }
-    if (!cond_used[cond_idx]) {
+    if (!cond_ref[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
@@ -453,7 +459,7 @@ void do_condition_broadcast(int cond_idx) {
         return;
     }
 
-    if (!cond_used[cond_idx]) {
+    if (!cond_ref[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
@@ -466,7 +472,7 @@ void do_condition_signal(int cond_idx) {
         return;
     }
 
-    if (!cond_used[cond_idx]) {
+    if (!cond_ref[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
@@ -480,28 +486,30 @@ void do_condition_destroy(int cond_idx) {
     }
 
     with_spin guard(conditions[cond_idx].lock);
-    if (!cond_used[cond_idx]) {
+    if (!cond_ref[cond_idx]) {
         pretty_loge("condition %d is not initialized!", cond_idx);
         return;
     }
 
     pretty_log(LOG_INFO, "destroying condition %d", cond_idx);
-    cond_used[cond_idx] = 0;
+    cond_ref[cond_idx] = 0;
     condition_destruct(&conditions[cond_idx]);
 }
 
 void show_conditions() {
     for (int i = 0; i < CONDITION_NUM; i++) {
         with_spin guard(conditions[i].lock);
-        if (cond_used[i]) {
+        if (cond_ref[i]) {
             int waiting = list_size(&conditions[i].wait_list);
-            printk("condition %d: key=%d, waiting_count=%d\n", i, conditions[i].key, waiting);
+            printk(
+                "condition %d: key=%d, ref=0x%x, waiting_count=%d\n", i, conditions[i].key,
+                cond_ref[i], waiting);
         }
     }
 }
 
 semaphore_t semaphores[SEMAPHORE_NUM];
-pid_bitmap_t sema_used[SEMAPHORE_NUM] = {0};
+pid_bitmap_t sema_ref[SEMAPHORE_NUM] = {0};
 
 void semaphore_init(semaphore_t* sema) {
     sema->key = -1;
@@ -518,7 +526,7 @@ void semaphore_destruct(semaphore_t* sema) {
 
 void init_semaphores() {
     for (int i = 0; i < SEMAPHORE_NUM; i++) {
-        sema_used[i] = 0;
+        sema_ref[i] = 0;
     }
 }
 
@@ -526,10 +534,12 @@ void cleanup_semaphores(pid_t pid) {
     for (int i = 0; i < SEMAPHORE_NUM; i++) {
         with_spin guard(semaphores[i].lock);
         int pcb_index = get_pcb_index(pid);
-        if (sema_used[i] & (1ull << pcb_index)) {
-            sema_used[i] &= ~(1ull << pcb_index);
-            pretty_log(LOG_INFO, "released semaphore %d allocation for pid %d, remaining=0x%x", i, pid, sema_used[i]);
-            if (!sema_used[i]) {
+        if (sema_ref[i] & (1ull << pcb_index)) {
+            sema_ref[i] &= ~(1ull << pcb_index);
+            pretty_log(
+                LOG_INFO, "released semaphore %d allocation for pid %d, remaining=0x%x", i, pid,
+                sema_ref[i]);
+            if (!sema_ref[i]) {
                 pretty_log(LOG_INFO, "destroyed semaphore %d as no one is using it", i);
                 semaphore_destruct(&semaphores[i]);
             }
@@ -541,15 +551,15 @@ int do_semaphore_init(int key, int init) {
     int id = -1;
     for (int i = 0; id == -1 && i < SEMAPHORE_NUM; i++) {
         with_spin guard(semaphores[i].lock);
-        if (sema_used[i] && semaphores[i].key == key) {
+        if (sema_ref[i] && semaphores[i].key == key) {
             id = i;
             pretty_log(LOG_INFO, "find existing semaphore %d for key %d", id, key);
         }
     }
     for (int i = 0; id == -1 && i < SEMAPHORE_NUM; i++) {
         with_spin guard(semaphores[i].lock);
-        if (!sema_used[i]) {
-            sema_used[i] = 1;
+        if (!sema_ref[i]) {
+            sema_ref[i] = 1;
             semaphore_init(&semaphores[i]);
             semaphores[i].key = key;
             semaphores[i].count = init;
@@ -559,7 +569,7 @@ int do_semaphore_init(int key, int init) {
     }
     assert(id >= 0);
     int pcb_index = get_pcb_index(current_running->pid);
-    sema_used[id] |= (1ull << pcb_index);
+    sema_ref[id] |= (1ull << pcb_index);
     return id;
 }
 
@@ -571,7 +581,7 @@ void do_semaphore_down(int sema_idx) {
 
     semaphore_t* sema = &semaphores[sema_idx];
     with_spin guard(sema->lock);
-    if (!sema_used[sema_idx]) {
+    if (!sema_ref[sema_idx]) {
         pretty_loge("semaphore %d is not initialized!", sema_idx);
         return;
     }
@@ -594,7 +604,7 @@ void do_semaphore_up(int sema_idx) {
 
     semaphore_t* sema = &semaphores[sema_idx];
     with_spin guard(sema->lock);
-    if (!sema_used[sema_idx]) {
+    if (!sema_ref[sema_idx]) {
         pretty_loge("semaphore %d is not initialized!", sema_idx);
         return;
     }
@@ -614,31 +624,31 @@ void do_semaphore_destroy(int sema_idx) {
     }
     semaphore_t* sema = &semaphores[sema_idx];
     with_spin guard(sema->lock);
-    if (!sema_used[sema_idx]) {
+    if (!sema_ref[sema_idx]) {
         pretty_loge("semaphore %d is not initialized!", sema_idx);
         return;
     }
 
     pretty_log(LOG_INFO, "destroying semaphore %d", sema_idx);
-    sema_used[sema_idx] = 0;
+    sema_ref[sema_idx] = 0;
     semaphore_destruct(sema);
 }
 
 void show_semaphores() {
     for (int i = 0; i < SEMAPHORE_NUM; i++) {
         with_spin guard(semaphores[i].lock);
-        if (sema_used[i]) {
+        if (sema_ref[i]) {
             int waiting = list_size(&semaphores[i].wait_list);
             printk(
-                "semaphore %d: key=%d, remain=%d, waiting_count=%d\n", i, semaphores[i].key,
-                semaphores[i].count, waiting);
+                "semaphore %d: key=%d, ref=0x%x, remain=%d, waiting_count=%d\n", i,
+                semaphores[i].key, sema_ref[i], semaphores[i].count, waiting);
         }
     }
 }
 
 mailbox_t mailboxes[MBOX_NUM];
 spin_lock_t mbox_locks[MBOX_NUM];
-pid_bitmap_t mbox_allocated[MBOX_NUM] = {0};
+pid_bitmap_t mbox_ref[MBOX_NUM] = {0};
 
 void mailbox_init(mailbox_t* mbox) {
     memset(mbox->name, 0, sizeof(mbox->name));
@@ -661,7 +671,7 @@ void mailbox_destruct(mailbox_t* mbox) {
 
 void init_mbox() {
     for (int i = 0; i < MBOX_NUM; i++) {
-        mbox_allocated[i] = 0;
+        mbox_ref[i] = 0;
         spin_lock_init(&mbox_locks[i]);
         mailbox_init(&mailboxes[i]);
     }
@@ -671,10 +681,12 @@ void cleanup_mailboxes(pid_t pid) {
     for (int i = 0; i < MBOX_NUM; i++) {
         with_spin guard(mbox_locks[i]);
         int pcb_index = get_pcb_index(pid);
-        if (mbox_allocated[i] & (1ull << pcb_index)) {
-            mbox_allocated[i] &= ~(1ull << pcb_index);
-            pretty_log(LOG_INFO, "released mailbox %d allocation for pid %d, remaining=0x%x", i, pid, mbox_allocated[i]);
-            if (!mbox_allocated[i]) {
+        if (mbox_ref[i] & (1ull << pcb_index)) {
+            mbox_ref[i] &= ~(1ull << pcb_index);
+            pretty_log(
+                LOG_INFO, "released mailbox %d allocation for pid %d, remaining=0x%x", i, pid,
+                mbox_ref[i]);
+            if (!mbox_ref[i]) {
                 pretty_log(LOG_INFO, "destroyed mailbox %d as no one is using it", i);
                 mailbox_destruct(&mailboxes[i]);
             }
@@ -685,7 +697,7 @@ void cleanup_mailboxes(pid_t pid) {
 void list_mboxes() {
     for (int i = 0; i < MBOX_NUM; i++) {
         with_spin guard(mbox_locks[i]);
-        if (mbox_allocated[i]) {
+        if (mbox_ref[i]) {
             pretty_log(
                 LOG_INFO, "mbox %d: name=%s, nref=%d, used=%d", i, mailboxes[i].name,
                 mailboxes[i].nref, mailboxes[i].used);
@@ -698,7 +710,7 @@ int do_mbox_open(char* name) {
     int id = -1;
     for (int i = 0; id == -1 && i < MBOX_NUM; i++) {
         with_spin guard(mbox_locks[i]);
-        if (mbox_allocated[i] && (strcmp(mailboxes[i].name, name) == 0)) {
+        if (mbox_ref[i] && (strcmp(mailboxes[i].name, name) == 0)) {
             id = i;
             pretty_log(LOG_INFO, "find existing mailbox %d for name %s", id, name);
             mailboxes[id].nref++;
@@ -706,7 +718,7 @@ int do_mbox_open(char* name) {
     }
     for (int i = 0; id == -1 && i < MBOX_NUM; i++) {
         with_spin guard(mbox_locks[i]);
-        if (!mbox_allocated[i]) {
+        if (!mbox_ref[i]) {
             mailbox_init(&mailboxes[i]);
             strcpy(mailboxes[i].name, name);
             id = i;
@@ -716,7 +728,7 @@ int do_mbox_open(char* name) {
     }
     assert(id >= 0);
     int pcb_index = get_pcb_index(current_running->pid);
-    mbox_allocated[id] |= (1ull << pcb_index);
+    mbox_ref[id] |= (1ull << pcb_index);
     return id;
 }
 
@@ -729,7 +741,7 @@ void do_mbox_close(int mbox_idx) {
 
     mailbox_t* mbox = &mailboxes[mbox_idx];
     with_spin guard(mbox_locks[mbox_idx]);
-    if (!mbox_allocated[mbox_idx]) {
+    if (!mbox_ref[mbox_idx]) {
         pretty_loge("mailbox %d is not initialized!", mbox_idx);
         return;
     }
@@ -741,7 +753,7 @@ void do_mbox_close(int mbox_idx) {
         return;
     }
     pretty_log(LOG_INFO, "destroying mailbox %d", mbox_idx);
-    mbox_allocated[mbox_idx] = 0;
+    mbox_ref[mbox_idx] = 0;
     mailbox_destruct(mbox);
 }
 
@@ -752,7 +764,7 @@ int do_mbox_send(int mbox_idx, void* msg, int msg_length) {
     }
 
     mailbox_t* mbox = &mailboxes[mbox_idx];
-    if (!mbox_allocated[mbox_idx]) {
+    if (!mbox_ref[mbox_idx]) {
         pretty_loge("mailbox %d is not initialized!", mbox_idx);
         return 0;
     }
@@ -784,7 +796,7 @@ int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
     }
 
     mailbox_t* mbox = &mailboxes[mbox_idx];
-    if (!mbox_allocated[mbox_idx]) {
+    if (!mbox_ref[mbox_idx]) {
         pretty_loge("mailbox %d is not initialized!", mbox_idx);
         return 0;
     }
@@ -815,10 +827,10 @@ int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
 void show_mailboxes() {
     for (int i = 0; i < MBOX_NUM; i++) {
         with_spin guard(mbox_locks[i]);
-        if (mbox_allocated[i]) {
+        if (mbox_ref[i]) {
             printk(
-                "mailbox %d: name=%s, nref=%d, used=%d\n", i, mailboxes[i].name, mailboxes[i].nref,
-                mailboxes[i].used);
+                "mailbox %d: name=%s, ref=0x%x, nref=%d, used=%d\n", i, mailboxes[i].name,
+                mbox_ref[i], mailboxes[i].nref, mailboxes[i].used);
         }
     }
 }

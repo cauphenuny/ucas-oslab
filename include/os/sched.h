@@ -32,8 +32,8 @@
 #include <asm.h>
 #include <asm/regs.h>
 #include <os/list.h>
-#include <type.h>
 #include <os/smp.h>
+#include <type.h>
 
 #define NUM_MAX_TASK 32
 
@@ -147,8 +147,8 @@ typedef struct pcb {
     int slice_cnt;
 
     /* process cpu affinity */
-    unsigned affinity; // bitmask
-    int cpu; // last running cpu id
+    unsigned affinity;  // bitmask
+    int cpu;            // last running cpu id
 
     /* process relationship */
     struct pcb* parent;
@@ -176,6 +176,7 @@ extern pcb_t* pcb_all[NUM_MAX_PCB];
 pcb_t* alloc_pcb();
 pcb_t* find_pcb(pid_t pid);
 int get_pcb_index(pid_t pid);
+void show_pcb();
 
 extern void switch_to(pcb_t* prev, pcb_t* next);
 void do_scheduler(void);
@@ -188,7 +189,7 @@ void unblock_list(list_t* list, const char* name);
 
 void set_process_workload(int workload);
 
-void print_pcb_list(const list_t* queue);
+void log_pcb_list(const list_t* queue);
 void show_process_tree();
 
 /************************************************************/
@@ -196,7 +197,8 @@ void show_process_tree();
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
-extern pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask);
+extern pid_t
+do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

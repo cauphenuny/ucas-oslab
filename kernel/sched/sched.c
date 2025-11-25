@@ -68,7 +68,7 @@ LIST(sleep_queue, "sleep");
 /* global process id */
 pid_t process_id = NR_CPUS;
 
-void print_pcb_array(const pcb_t pcb[], int n) {
+void log_pcb_array(const pcb_t pcb[], int n) {
     for (int i = 0; i < n; i++) {
         if (pcb[i].status == TASK_EXITED) continue;
         ptr_t kernel_ra, user_ra;
@@ -81,7 +81,7 @@ void print_pcb_array(const pcb_t pcb[], int n) {
     }
 }
 
-void print_pcb_list(const list_t* list) {
+void log_pcb_list(const list_t* list) {
     size_t size = list_size(list);
     pretty_log(LOG_INFO, "there are %d tasks in the %s/%x channel.", size, list->name, list);
     list_node_t* current = list->head.next;
@@ -98,9 +98,17 @@ void print_pcb_list(const list_t* list) {
     }
 }
 
-void print_all_pcb() {
-    print_pcb_array(pcb_kernel, NR_CPUS);
-    print_pcb_array(pcb_user, NUM_MAX_TASK);
+void log_all_pcb() {
+    log_pcb_array(pcb_kernel, NR_CPUS);
+    log_pcb_array(pcb_user, NUM_MAX_TASK);
+}
+
+void show_pcb() {
+    for (int i = 0; i < NUM_MAX_PCB; i++) {
+        pcb_t* pcb = pcb_all[i];
+        if (pcb->status == TASK_EXITED) continue;
+        printk("pcb %d: pid=%d, name=%s\n", i, pcb->pid, pcb->name);
+    }
 }
 
 #define TIME_SLICE_HISTORY_SIZE (100 * NR_CPUS)
@@ -168,7 +176,8 @@ pcb_t* pick_process_impl(
 
 pcb_t* pick_process() {
     pcb_t* proc = NULL;
-    proc = pick_process_impl(&ready_queue, filterout_kernel, update_by_consumption_init, update_by_consumption);
+    proc = pick_process_impl(
+        &ready_queue, filterout_kernel, update_by_consumption_init, update_by_consumption);
     if (!proc) {
         // pretty_log(LOG_WARN, "process insufficient, may fallback to init");
         proc = pick_process_impl(&ready_queue, filter_affinity, NULL, update_by_first);
@@ -308,7 +317,7 @@ pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsig
     set_proc_affinity(pcb, affinity_mask);
     list_append(&ready_queue, &pcb->sched_node);
     attach_subprocess(current_running, pcb);
-    print_all_pcb();
+    log_all_pcb();
     return pcb->pid;
 }
 
@@ -423,7 +432,7 @@ int do_kill(pid_t pid) {
         pretty_log(LOG_WARN, "cannot kill kernel process(pid=%d)", pid);
         return 0;
     }
-    pcb_t *parent = current_running;
+    pcb_t* parent = current_running;
     while (parent) {
         if (parent->pid == pid) {
             pretty_log(LOG_WARN, "cannot kill self or ancestor(pid=%d)", pid);

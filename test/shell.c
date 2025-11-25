@@ -63,6 +63,7 @@ typedef int (*handler_t)(int argc, char** argv);
 
 typedef struct task {
     char* name;
+    char* desc;
     void (*subcmd_linter)(int dest[], int argc, char** argv);
     handler_t handler;
 } task_t;
@@ -448,7 +449,6 @@ int top(int argc, char** argv) {
 
 int info(int argc, char** argv) {
     if (argc < 1) return 1;
-    shift(&argc, &argv);
     return sys_display_info(argc, argv);
 }
 
@@ -468,19 +468,29 @@ int set_height(int argc, char** argv) {
     return 0;
 }
 
+int help(int argc, char** argv) {
+    printf("usage: command [subcmd ...]\n");
+    for (int i = 0; i < NUM_CMD; i++) {
+        if (COMMAND_TABLE[i].name[0] == '.') continue;
+        printf("  %s: %s\n", COMMAND_TABLE[i].name, COMMAND_TABLE[i].desc);
+    }
+    return 0;
+}
+
 const task_t COMMAND_TABLE[] = {
-    {"echo", subcmd_lint, echo},
-    {"ts", subcmd_lint, ts},
-    {"ps", subcmd_lint, ps},
-    {"exec", subcmd_lint, exec},
-    {"kill", subcmd_lint, kill},
-    {"clear", subcmd_lint, clear},
-    {"decompose", subcmd_lint, decompose},
-    {"keycode", subcmd_lint, keycode},
-    {"taskset", subcmd_lint_taskset, taskset},
-    {"top", subcmd_lint, top},
-    {"info", subcmd_lint, info},
-    {"set_height", subcmd_lint, set_height},
+    {"echo", "echo", subcmd_lint, echo},
+    {"ts", "show task", subcmd_lint, ts},
+    {"ps", "show process", subcmd_lint, ps},
+    {"exec", "execute program", subcmd_lint, exec},
+    {"kill", "kill process", subcmd_lint, kill},
+    {"clear", "clear screen", subcmd_lint, clear},
+    {".decompose", "decompose command", subcmd_lint, decompose},
+    {".keycode", "show keycode", subcmd_lint, keycode},
+    {"taskset", "set task affinity", subcmd_lint_taskset, taskset},
+    {"top", "show top processes", subcmd_lint, top},
+    {"info", "show system info", subcmd_lint, info},
+    {"set_height", "set shell height", subcmd_lint, set_height},
+    {"help", "show help information", subcmd_lint, help},
 };
 
 const int NUM_CMD = sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]);

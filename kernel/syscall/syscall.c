@@ -118,33 +118,60 @@ long sys_task_show() {
     return 0;
 }
 
-long sys_display_info(int argc, char** argv) {
-    if (argc <= 0) return 1;
-    if (strcmp(argv[0], "task") == 0) {
-        show_tasks();
-    } else if (strcmp(argv[0], "proc") == 0) {
-        do_process_show();
-    } else if (strcmp(argv[0], "mbox") == 0) {
-        show_mailboxes();
-    } else if (strcmp(argv[0], "cond") == 0) {
-        show_conditions();
-    } else if (strcmp(argv[0], "mutex") == 0) {
-        show_mutexes();
-    } else if (strcmp(argv[0], "bar") == 0) {
-        show_barriers();
-    } else if (strcmp(argv[0], "time") == 0) {
-        show_timer();
-    } else if (strcmp(argv[0], "sync") == 0) {
-        show_mutexes();
-        show_conditions();
-        show_semaphores();
-        show_barriers();
-    } else if (strcmp(argv[0], "ptree") == 0) {
-        show_process_tree();
-    } else {
-        return 1;
+void show_sync();
+void show_help(int argc, char** argv);
+
+const struct {
+    const char* name;
+    const char* desc;
+    void (*handler)(int argc, char** argv);
+} INFO_COMMANDS[] = {
+    {"task", "display runnable tasks", show_tasks},
+    {"proc", "display current processes", (void(*)())do_process_show},
+    {"ptree", "display process tree", show_process_tree},
+    {"pcb", "display pcb array", show_pcb},
+    {"time", "display timer status", show_timer},
+    {"cond", "display condition status", show_conditions},
+    {"mutex", "display mutex status", show_mutexes},
+    {"bar", "display barrier status", show_barriers},
+    {"sema", "display semaphore status", show_semaphores},
+    {"sync", "display all synchronization machanics", show_sync},
+    {"mbox", "display mailbox status", show_mailboxes},
+    {"help", "display this help message", show_help},
+};
+
+const int NUM_INFO_COMMANDS = sizeof(INFO_COMMANDS) / sizeof(INFO_COMMANDS[0]);
+
+void show_sync() {
+    show_mutexes();
+    show_conditions();
+    show_semaphores();
+    show_barriers();
+}
+
+void show_help(int argc, char** argv) {
+    printk("usage: %s [subcmd ...]\n", argc ? argv[0] : "info");
+    for (int i = 0; i < NUM_INFO_COMMANDS; i++) {
+        printk("  %s: %s\n", INFO_COMMANDS[i].name, INFO_COMMANDS[i].desc);
     }
-    return 0;
+}
+
+long sys_display_info(int argc, char** argv) {
+    int hit = 0;
+    for (int i = 1; i < argc; i++) {
+        char* subcmd = argv[i];
+        for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
+            if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
+                INFO_COMMANDS[j].handler(argc, argv);
+                hit = 1;
+                break;
+            }
+        }
+    }
+    if (!hit) {
+        show_help(argc, argv);
+    }
+    return !hit;
 }
 
 long sys_screen_set_scroll(int start_row, int end_row) {

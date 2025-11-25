@@ -48,6 +48,13 @@ void latency(uint64_t time)
     return;
 }
 
+void show_timer(void)
+{
+    uint64_t ticks = get_ticks();
+    uint64_t base = get_time_base();
+    printk("timer: ticks=%d, time_base=%d\n", ticks, base);
+}
+
 void check_sleeping(void)
 {
     // TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue

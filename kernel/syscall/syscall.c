@@ -132,6 +132,8 @@ long sys_display_info(int argc, char** argv) {
         show_mutexes();
     } else if (strcmp(argv[0], "bar") == 0) {
         show_barriers();
+    } else if (strcmp(argv[0], "time") == 0) {
+        show_timer();
     } else {
         return 1;
     }

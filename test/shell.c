@@ -461,7 +461,7 @@ void delay(int n) {
     if (!timebase) {
         timebase = sys_get_timebase();
     }
-    for (volatile int i = 0; i < n * timebase; i++);
+    for (volatile int i = 0; i < n * timebase / 5; i++);
 }
 
 int top(int argc, char** argv) {

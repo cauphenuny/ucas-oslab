@@ -52,7 +52,7 @@ void show_timer(void)
 {
     uint64_t ticks = get_ticks();
     uint64_t base = get_time_base();
-    printk("timer: ticks=%d, time_base=%d\n", ticks, base);
+    printk("timer: ticks=%d, time_base=%d, timer_interval=%d\n", ticks, base, TIMER_INTERVAL);
 }
 
 void check_sleeping(void)

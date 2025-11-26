@@ -455,15 +455,20 @@ int taskset(int argc, char** argv) {
     }
 }
 
+int timebase;
+
 void delay(int n) {
-    for (volatile int i = 0; i < n * 100000; i++);
+    if (!timebase) {
+        timebase = sys_get_timebase();
+    }
+    for (volatile int i = 0; i < n * timebase; i++);
 }
 
 int top(int argc, char** argv) {
     while (1) {
         int nproc = sys_ps();
         // sys_sleep(1);
-        delay(100);
+        delay(1);
         int ch = sys_getchar();
         if (ch != -1) {
             break;

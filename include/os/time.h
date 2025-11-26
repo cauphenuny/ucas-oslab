@@ -30,8 +30,8 @@
 
 #include <type.h>
 
-// NOTE: for debug
-#define TIMER_INTERVAL (time_base / 100)
+// NOTE: universal
+#define TIMER_INTERVAL (time_base / 1000)
 
 // NOTE: for emulatation
 // #define TIMER_INTERVAL 10000

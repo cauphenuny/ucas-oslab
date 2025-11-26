@@ -58,7 +58,7 @@ static void init_jmptab(void) {
 /************************************************************/
 
 static void init_pcb(void) {
-    /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
+    /* DONE: [p2-task1] load needed tasks and init their corresponding PCB */
     for (int i = 0; i < task_num; i++) {
         load_task_img(tasks[i]);
     }
@@ -96,7 +96,7 @@ static void init_pcb(void) {
 }
 
 static void init_syscall(void) {
-    // TODO: [p2-task3] initialize system call table.
+    // DONE: [p2-task3] initialize system call table.
     syscall[SYSCALL_EXEC] = sys_exec;
     syscall[SYSCALL_EXIT] = sys_exit;
     syscall[SYSCALL_EXEC_WITH_AFF] = sys_exec_with_affinity;
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
         init_screen();
         pretty_log(LOG_INFO, "[INIT] SCREEN initialization succeeded.");
 
-        // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
+        // DONE: [p2-task4] Setup timer interrupt and enable all interrupt globally
         // NOTE: The function of sstatus.sie is different from sie's
 
         task_info_t* shell_task = find_task("shell");

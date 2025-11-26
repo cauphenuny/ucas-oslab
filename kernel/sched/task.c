@@ -62,7 +62,7 @@ void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
 
 void init_pcb_stack(
     pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv) {
-    /* TODO: [p2-task3] initialization of registers on kernel stack
+    /* DONE: [p2-task3] initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
      * NOTE: To run the task in user mode, you should set corresponding bits
      *     of sstatus(SPP, SPIE, etc.).
@@ -70,7 +70,7 @@ void init_pcb_stack(
     pretty_log(LOG_DEBUG, "building pcb task at %x with sp=%x, ra=%x", kernel_stack, user_stack, entry_point);
     regs_context_t* pt_regs = (regs_context_t*)(kernel_stack - sizeof(regs_context_t));
 
-    /* TODO: [p2-task1] set sp to simulate just returning from switch_to
+    /* DONE: [p2-task1] set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
      * simulate a callee-saved context.
      */

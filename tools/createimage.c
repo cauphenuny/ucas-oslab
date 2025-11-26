@@ -23,7 +23,7 @@
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
-/* TODO: [p1-task4] design your own task_info_t */
+/* DONE: [p1-task4] design your own task_info_t */
 typedef struct {
     char name[16];
     int phyaddr_start, phyaddr_end;
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-/* TODO: [p1-task4] assign your task_info_t somewhere in 'create_image' */
+/* DONE: [p1-task4] assign your task_info_t somewhere in 'create_image' */
 static void create_image(int nfiles, char* files[]) {
     int tasknum = nfiles - 2;
     int nbytes_kernel = 0;
@@ -131,7 +131,7 @@ static void create_image(int nfiles, char* files[]) {
 
         /* write padding bytes */
         /**
-         * TODO:
+         * DONE:
          * 1. [p1-task3] do padding so that the kernel and every app program
          *  occupies the same number of sectors
          * 2. [p1-task4] only padding bootblock is allowed!
@@ -225,7 +225,7 @@ static void write_align_padding(FILE* img, int* phyaddr) {
 
 static void
 write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img, int* phyaddr) {
-    // TODO: [p1-task3] & [p1-task4] write image info to some certain places
+    // DONE: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
 
     // write taskinfo

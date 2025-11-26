@@ -14,7 +14,7 @@
 long (*syscall[NUM_SYSCALLS])();
 
 void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
-    /* TODO: [p2-task3] handle syscall exception */
+    /* DONE: [p2-task3] handle syscall exception */
     /**
      * HINT: call syscall function like syscall[fn](arg0, arg1, arg2),
      * and pay attention to the return value and sepc

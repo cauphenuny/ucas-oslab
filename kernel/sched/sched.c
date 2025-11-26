@@ -199,7 +199,7 @@ pcb_t* pick_process() {
 void do_scheduler(void) {
     // asm volatile("mv %0, sp" : "=r"(sp));
     // printk("pid: %d, sp: 0x%x", current_running->pid, sp);
-    // TODO: [p2-task3] Check sleep queue to wake up PCBs
+    // DONE: [p2-task3] Check sleep queue to wake up PCBs
 
     check_sleeping();
 
@@ -207,7 +207,7 @@ void do_scheduler(void) {
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
 
-    // TODO: [p2-task1] Modify the current_running pointer.
+    // DONE: [p2-task1] Modify the current_running pointer.
 
     if (current_running->status == TASK_RUNNING) {
         current_running->status = TASK_READY;
@@ -222,7 +222,7 @@ void do_scheduler(void) {
     //     current_running->name, next_running->pid, next_running->name);
     next_running->status = TASK_RUNNING;
 
-    // TODO: [p2-task1] switch_to current_running
+    // DONE: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
     screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
     current_running->cpu = get_current_cpu_id();
@@ -231,7 +231,7 @@ void do_scheduler(void) {
 }
 
 void do_sleep(uint32_t sleep_time) {
-    // TODO: [p2-task3] sleep(seconds)
+    // DONE: [p2-task3] sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
     // 1. block the current_running
     // 2. set the wake up time for the blocked task
@@ -248,7 +248,7 @@ void do_sleep(uint32_t sleep_time) {
 
 // NOTE: do_block would not delete node from any list
 void do_block(list_node_t* pcb_node, list_t* queue) {
-    // TODO: [p2-task2] block the pcb task into the block queue
+    // DONE: [p2-task2] block the pcb task into the block queue
     pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
     pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
     if (pcb->status == TASK_BLOCKED) {
@@ -264,7 +264,7 @@ void do_block(list_node_t* pcb_node, list_t* queue) {
  * @brief unblock the `pcb` to ready queue
  */
 void do_unblock(list_node_t* pcb_node) {
-    // TODO: [p2-task2] unblock the `pcb` from the block queue
+    // DONE: [p2-task2] unblock the `pcb` from the block queue
     pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
     if (pcb->status != TASK_BLOCKED) {
         pretty_log(

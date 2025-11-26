@@ -123,7 +123,7 @@ int sys_display_info(int argc, char** argv) {
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)
 {
-    /* TODO: [p3-task1] call invoke_syscall to implement sys_exec for S_CORE */
+    /* DONE: [p3-task1] call invoke_syscall to implement sys_exec for S_CORE */
 }    
 #else
 pid_t  sys_exec(char *name, int argc, char **argv)

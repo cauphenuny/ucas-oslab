@@ -7,7 +7,7 @@
 
 void smp_init()
 {
-    /* TODO: P3-TASK3 multicore*/
+    /* DONE: P3-TASK3 multicore*/
 }
 
 void wakeup_other_hart()

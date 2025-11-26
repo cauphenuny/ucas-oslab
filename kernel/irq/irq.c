@@ -77,7 +77,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-    // TODO: [p2-task4] clock interrupt handler.
+    // DONE: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
     // uint64_t ticks = get_ticks();
     // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval, scause);
@@ -87,21 +87,21 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void init_exception()
 {
-    /* TODO: [p2-task3] initialize exc_table */
+    /* DONE: [p2-task3] initialize exc_table */
     /* NOTE: handle_syscall, handle_other, etc.*/
     for (int i = 0; i < EXCC_COUNT; i++) {
         exc_table[i] = handle_other;
     }
     exc_table[EXCC_SYSCALL] = handle_syscall;
 
-    /* TODO: [p2-task4] initialize irq_table */
+    /* DONE: [p2-task4] initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/
     for (int i = 0; i < IRQC_COUNT; i++) {
         irq_table[i] = handle_other;
     }
     irq_table[IRQC_M_TIMER] = irq_table[IRQC_U_TIMER] = irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
-    /* TODO: [p2-task3] set up the entrypoint of exceptions */
+    /* DONE: [p2-task3] set up the entrypoint of exceptions */
     setup_exception();
 }
 

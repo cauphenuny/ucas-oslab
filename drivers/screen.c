@@ -85,7 +85,7 @@ void screen_write_ch(char ch)
     }
     else if (ch == '\b' || ch == '\177')
     {	
-        // TODO: [P3] support backspace here
+        // DONE: [P3] support backspace here
         int sum = current_running->cursor_y * SCREEN_WIDTH + current_running->cursor_x;
         if (sum == 0) {
             return;

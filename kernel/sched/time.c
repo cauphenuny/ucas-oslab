@@ -57,7 +57,7 @@ void show_timer(void)
 
 void check_sleeping(void)
 {
-    // TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
+    // DONE: [p2-task3] Pick out tasks that should wake up from the sleep queue
 
     uint64_t current_time = get_timer();
     // pretty_log(LOG_INFO, "current_time: %d", current_time);

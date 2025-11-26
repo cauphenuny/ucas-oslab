@@ -33,6 +33,7 @@ pcb_t* alloc_pcb() {
 }
 
 pcb_t* find_pcb(pid_t pid) {
+    if (pid < 0) return NULL;
     if (pid < NR_CPUS) {
         asserts(pcb_kernel[pid].pid == pid, "kernel pcb broken");
         return &pcb_kernel[pid];

@@ -10,11 +10,35 @@ C-Core
 
 C-Core
 
+### Launch:
+
+```
+./configure
+make
+make run
+# or make debug
+```
+
 ---
 
 ## P3
 
 C-Core
+
+### Launch:
+
+```
+./configure
+make
+
+# single core
+make run # or debug
+
+# multi core
+make run-smp # or debug-smp
+```
+
+### Features:
 
 - 使用大内核锁
 
@@ -134,7 +158,5 @@ C-Core
    ```
 
   - `kill` 命令会结束进程树，并回收所有资源（包括 mutex, cond, barrier, semaphore, mailbox 等）
-
-shell 截图:
 
 ![shell](docs/p3/shell.png)

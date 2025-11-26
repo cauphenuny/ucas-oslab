@@ -88,7 +88,7 @@ C-Core
    proc:      display current processes
    ptree:     display process tree
    pcb:       display pcb array
-   time:      display timer status
+   time:      display timer and cputime
    cond:      display condition status
    mutex:     display mutex status
    bar:       display barrier status
@@ -119,6 +119,18 @@ C-Core
          |-> test_barrier (pid=20)
          |-> test_barrier (pid=21)
    init (pid=1)
+   ```
+
+   ```
+   > root@UCAS_OS: exec mbox_exchange &
+   > root@UCAS_OS: info time
+   timer: ticks=69005630, time_base=10000000, timer_interval=25000
+   cpu0: sys=19731346(37%), user=32627072(62%), idle=0(0%)
+   cpu1: sys=7477614(14%), user=6050073(11%), idle=38825224(74%)
+   > root@UCAS_OS: info time
+   timer: ticks=115351076, time_base=10000000, timer_interval=25000
+   cpu0: sys=89264343(77%), user=26086699(22%), idle=0(0%)
+   cpu1: sys=21193853(45%), user=25119890(54%), idle=0(0%)
    ```
 
   - `kill` 命令会结束进程树，并回收所有资源（包括 mutex, cond, barrier, semaphore, mailbox 等）

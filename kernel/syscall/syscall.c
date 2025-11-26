@@ -1,13 +1,14 @@
-#include <os/kernel.h>
-#include <os/task.h>
-#include <os/lock.h>
-#include <os/sched.h>
-#include <os/string.h>
-#include <os/time.h>
-#include <screen.h>
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
+#include <os/irq.h>
+#include <os/kernel.h>
+#include <os/lock.h>
+#include <os/sched.h>
+#include <os/string.h>
+#include <os/task.h>
+#include <os/time.h>
+#include <screen.h>
 #include <sys/syscall.h>
 
 long (*syscall[NUM_SYSCALLS])();
@@ -36,8 +37,8 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     int arg4 = regs->regs[REG_A4];
     int arg5 = regs->regs[REG_A5];
     // pretty_log(
-    //     LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3, arg4,
-    //     arg5);
+    //     LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3,
+    //     arg4, arg5);
     long ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
     regs->regs[REG_A0] = ret;
     regs->sepc += 4;
@@ -70,7 +71,7 @@ long sys_exec_with_affinity(char* name, int argc, char* argv[], int affinity) {
     return do_exec(name, task->entrance, argc, argv, affinity);
 }
 
-long sys_exec(char *name, int argc, char *argv[]) {
+long sys_exec(char* name, int argc, char* argv[]) {
     return sys_exec_with_affinity(name, argc, argv, current_running->affinity);
 }
 
@@ -97,21 +98,13 @@ long sys_exit(void) {
     return 0;
 }
 
-long sys_kill(pid_t pid) {
-    return do_kill(pid);
-}
+long sys_kill(pid_t pid) { return do_kill(pid); }
 
-long sys_waitpid(pid_t pid) {
-    return do_waitpid(pid);
-}
+long sys_waitpid(pid_t pid) { return do_waitpid(pid); }
 
-long sys_getpid() {
-    return current_running->pid;
-}
+long sys_getpid() { return current_running->pid; }
 
-long sys_process_show() {
-    return do_process_show();
-}
+long sys_process_show() { return do_process_show(); }
 
 long sys_task_show() {
     show_tasks();
@@ -119,6 +112,7 @@ long sys_task_show() {
 }
 
 void show_sync();
+void show_time();
 void show_help(int argc, char** argv);
 
 const struct {
@@ -127,10 +121,10 @@ const struct {
     void (*handler)(int argc, char** argv);
 } INFO_COMMANDS[] = {
     {"task", "display runnable tasks", show_tasks},
-    {"proc", "display current processes", (void(*)())do_process_show},
+    {"proc", "display current processes", (void (*)())do_process_show},
     {"ptree", "display process tree", show_process_tree},
     {"pcb", "display pcb array", show_pcb},
-    {"time", "display timer status", show_timer},
+    {"time", "display timer and cputime", show_time},
     {"cond", "display condition status", show_conditions},
     {"mutex", "display mutex status", show_mutexes},
     {"bar", "display barrier status", show_barriers},
@@ -148,6 +142,11 @@ void show_sync() {
     show_barriers();
     show_semaphores();
     show_mailboxes();
+}
+
+void show_time() {
+    show_timer();
+    show_cputime();
 }
 
 void show_help(int argc, char** argv) {
@@ -205,9 +204,7 @@ long sys_screen_delete_line(int nlines) {
 
 /***************** sync *****************/
 
-long sys_lock_init(int key) {
-    return do_mutex_lock_init(key);
-}
+long sys_lock_init(int key) { return do_mutex_lock_init(key); }
 
 long sys_lock_acquire(int handle) {
     do_mutex_lock_acquire(handle);
@@ -219,9 +216,7 @@ long sys_lock_release(int handle) {
     return 0;
 }
 
-long sys_barrier_init(int key, int goal) {
-    return do_barrier_init(key, goal);
-}
+long sys_barrier_init(int key, int goal) { return do_barrier_init(key, goal); }
 
 long sys_barrier_destroy(int bar_idx) {
     do_barrier_destroy(bar_idx);
@@ -233,9 +228,7 @@ long sys_barrier_wait(int bar_idx) {
     return 0;
 }
 
-long sys_condition_init(int key) {
-    return do_condition_init(key);
-}
+long sys_condition_init(int key) { return do_condition_init(key); }
 
 long sys_condition_wait(int cond_idx, int mutex_idx) {
     do_condition_wait(cond_idx, mutex_idx);
@@ -257,9 +250,7 @@ long sys_condition_destroy(int cond_idx) {
     return 0;
 }
 
-long sys_semaphore_init(int key, int init) {
-    return do_semaphore_init(key, init);
-}
+long sys_semaphore_init(int key, int init) { return do_semaphore_init(key, init); }
 
 long sys_semaphore_up(int sema_idx) {
     do_semaphore_up(sema_idx);
@@ -276,33 +267,29 @@ long sys_semaphore_destroy(int sema_idx) {
     return 0;
 }
 
-long sys_mbox_open(char *name) {
-    return do_mbox_open(name);
-}
+long sys_mbox_open(char* name) { return do_mbox_open(name); }
 
 long sys_mbox_close(int mbox_id) {
     do_mbox_close(mbox_id);
     return 0;
 }
 
-long sys_mbox_send(int mbox_idx, void *msg, int msg_length) {
+long sys_mbox_send(int mbox_idx, void* msg, int msg_length) {
     return do_mbox_send(mbox_idx, msg, msg_length);
 }
 
-long sys_mbox_recv(int mbox_idx, void *msg, int msg_length) {
+long sys_mbox_recv(int mbox_idx, void* msg, int msg_length) {
     return do_mbox_recv(mbox_idx, msg, msg_length);
 }
 
 /***************** screen *****************/
 
-long sys_write(char *buff) {
+long sys_write(char* buff) {
     screen_write(buff);
     return 0;
 }
 
-long sys_readch(void) {
-    return bios_getchar();
-}
+long sys_readch(void) { return bios_getchar(); }
 
 long sys_move_cursor(int x, int y) {
     screen_move_cursor(x, y);
@@ -331,11 +318,6 @@ long sys_screen_clear(void) {
 
 /***************** time *****************/
 
-long sys_get_timebase(void) {
-    return get_time_base();
-}
+long sys_get_timebase(void) { return get_time_base(); }
 
-long sys_get_tick(void) {
-    return get_ticks();
-}
-
+long sys_get_tick(void) { return get_ticks(); }

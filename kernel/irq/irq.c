@@ -12,10 +12,41 @@
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
 
+typedef struct {
+    uint64_t sys_irq, sys_exc, user, idle, last;
+} cpu_time_t;
+
+cpu_time_t cpu_times[NR_CPUS];
+
+void show_cputime()
+{
+    for (int i = 0; i < NR_CPUS; i++) {
+        cpu_time_t* tim = &cpu_times[i];
+        uint64_t total = tim->sys_irq + tim->sys_exc + tim->user + tim->idle;
+        printk("cpu%d: idle=%d%%, user=%d%%, sys_irq=%d%%, sys_exc=%d%%\n", i,
+            tim->idle * 100 / total,
+            tim->user * 100 / total,
+            tim->sys_irq * 100 / total,
+            tim->sys_exc * 100 / total);
+    }
+    for (int i = 0; i < NR_CPUS; i++) {
+        memset(&cpu_times[i], 0, sizeof(cpu_time_t));
+    }
+}
+
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-    // TODO: [p2-task3] & [p2-task4] interrupt handler.
-    // call corresponding handler by the value of `scause`
+    int hartid = get_current_cpu_id();
+    cpu_time_t* tim = &cpu_times[hartid];
+    uint64_t new_tick = get_ticks();
+    if (tim->last) {
+        if (current_running->pid >= NR_CPUS)
+            tim->user += new_tick - tim->last;
+        else
+            tim->idle += new_tick - tim->last;
+    }
+    tim->last = new_tick;
+
     int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid, is_irq, exception_code);
@@ -34,6 +65,14 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
         // pretty_log(LOG_INFO, "handling exception: %lu", exception_code);
         exc_table[exception_code](regs, stval, scause);
     }
+
+    new_tick = get_ticks();
+    if (is_irq) {
+        tim->sys_irq += new_tick - tim->last;
+    } else {
+        tim->sys_exc += new_tick - tim->last;
+    }
+    tim->last = new_tick;
 }
 
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)

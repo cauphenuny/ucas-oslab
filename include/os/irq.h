@@ -64,6 +64,7 @@ typedef void (*handler_t)(regs_context_t*, uint64_t, uint64_t);
 extern handler_t irq_table[IRQC_COUNT];
 extern handler_t exc_table[EXCC_COUNT];
 
+extern void show_cputime();
 extern void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 /* exception handler entery */

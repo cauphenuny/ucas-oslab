@@ -22,6 +22,7 @@ void sys_mutex_acquire(int mutex_idx);
 void sys_mutex_release(int mutex_idx);
 
 void sys_set_sche_workload(int workload);
+int sys_set_sche_nice(int nice, int pid);
 int sys_set_affinity(int pid, unsigned int affinity_mask);
 int sys_exec_with_affinity(char*, int, char**, int);
 int sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]);

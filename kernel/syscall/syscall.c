@@ -93,6 +93,10 @@ long sys_set_workload(int workload) {
     return 0;
 }
 
+long sys_set_nice(int nice, int pid) {
+    return set_process_nice(nice, pid);
+}
+
 long sys_exit(void) {
     do_exit();
     return 0;

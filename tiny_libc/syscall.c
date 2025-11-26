@@ -119,6 +119,10 @@ int sys_display_info(int argc, char** argv) {
     return invoke_syscall(SYSCALL_DISPLAY_INFO, (long)argc, (long)argv, IGNORE, IGNORE, IGNORE);
 }
 
+int sys_set_sche_nice(int nice, int pid) {
+    return invoke_syscall(SYSCALL_SET_NICE, (long)nice, (long)pid, IGNORE, IGNORE, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)

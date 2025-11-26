@@ -148,6 +148,7 @@ static void init_syscall(void) {
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_SET_AFFINITY] = sys_set_affinity;
+    syscall[SYSCALL_SET_NICE] = sys_set_nice;
 
     syscall[SYSCALL_SET_SCROLL] = sys_screen_set_scroll;
     syscall[SYSCALL_CLEAR_SCROLL] = sys_screen_clear_scroll;

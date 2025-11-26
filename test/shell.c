@@ -42,7 +42,7 @@
 #define COLOR_DIM    2
 
 #define SHELL_BEGIN 10
-#define SHELL_END   30
+#define SHELL_END   25
 
 int shell_begin = SHELL_BEGIN;
 int shell_end = SHELL_END;
@@ -294,6 +294,7 @@ int main(int argc, char** argv) {
     sys_screen_set_scroll(shell_begin + 1, shell_end);
     prompt_len = strlen(prompt);
     preamble();
+    sys_set_sche_nice(20, sys_getpid());
 
     while (1) {
         // TODO [P3-task1]: call syscall to read UART port
@@ -517,6 +518,22 @@ int exit(int argc, char** argv) {
     return 0;
 }
 
+int nice(int argc, char** argv) {
+    if (argc != 2 && argc != 3) {
+        log_info("usage: nice {nice_value} [pid]");
+        return 1;
+    }
+    int nice_value = atoi(argv[1]);
+    int pid = argc == 3 ? atoi(argv[2]) : sys_getpid();
+    int err = sys_set_sche_nice(nice_value, pid);
+    if (err) {
+        log_info("set_nice failed");
+    } else {
+        log_info("set nice to %d for process %d", nice_value, pid);
+    }
+    return err;
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -530,6 +547,7 @@ const task_t COMMAND_TABLE[] = {
     {"set_height", "set shell height", subcmd_lint, set_height},
     {"help", "show help information", subcmd_lint_help, help},
     {"exit", "exit shell", subcmd_lint, exit},
+    {"nice", "set scheduling nice value", subcmd_lint, nice},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

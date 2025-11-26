@@ -48,8 +48,8 @@ int proc0_thread1(int argc, char** argv) {
 int proc0(int argc, char** argv) {
     p0_data.mutex = sys_mutex_init(0);
     thread_t t0, t1;
-    thread_create(&t0, proc0_thread0, 1, (char*[]){"p0t0"});
-    thread_create(&t1, proc0_thread1, 1, (char*[]){"p0t1"});
+    thread_create(&t0, proc0_thread0, 1, (char*[]){"p0-recv"});
+    thread_create(&t1, proc0_thread1, 1, (char*[]){"p0-send"});
     thread_join(t0);
     thread_join(t1);
     return 0;
@@ -86,8 +86,8 @@ int proc1_thread1(int argc, char** argv) {
 int proc1(int argc, char** argv) {
     p1_data.mutex = sys_mutex_init(1);
     thread_t t0, t1;
-    thread_create(&t0, proc1_thread0, 1, (char*[]){"p1t0"});
-    thread_create(&t1, proc1_thread1, 1, (char*[]){"p1t1"});
+    thread_create(&t0, proc1_thread0, 1, (char*[]){"p1-recv"});
+    thread_create(&t1, proc1_thread1, 1, (char*[]){"p1-send"});
     thread_join(t0);
     thread_join(t1);
     return 0;

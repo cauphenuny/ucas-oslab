@@ -82,24 +82,29 @@ make run-smp # or debug-smp
    top:        show top processes
    info:       show system info
    set_height: set shell height
+   nice:       set scheduling nice value
    help:       show help information
    exit:       exit shell
    ```
 
-  - `ps` 显示 process id, parent process id, name, status, channel, CPU 占用百分比，CPU 亲和性，内存占用量 等信息
+  - `ps` 显示 process id, parent process id, name, status, channel, CPU 占用百分比，CPU 亲和性，内存占用量，nice 值等信息
 
    ```
-   > root@UCAS_OS: ps
-   PID  PPID  NAME            STATUS    CHANNEL  CPU   AFF  MEM/K  MEM/U
-   0    N/A   init            RUNNING   cpu0     93%   10   112    N/A
-   1    N/A   init            READY     ready    0%    01   544    N/A
-   2    0     shell           RUNNING   cpu1     97%   11   0      192
-   3    2     condition       BLOCKED   proc     0%    11   480    352
-   4    3     producer        BLOCKED   sleep    2%    11   464    160
-   5    3     consumer        BLOCKED   sleep    4%    11   464    144
-   6    3     consumer        BLOCKED   sleep    2%    11   464    144
-   7    3     consumer        BLOCKED   sleep    2%    11   464    144
+   > root@UCAS_OS: top
+   PID  PPID  NAME            STATUS    CHANNEL  CPU   AFF  MEM/K  MEM/U  NI
+   0    N/A   init            READY     ready    0%    10   624    N/A    0
+   1    N/A   init            READY     ready    0%    01   624    N/A    0
+   2    0     shell           RUNNING   cpu0     16%   11   0      224    20
+   3    2     mbox_exchange   BLOCKED   proc     0%    11   560    96     0
+   4    3     proc0           BLOCKED   proc     0%    11   560    80     0
+   5    3     proc1           BLOCKED   proc     0%    11   560    80     0
+   6    4     p0-recv         READY     ready    47%   11   608    64     0
+   7    4     p0-send         READY     ready    47%   11   512    64     0
+   8    5     p1-recv         RUNNING   cpu1     44%   11   0      64     0
+   9    5     p1-send         READY     ready    46%   11   704    64     0
    ```
+
+     channel 分为 ready, cpuX, proc, mutex, cond, sema, bar，分别表示就绪队列、在 cpuX 上运行、等待其他进程、等待互斥锁、等待条件变量、等待信号量、等待屏障。
 
   - `top` 命令会自动循环执行 `ps` 直到按下任意键
 
@@ -158,5 +163,7 @@ make run-smp # or debug-smp
    ```
 
   - `kill` 命令会结束进程树，并回收所有资源（包括 mutex, cond, barrier, semaphore, mailbox 等）
+
+  - `nice` 命令可以调整当前进程优先级 (非负整数)，值越高优先级越低
 
 ![shell](docs/p3/shell.png)

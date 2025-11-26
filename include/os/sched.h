@@ -141,10 +141,11 @@ typedef struct pcb {
     /* process name */
     char name[16];
 
-    /* process workload */
+    /* process scheduling weight */
     int task_id;
     int task_workload;
     int slice_cnt;
+    int nice; // weights priority by (10 / (10 + nice))
 
     /* process cpu affinity */
     unsigned affinity;  // bitmask
@@ -192,6 +193,7 @@ void do_unblock(list_node_t*);
 void unblock_list(list_t* list, const char* name);
 
 void set_process_workload(int workload);
+int set_process_nice(int nice, int pid);
 
 void log_pcb_list(const list_t* queue);
 void show_process_tree();

@@ -87,6 +87,7 @@ long sys_mbox_send(int mbox_idx, void* msg, int msg_length);
 long sys_mbox_close(int mbox_id);
 
 long sys_set_workload(int);
+long sys_set_nice(int nice, int pid);
 long sys_set_affinity(int pid, unsigned affinity_mask);
 
 long sys_screen_set_scroll(int start_row, int end_row);

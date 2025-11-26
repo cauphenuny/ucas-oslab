@@ -132,7 +132,7 @@ void update_by_consumption_init() {
 }
 
 bool update_by_consumption(pcb_t* selected, pcb_t* proc) {
-    int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1);
+    int normalized_cnt = proc->slice_cnt / (proc->task_workload + 1) * (10 + proc->nice) / 10;
     if (proc->task_id < min_task_id) {
         min_task_id = proc->task_id;
         min_slice_cnt = normalized_cnt;
@@ -334,12 +334,15 @@ int do_process_show() {
     const int AFF_LEN = NR_CPUS + 3, AFF_SUM = TIME_SUM + AFF_LEN;
     const int MEM_LEN = 7, MEM_SUM = AFF_SUM + MEM_LEN;
     const int UMEM_LEN = 7, UMEM_SUM = MEM_SUM + UMEM_LEN;
+    const int NICE_LEN = 4, NICE_SUM = UMEM_SUM + NICE_LEN;
+
     const char* status_str[] = {
         [TASK_BLOCKED] = "BLOCKED",
         [TASK_READY] = "READY",
         [TASK_RUNNING] = "RUNNING",
         [TASK_EXITED] = "EXITED",
     };
+
     printkf("PID"), screen_move_cursor_col(PID_SUM);
     printkf("PPID"), screen_move_cursor_col(PPID_SUM);
     printkf("NAME"), screen_move_cursor_col(NAME_SUM);
@@ -349,23 +352,29 @@ int do_process_show() {
     printkf("AFF"), screen_move_cursor_col(AFF_SUM);
     printkf("MEM/K"), screen_move_cursor_col(MEM_SUM);
     printkf("MEM/U"), screen_move_cursor_col(UMEM_SUM);
+    printkf("NI"), screen_move_cursor_col(NICE_SUM);
     printkf("\n");
+
     int count = 0;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* proc = pcb_all[i];
         if (proc->status == TASK_EXITED) continue;
         printkf("%d", proc->pid);
         screen_move_cursor_col(PID_SUM);
+
         if (proc->parent) {
             printkf("%d", proc->parent->pid);
         } else {
             printkf("N/A");
         }
         screen_move_cursor_col(PPID_SUM);
+
         printkf("%s", proc->name);
         screen_move_cursor_col(NAME_SUM);
+
         printkf("%s", status_str[proc->status]);
         screen_move_cursor_col(STAT_SUM);
+
         if (proc->sched_node.container) {
             printkf("%s", proc->sched_node.container->name);
         } else {
@@ -376,20 +385,28 @@ int do_process_show() {
             }
         }
         screen_move_cursor_col(CHAN_SUM);
+
         printkf("%d%%", proc->slice_cnt);
         screen_move_cursor_col(TIME_SUM);
+
         for (int i = 0; i < NR_CPUS; i++) {
             printkf("%d", (proc->affinity & (1 << i)) != 0);
         }
         screen_move_cursor_col(AFF_SUM);
+
         printkf("%d", proc->kernel_stack_top - proc->kernel_sp);
         screen_move_cursor_col(MEM_SUM);
+
         if (proc->pid >= NR_CPUS) {
             printkf("%d", proc->user_stack_top - proc->user_sp);
         } else {
             printkf("N/A");
         }
         screen_move_cursor_col(UMEM_SUM);
+
+        printkf("%d", proc->nice);
+        screen_move_cursor_col(NICE_SUM);
+
         printkf("\n");
         count++;
     }
@@ -492,4 +509,18 @@ void set_process_workload(int workload) {
         current_running->task_id++;
     }
     current_running->task_workload = workload;
+}
+
+int set_process_nice(int nice, int pid) {
+    if (nice < 0) {
+        pretty_log(LOG_WARN, "nice value %d out of range!", nice);
+        return -1;
+    }
+    pcb_t* pcb = find_pcb(pid);
+    if (!pcb) {
+        pretty_log(LOG_WARN, "cannot find process(pid=%d)", pid);
+        return -1;
+    }
+    pcb->nice = nice;
+    return 0;
 }

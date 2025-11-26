@@ -249,10 +249,13 @@ void do_sleep(uint32_t sleep_time) {
 // NOTE: do_block would not delete node from any list
 void do_block(list_node_t* pcb_node, list_t* queue) {
     // TODO: [p2-task2] block the pcb task into the block queue
-    asserts(!pcb_node->next && !pcb_node->prev, "pcb_node is already in a list");
     pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
     pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
-    if (pcb->status == TASK_BLOCKED) return;
+    if (pcb->status == TASK_BLOCKED) {
+        pretty_loge("double blocking a task(name=%s, pid=%d)", pcb->name, pcb->pid);
+        return;
+    }
+    asserts(!pcb_node->next && !pcb_node->prev, "pcb_node is already in a list");
     pcb->status = TASK_BLOCKED;
     list_append(queue, pcb_node);
 }

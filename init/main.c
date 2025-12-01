@@ -272,12 +272,13 @@ int main(int argc, char** argv) {
 
     pretty_log(LOG_INFO, "hart %d started", hartid);
     // TODO: [p4-task1 cont.] remove the brake and continue to start user processes.
-    kernel_brake();
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));
     current_running->kernel_sp = stack_pointer;
     pretty_log(LOG_INFO, "stack pointer: 0x%x", stack_pointer);
+
+    kernel_brake();
 
     asm volatile("csrw sscratch, tp");
 

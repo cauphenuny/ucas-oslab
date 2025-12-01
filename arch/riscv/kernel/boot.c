@@ -28,6 +28,7 @@ static void ARRTIBUTE_BOOTKERNEL map_page(uint64_t va, uint64_t pa, PTE *pgdir)
         set_attribute(&pgdir[vpn2], _PAGE_PRESENT);
         clear_pgdir(get_pa(pgdir[vpn2]));
     }
+    // Page Middle Directory
     PTE *pmd = (PTE *)get_pa(pgdir[vpn2]);
     set_pfn(&pmd[vpn1], pa >> NORMAL_PAGE_SHIFT);
     set_attribute(
@@ -65,7 +66,7 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
     enable_vm();
 }
 
-extern uintptr_t _start[];
+extern uintptr_t _start;
 
 /*********** start here **************/
 int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)

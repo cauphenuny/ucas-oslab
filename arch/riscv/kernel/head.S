@@ -6,7 +6,7 @@
 #include <asm.h>
 #include <csr.h>
 
-#define KERNEL_STACK		0x50500000
+#define KERNEL_STACK		0xffffffc052000000
 
 .equ page_size, 4096
 

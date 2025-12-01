@@ -1,7 +1,9 @@
 #ifndef PGTABLE_H
 #define PGTABLE_H
 
+#include <os/string.h>
 #include <type.h>
+#include <assert.h>
 
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
@@ -72,46 +74,63 @@ static inline void set_satp(
 
 typedef uint64_t PTE;
 
+#define KERNEL_ADDR_TAG 0xffffffc000000000lu
+#define VA_EFFECTIVE_MASK ((1lu << 38) - 1)
+
+#define PA_TOP 0x60000000lu
+#define PA_BOTTOM 0x50000000lu
+
 /* Translation between physical addr and kernel virtual addr */
 static inline uintptr_t kva2pa(uintptr_t kva)
 {
     /* TODO: [P4-task1] */
+    asserts((kva & (~VA_EFFECTIVE_MASK)) == KERNEL_ADDR_TAG, "kva2pa called with invalid kva");
+    return kva ^ KERNEL_ADDR_TAG;
 }
 
 static inline uintptr_t pa2kva(uintptr_t pa)
 {
     /* TODO: [P4-task1] */
+    asserts(pa >= PA_BOTTOM && pa < PA_TOP, "pa2kva called with invalid pa");
+    return pa | KERNEL_ADDR_TAG;
 }
 
 /* get physical page addr from PTE 'entry' */
 static inline uint64_t get_pa(PTE entry)
 {
     /* TODO: [P4-task1] */
+    return (entry >> _PAGE_PFN_SHIFT) << NORMAL_PAGE_SHIFT;
 }
 
 /* Get/Set page frame number of the `entry` */
 static inline long get_pfn(PTE entry)
 {
     /* TODO: [P4-task1] */
+    return entry >> _PAGE_PFN_SHIFT;
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
     /* TODO: [P4-task1] */
+    *entry = (*entry & ~((1lu << _PAGE_PFN_SHIFT) - 1)) | (pfn << _PAGE_PFN_SHIFT);
 }
 
 /* Get/Set attribute(s) of the `entry` */
 static inline long get_attribute(PTE entry, uint64_t mask)
 {
     /* TODO: [P4-task1] */
+    return entry & mask;
 }
 static inline void set_attribute(PTE *entry, uint64_t bits)
 {
     /* TODO: [P4-task1] */
+    asserts((bits & (~((1 << _PAGE_PFN_SHIFT) - 1))) == 0, "set_attribute with invalid bits");
+    *entry = (*entry) | bits;
 }
 
 static inline void clear_pgdir(uintptr_t pgdir_addr)
 {
     /* TODO: [P4-task1] */
+    memset((void*)pgdir_addr, 0, NORMAL_PAGE_SIZE);
 }
 
 #endif  // PGTABLE_H

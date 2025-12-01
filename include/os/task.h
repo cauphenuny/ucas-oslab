@@ -4,11 +4,8 @@
 #include <os/sched.h>
 #include <type.h>
 
-#define TASK_MEM_BASE 0x52000000
 #define TASK_MAXNUM   32
 #define TASK_SIZE     0x10000
-
-#define TASK_NUM_LOC (OS_SIZE_LOC + 2)
 
 #define SECTOR_SIZE        512
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))

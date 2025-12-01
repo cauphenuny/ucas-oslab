@@ -2,7 +2,7 @@
 # Project Information
 # -----------------------------------------------------------------------
 
-PROJECT_IDX	= 3
+PROJECT_IDX	= 4
 
 # -----------------------------------------------------------------------
 # Include Platform-specific Configuration
@@ -42,9 +42,11 @@ MINICOM         ?= minicom
 # -----------------------------------------------------------------------
 
 CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+CFLAGS          += -g
 CFLAGS          += -O2
 CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
 CXXFLAGS        = -std=gnu++20 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -fno-exceptions -fno-rtti
+CXXFLAGS        += -g
 CXXFLAGS        += -O2
 CXXFLAGS        += -Wno-register
 
@@ -87,8 +89,8 @@ DIR_TEST        = ./test
 DIR_TEST_PROJ   = $(DIR_TEST)/test_project$(PROJECT_IDX)
 
 BOOTLOADER_ENTRYPOINT   = 0x50200000
-KERNEL_ENTRYPOINT       = 0x50201000
-USER_ENTRYPOINT         = 0x52000000
+KERNEL_ENTRYPOINT       = 0xffffffc050202000
+USER_ENTRYPOINT         = 0x200000
 
 # -----------------------------------------------------------------------
 # UCAS-OS Kernel Source Files
@@ -97,14 +99,16 @@ USER_ENTRYPOINT         = 0x52000000
 SRC_BOOT    = $(wildcard $(DIR_ARCH)/boot/*.S)
 SRC_ARCH    = $(wildcard $(DIR_ARCH)/kernel/*.S)
 SRC_BIOS    = $(wildcard $(DIR_ARCH)/bios/*.c)
+SRC_START   = $(wildcard $(DIR_ARCH)/kernel/*.c)
 SRC_DRIVER  = $(wildcard $(DIR_DRIVERS)/*.c)
 SRC_INIT    = $(wildcard $(DIR_INIT)/*.c)
 SRC_KERNEL  = $(wildcard $(DIR_KERNEL)/*/*.c)
 SRC_LIBS    = $(wildcard $(DIR_LIBS)/*.c)
 SRCPP_KERNEL= $(wildcard $(DIR_KERNEL)/*/*.cpp)
 
-SRC_MAIN    = $(SRC_ARCH) $(SRC_INIT) $(SRC_BIOS) $(SRC_DRIVER) $(SRC_KERNEL) $(SRC_LIBS)
 SRCPP_MAIN  = $(SRCPP_KERNEL)
+
+SRC_MAIN    = $(SRC_ARCH) $(SRC_START) $(SRC_INIT) $(SRC_BIOS) $(SRC_DRIVER) $(SRC_KERNEL) $(SRC_LIBS)
 
 ELF_BOOT    = $(DIR_BUILD)/bootblock
 ELF_MAIN    = $(DIR_BUILD)/main
@@ -195,15 +199,15 @@ minicom:
 # -----------------------------------------------------------------------
 
 $(ELF_BOOT): $(SRC_BOOT) riscv.lds
-	$(CC) -g $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
+	$(CC) $(BOOT_CFLAGS) -o $@ $(SRC_BOOT) -e main
 
 $(ELF_MAIN): $(SRC_MAIN) $(SRCPP_MAIN) riscv.lds
-	$(CC) -g -r -o $@.c.o $(KERNEL_CFLAGS) $(SRC_MAIN)
-	$(CC) -g -r -o $@.cpp.o $(KERNEL_CXXFLAGS) $(SRCPP_MAIN)
-	$(CC) -g -o $@ $@.c.o $@.cpp.o $(KERNEL_LDFLAGS)
+	$(CC) -r -o $@.c.o $(KERNEL_CFLAGS) $(SRC_MAIN)
+	$(CC) -r -o $@.cpp.o $(KERNEL_CXXFLAGS) $(SRCPP_MAIN)
+	$(CC) -o $@ $@.c.o $@.cpp.o $(KERNEL_LDFLAGS)
 
 $(OBJ_CRT0): $(SRC_CRT0)
-	$(CC) -g $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
+	$(CC) $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@
 
 $(LIB_TINYC): $(OBJ_LIBC)
 	$(AR) rcs $@ $^
@@ -213,11 +217,9 @@ $(DIR_BUILD)/%.o: $(DIR_TINYLIBC)/%.c
 
 $(DIR_BUILD)/%: $(DIR_TEST_PROJ)/%.c $(OBJ_CRT0) $(LIB_TINYC) riscv.lds
 	$(CC) $(USER_CFLAGS) -o $@ $(OBJ_CRT0) $< $(USER_LDFLAGS) -Wl,--defsym=TEXT_START=$(USER_ENTRYPOINT) -T riscv.lds
-	$(eval USER_ENTRYPOINT := $(shell python3 -c "print(hex(int('$(USER_ENTRYPOINT)', 16) + int('0x10000', 16)))"))
 
 $(DIR_BUILD)/%: $(DIR_TEST)/%.c $(OBJ_CRT0) $(LIB_TINYC) riscv.lds
 	$(CC) $(USER_CFLAGS) -o $@ $(OBJ_CRT0) $< $(USER_LDFLAGS) -Wl,--defsym=TEXT_START=$(USER_ENTRYPOINT) -T riscv.lds
-	$(eval USER_ENTRYPOINT := $(shell python3 -c "print(hex(int('$(USER_ENTRYPOINT)', 16) + int('0x10000', 16)))"))
 
 elf: $(ELF_BOOT) $(ELF_MAIN) $(LIB_TINYC) $(ELF_USER)
 

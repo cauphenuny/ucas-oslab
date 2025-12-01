@@ -6,3 +6,7 @@ build/
 compile_commands.json
 config.mk
 .vscode/
+.vscode
+build
+*.txtt4
+createimage

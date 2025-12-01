@@ -191,6 +191,15 @@ const char* log_level_str_color[] = {
     COLOR_RED "[FATAL]" COLOR_RESET,
 };
 
+/*
+ * Once a CPU core calls this function,
+ * it will stop executing!
+ */
+static void kernel_brake(void) {
+    disable_interrupt();
+    while (1) __asm__ volatile("wfi");
+}
+
 int main(int argc, char** argv) {
 
     int hartid = get_current_cpu_id();
@@ -262,6 +271,8 @@ int main(int argc, char** argv) {
     }
 
     pretty_log(LOG_INFO, "hart %d started", hartid);
+    // TODO: [p4-task1 cont.] remove the brake and continue to start user processes.
+    kernel_brake();
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));

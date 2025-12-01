@@ -9,7 +9,7 @@
 .section ".entry_function","ax"
 ENTRY(_start)
 
-    /* TODO: [p1-task3] setup C runtime environment for the user program */
+    /* DONE: [p1-task3] setup C runtime environment for the user program */
 
     // clear bss
     la t0, __bss_start
@@ -20,17 +20,17 @@ ENTRY(_start)
     addi t2, t2, 4
     blt t2, t1, .clear
 
-    /* TODO: [p1-task3] enter main function */
+    /* DONE: [p1-task3] enter main function */
 .enter:
     jal main
 
 
-    /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
+    /* DONE: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
 .ret:
     j sys_exit
 
     /************************************************************/
-    /* TODO: [P3] call sys_exit */
+    /* DONE: [P3] call sys_exit */
     /************************************************************/
 // while(1) loop, unreachable here
 loop:

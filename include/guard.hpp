@@ -1,4 +1,7 @@
+#pragma once
 #include <os/lock.h>
+
+// TODO: lock multiple locks atomically at once to avoid deadlock
 
 struct with_spin {
     spin_lock_t& lock;

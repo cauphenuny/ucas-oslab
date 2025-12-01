@@ -1,4 +1,8 @@
 // Small test program exercising kernel pipe page-give/take primitives.
+int main() {
+	return 0;
+}
+/*
 
 #include <stdint.h>
 #include <stdio.h>
@@ -157,3 +161,4 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+*/

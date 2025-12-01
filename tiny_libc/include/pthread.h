@@ -2,6 +2,8 @@
 #define PTHREAD_H_
 #include "unistd.h"
 
+typedef int pthread_t;
+
 /* TODO:[P4-task4] pthread_create/wait */
 void pthread_create(pthread_t *thread,
                    void (*start_routine)(void*),

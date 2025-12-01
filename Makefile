@@ -204,7 +204,7 @@ $(ELF_BOOT): $(SRC_BOOT) riscv.lds
 $(ELF_MAIN): $(SRC_MAIN) $(SRCPP_MAIN) riscv.lds
 	$(CC) -r -o $@.c.o $(KERNEL_CFLAGS) $(SRC_MAIN)
 	$(CC) -r -o $@.cpp.o $(KERNEL_CXXFLAGS) $(SRCPP_MAIN)
-	$(CC) -o $@ $@.c.o $@.cpp.o $(KERNEL_LDFLAGS)
+	$(CC) -o $@ $@.c.o $@.cpp.o $(KERNEL_LDFLAGS) -e _boot
 
 $(OBJ_CRT0): $(SRC_CRT0)
 	$(CC) $(USER_CFLAGS) -I$(DIR_ARCH)/include -c $< -o $@

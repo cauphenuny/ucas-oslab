@@ -26,7 +26,9 @@
 /* DONE: [p1-task4] design your own task_info_t */
 typedef struct {
     char name[16];
-    int phyaddr_start, phyaddr_end;
+    int phyaddr;  // on SD-card
+    int filesize;
+    int memsize;  // p_memsz, physical memory size
     uint64_t entrance;
 } task_info_t;
 
@@ -100,7 +102,7 @@ static void create_image(int nfiles, char* files[]) {
     /* for each input file */
     for (int fidx = 0; fidx < nfiles; ++fidx) {
         int taskidx = fidx - 2;
-        if (taskidx >= 0) taskinfo[taskidx].phyaddr_start = phyaddr;
+        if (taskidx >= 0) taskinfo[taskidx].phyaddr = phyaddr;
         if (taskidx >= 0) strcpy(taskinfo[taskidx].name, *files);
 
         /* open input file */
@@ -139,7 +141,10 @@ static void create_image(int nfiles, char* files[]) {
         if (strcmp(*files, "bootblock") == 0) {
             write_padding(img, &phyaddr, SECTOR_SIZE);
         }
-        if (taskidx >= 0) taskinfo[taskidx].phyaddr_end = phyaddr;
+        if (taskidx >= 0) {
+            taskinfo[taskidx].filesize = phyaddr - taskinfo[taskidx].phyaddr;
+            taskinfo[taskidx].memsize = phdr.p_memsz;
+        }
 
         fclose(fp);
         files++;

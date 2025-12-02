@@ -4,8 +4,8 @@
 #include <os/sched.h>
 #include <type.h>
 
-#define TASK_MAXNUM   32
-#define TASK_SIZE     0x10000
+#define TASK_MAXNUM 32
+#define TASK_SIZE   0x10000
 
 #define SECTOR_SIZE        512
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
@@ -13,7 +13,9 @@
 /* TODO: [p1-task4] implement your own task_info_t! */
 typedef struct {
     char name[16];
-    int phyaddr_start, phyaddr_end;
+    int phyaddr;  // on SD-card
+    int filesize;
+    int memsize;  // p_memsz, physical memory size
     uint64_t entrance;
 } task_info_t;
 
@@ -25,7 +27,8 @@ void show_tasks();
 void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra);
 void init_pcb_stack(
     pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv);
-pcb_t* construct_pcb(const char* name, ptr_t entrance, int argc, char* argv[], int kernel_mem, int user_mem);
+pcb_t* construct_pcb(
+    const char* name, ptr_t entrance, int argc, char* argv[], int kernel_mem, int user_mem);
 int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask);
 
 #endif

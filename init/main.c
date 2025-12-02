@@ -60,9 +60,9 @@ static void init_jmptab(void) {
 
 static void init_pcb(void) {
     /* DONE: [p2-task1] load needed tasks and init their corresponding PCB */
-    for (int i = 0; i < task_num; i++) {
-        load_task_img(tasks[i]);
-    }
+    // for (int i = 0; i < task_num; i++) {
+    //     load_task_img(tasks[i]);
+    // }
 
     int cnt = 0;
 
@@ -70,12 +70,12 @@ static void init_pcb(void) {
         pcb_kernel[i] = (pcb_t){
             .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
             .user_sp = 0,
+            .kernel_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .kernel_stack_top = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .pgdir = PGDIR_VA,
             .pid = i,
             .status = TASK_READY,
             .affinity = 1 << i,
-            .kernel_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * (i),
-            .kernel_stack_top = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
-            .user_stack_bottom = 0,
             .user_stack_top = 0,
         };
         strcpy(pcb_kernel[i].name, "init");

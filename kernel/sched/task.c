@@ -108,8 +108,9 @@ pcb_t* construct_pcb(const char* name, ptr_t entrance, int argc, char* argv[], i
     asserts(pcb->status == TASK_EXITED, "PCB is not free");
     pretty_log(LOG_DEBUG, "alloced pcb at 0x%x, node: 0x%x", pcb, &pcb->sched_node);
 
-    ptr_t kernel_stack_bottom = allocKernelPage(kernel_mem), kernel_stack_top = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
-    ptr_t user_stack_bottom = allocUserPage(user_mem), user_stack_top = user_stack_bottom + user_mem * PAGE_SIZE;
+    // TODO: refactor this
+    ptr_t kernel_stack_bottom = allocPage(kernel_mem), kernel_stack_top = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
+    ptr_t user_stack_bottom = allocPage(user_mem), user_stack_top = user_stack_bottom + user_mem * PAGE_SIZE;
 
     memset(pcb, 0, sizeof(pcb_t));
     pcb->pid = process_id++;
@@ -117,9 +118,9 @@ pcb_t* construct_pcb(const char* name, ptr_t entrance, int argc, char* argv[], i
     pcb->status = TASK_READY;
     strcpy(pcb->name, name);
     list_init(&pcb->child_list, "child_list");
-    pcb->kernel_stack_bottom = kernel_stack_bottom;
+    pcb->kernel_stack_base = kernel_stack_bottom;
     pcb->kernel_stack_top = kernel_stack_top;
-    pcb->user_stack_bottom = user_stack_bottom;
+    pcb->user_stack_base = user_stack_bottom;
     pcb->user_stack_top = user_stack_top;
     init_pcb_stack(pcb, kernel_stack_top, user_stack_top, entrance, argc, argv);
     pretty_log(LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_top, user_stack_top, entrance);

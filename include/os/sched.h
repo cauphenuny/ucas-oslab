@@ -118,8 +118,15 @@ typedef struct pcb {
     // NOTE: this order must be preserved, which is defined in regs.h!!
     reg_t kernel_sp;
     reg_t user_sp;
+
+    /* process page directory */
+    ptr_t pgdir;
+
+    /* process memory info */
     ptr_t kernel_stack_base;
     ptr_t user_stack_base;
+    ptr_t kernel_stack_top;
+    ptr_t user_stack_top;
 
     /* previous, next pointer */
     list_node_t sched_node;  // NOTE: used for scheduling queues, only able to be in one queue
@@ -155,10 +162,6 @@ typedef struct pcb {
     struct pcb* parent;
     list_node_t relation_node;
     list_t child_list;
-
-    /* process memory info */
-    reg_t kernel_stack_top, kernel_stack_bottom;
-    reg_t user_stack_top, user_stack_bottom;
 } pcb_t;
 
 /* ready queue to run */

@@ -84,16 +84,16 @@ int spin_lock_try_acquire(spin_lock_t* lock) {
 void spin_lock_acquire(spin_lock_t* lock) {
     /* DONE: [p2-task2] acquire spin lock */
 
-    // FIXME: check this
-    // WARN: check failure order
-    lock_status_t expected = UNLOCKED;
-    while (!__atomic_compare_exchange_n(
-    &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+    lock_status_t expected;
+    do {
+        expected = UNLOCKED;  // ★ reset every loop
+    } while (!__atomic_compare_exchange_n(
+        &lock->status, &expected, LOCKED, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED));
 }
 
 void spin_lock_release(spin_lock_t* lock) {
     /* DONE: [p2-task2] release spin lock */
-    __atomic_store_n(&lock->status, UNLOCKED, __ATOMIC_SEQ_CST);
+    __atomic_store_n(&lock->status, UNLOCKED, __ATOMIC_RELEASE);
 }
 
 void mutex_release(mutex_lock_t* mutex) {
@@ -216,8 +216,8 @@ void show_mutexes() {
         with_spin guard(mlocks[i].lock);
         if (mlock_ref[i]) {
             printk(
-                "mutex %d: key=%d, ref=0x%x, acquired=%d, pid=%d\n", i, mlocks[i].key,
-                mlock_ref[i], mlocks[i].acquired, mlocks[i].pid);
+                "mutex %d: key=%d, ref=0x%x, acquired=%d, pid=%d\n", i, mlocks[i].key, mlock_ref[i],
+                mlocks[i].acquired, mlocks[i].pid);
         }
     }
 }

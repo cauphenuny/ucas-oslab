@@ -45,19 +45,16 @@ extern spin_lock_t logger_lock;
 #define pretty_logi(fmt, ...)                      \
     do {                                           \
         pretty_log(LOG_INFO, fmt, ##__VA_ARGS__); \
-        breakpoint();                              \
     } while (0)
 
 #define pretty_logd(fmt, ...)                      \
     do {                                           \
         pretty_log(LOG_DEBUG, fmt, ##__VA_ARGS__); \
-        breakpoint();                              \
     } while (0)
 
 #define pretty_logw(fmt, ...)                      \
     do {                                           \
         pretty_log(LOG_WARN, fmt, ##__VA_ARGS__); \
-        breakpoint();                              \
     } while (0)
 
 extern void init_logger();

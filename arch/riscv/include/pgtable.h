@@ -74,6 +74,23 @@ static inline void set_satp(
 
 typedef uint64_t PTE;
 
+typedef struct {
+    unsigned int reserved : 10;
+    unsigned int ppn2 : 26;
+    unsigned int ppn1 : 9;
+    unsigned int ppn0 : 9;
+    unsigned int rsw : 2;
+    unsigned int dirty : 1;
+    unsigned int accessed : 1;
+    unsigned int global : 1;
+    unsigned int user : 1;
+    unsigned int exec : 1;
+    unsigned int write : 1;
+    unsigned int read : 1;
+    unsigned int valid : 1;
+} pte_t;
+
+
 #define KERNEL_ADDR_TAG 0xffffffc000000000lu
 #define VA_EFFECTIVE_MASK ((1lu << 38) - 1)
 

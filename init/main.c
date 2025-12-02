@@ -208,6 +208,12 @@ int main(int argc, char** argv) {
         // Init jump table provided by kernel and bios(ΦωΦ)
         init_jmptab();
 
+        // TODO: remove this
+        pretty_log(LOG_INFO, "[INIT] hart %d started with VM", hartid);
+        start = 1;
+        wakeup_other_hart();
+        kernel_brake();
+
         // Check whether .bss section is set to zero
         int check = bss_check();
         asserts(check, ".bss check failed");
@@ -262,6 +268,11 @@ int main(int argc, char** argv) {
 
     } else {
         while (!start);
+
+        // TODO: remove this
+        pretty_log(LOG_INFO, "[INIT] hart %d started with VM", hartid);
+        kernel_brake();
+
         lock_kernel();
         setup_exception();
         reset_timer();
@@ -271,14 +282,11 @@ int main(int argc, char** argv) {
     }
 
     pretty_log(LOG_INFO, "hart %d started", hartid);
-    // TODO: [p4-task1 cont.] remove the brake and continue to start user processes.
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));
     current_running->kernel_sp = stack_pointer;
     pretty_log(LOG_INFO, "stack pointer: 0x%x", stack_pointer);
-
-    kernel_brake();
 
     asm volatile("csrw sscratch, tp");
 

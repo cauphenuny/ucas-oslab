@@ -6,7 +6,7 @@
 #include <asm.h>
 #include <csr.h>
 
-#define KERNEL_STACK		0xffffffc052000000
+.equ KERNEL_STACK, 0xffffffc052000000
 
 .equ page_size, 4096
 
@@ -45,7 +45,7 @@ ENTRY(_start)
   mv sp, t0 // sp = KERNEL_STACK + (hartid + 1) * page_size
 
 .main:
-  jal main
+  jal main // init::main
 
 
 loop:

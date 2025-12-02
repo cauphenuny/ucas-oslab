@@ -7,10 +7,9 @@
 #include <csr.h>
 
 /* maybe you need another stack for booting? */
-.equ boot_stack_top_base, 0x52000000
+.equ boot_stack_top_base, 0x51000000
 
-#define BOOT_STACK_SIZE_WIDTH 12
-#define BOOT_STACK_SIZE 0x1000
+.equ BOOT_STACK_SIZE_WIDTH, 12 # 4096 bytes stack size
 
 .section ".bootkernel_entry","ax"
 ENTRY(_boot)
@@ -23,14 +22,16 @@ ENTRY(_boot)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
-  csrr a0, CSR_MHARTID 
+  // (a0: argc, a1: argv) => (a1: argc, a2: argv)
+  mv a2, a1
+  mv a1, a0
 
+  // a0: hartid
+  csrr a0, CSR_MHARTID
   mv t0, a0
-  add t0, t0, 1
-  sll t0, t0, BOOT_STACK_SIZE_WIDTH // sp = base + (hartid + 1) * BOOT_STACK_SIZE
-
+  sll t0, t0, BOOT_STACK_SIZE_WIDTH // sp = base - (hartid) * BOOT_STACK_SIZE
   la sp, boot_stack_top_base
-  add sp, sp, t0
+  sub sp, sp, t0
 
   // this will never return
   call boot_kernel

@@ -43,11 +43,11 @@ MINICOM         ?= minicom
 
 CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 CFLAGS          += -g
-CFLAGS          += -O2
+CFLAGS          += -O0
 CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
 CXXFLAGS        = -std=gnu++20 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -fno-exceptions -fno-rtti
 CXXFLAGS        += -g
-CXXFLAGS        += -O2
+CXXFLAGS        += -O0
 CXXFLAGS        += -Wno-register
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include

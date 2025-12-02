@@ -47,12 +47,10 @@ main:
     add a1, t1, 511
     sra a1, a1, 9 // sectors = ((bytes + 511) / 512)
     li a2, 1
-    la a7, bios_sdread
     // a0: memory_addr
     // a1: num_of_blocks
     // a2: block_id
-    // a7: bios_sdread
-    jal bios_func_entry
+    jal sdread
 
 .copy_kernel:
     la a0, kernel
@@ -137,6 +135,29 @@ copy_data:
     add t1, t1, 4
     blt t1, t2, .copy_loop
 .copy_end:
+    ret
+
+sdread:
+    // a0: memory_addr
+    // a1: num_of_blocks
+    // a2: block_id
+    mv s0, a0
+    mv s1, a1
+    mv s2, a2
+    mv s3, ra
+.sdread_loop:
+    mv a0, s0
+    li a1, 64
+    mv a2, s2
+    la a7, bios_sdread
+    jal bios_func_entry
+    li t0, 512*64
+    add s0, s0, t0
+    add s1, s1, -64
+    add s2, s2, 64
+    bgtz s1, .sdread_loop
+.sdread_end:
+    mv ra, s3
     ret
 
 .data

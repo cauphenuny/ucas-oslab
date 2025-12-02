@@ -4,8 +4,6 @@
 
 #define ARRTIBUTE_BOOTKERNEL __attribute__((section(".bootkernel")))
 
-typedef void (*kernel_entry_t)(unsigned long);
-
 /********* setup memory mapping ***********/
 static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
 {
@@ -66,10 +64,13 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
     enable_vm();
 }
 
-extern uintptr_t _start;
+// extern uintptr_t _start[];
+extern void (*_start)(int argc, char** argv);
+
+typedef void (*kernel_entry_t)(int argc, char** argv);
 
 /*********** start here **************/
-int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
+int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, char** argv)
 {
     if (mhartid == 0) {
         setup_vm();
@@ -78,7 +79,7 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
     }
 
     /* enter kernel */
-    ((kernel_entry_t)pa2kva(_start))(mhartid);
+    ((kernel_entry_t)pa2kva((uintptr_t)&_start))(argc, argv);
 
     return 0;
 }

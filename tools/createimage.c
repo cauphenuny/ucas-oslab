@@ -129,6 +129,11 @@ static void create_image(int nfiles, char* files[]) {
             if (strcmp(*files, "main") == 0) {
                 nbytes_kernel += get_filesz(phdr);
             }
+
+            if (taskidx >= 0) {
+                assert(!taskinfo[taskidx].memsize, "multiple load segment");
+                taskinfo[taskidx].memsize = phdr.p_memsz;
+            }
         }
 
         /* write padding bytes */
@@ -143,7 +148,6 @@ static void create_image(int nfiles, char* files[]) {
         }
         if (taskidx >= 0) {
             taskinfo[taskidx].filesize = phyaddr - taskinfo[taskidx].phyaddr;
-            taskinfo[taskidx].memsize = phdr.p_memsz;
         }
 
         fclose(fp);

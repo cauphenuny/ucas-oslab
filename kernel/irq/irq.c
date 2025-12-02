@@ -34,8 +34,75 @@ void show_cputime()
     }
 }
 
+static void stack_sanity_check() {
+    int san = 1;
+    if (current_running->kernel_sp < current_running->kernel_stack_base ||
+        current_running->kernel_sp > current_running->kernel_stack_top) {
+        pretty_loge("kernel stack overflow/underflow detected! pid=%d, sp=0x%lx, base=0x%lx, top=0x%lx",
+            current_running->pid, current_running->kernel_sp,
+            current_running->kernel_stack_base, current_running->kernel_stack_top);
+        san = 0;
+    }
+    if (current_running->user_sp < current_running->user_stack_base ||
+        current_running->user_sp > current_running->user_stack_top) {
+        pretty_loge("user stack overflow/underflow detected! pid=%d, sp=0x%lx, base=0x%lx, top=0x%lx",
+            current_running->pid, current_running->user_sp,
+            current_running->user_stack_base, current_running->user_stack_top);
+        san = 0;
+    }
+    asserts(san, "stack sanity check failed");
+}
+
+const char* irq_name[IRQC_COUNT] = {
+    [IRQC_S_SOFT] = "Supervisor software interrupt",
+    [IRQC_S_TIMER] = "Supervisor timer interrupt",
+    [IRQC_S_EXT] = "Supervisor external interrupt",
+};
+
+const char* exc_name[EXCC_COUNT] = {
+    [EXCC_INST_MISALIGNED] = "Instruction address misaligned",
+    [EXCC_INST_ACCESS] = "Instruction access fault",
+    [EXCC_ILLEGAL_INST] = "Illegal instruction",
+    [EXCC_BREAKPOINT] = "Breakpoint",
+    [EXCC_LOAD_MISALIGNED] = "Load address misaligned",
+    [EXCC_LOAD_ACCESS] = "Load access fault",
+    [EXCC_STORE_MISALIGNED] = "Store/AMO address misaligned",
+    [EXCC_STORE_ACCESS] = "Store/AMO access fault",
+    [EXCC_SYSCALL] = "Environment call from U-mode",
+    [EXCC_SUPER_SYSCALL] = "Environment call from S-mode",
+    [EXCC_INST_PAGE_FAULT] = "Instruction page fault",
+    [EXCC_LOAD_PAGE_FAULT] = "Load page fault",
+    [EXCC_STORE_PAGE_FAULT] = "Store/AMO page fault",
+};
+
+const char* exception_name(int is_irq, uint64_t code) {
+    if (is_irq) {
+        if (code < IRQC_COUNT && irq_name[code]) {
+            return irq_name[code];
+        } else {
+            return "Unknown IRQ";
+        }
+    } else {
+        if (code < EXCC_COUNT && exc_name[code]) {
+            return exc_name[code];
+        } else {
+            return "Unknown Exception";
+        }
+    }
+}
+
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
+    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
+    uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
+    if (!((!is_irq) && exception_code == EXCC_SYSCALL)) { // exclude syscall
+        pretty_log(
+            LOG_DEBUG, "pid: %d, is_irq: %d, code: %lu, name: %s", current_running->pid, is_irq,
+            exception_code, exception_name(is_irq, exception_code));
+    }
+
+    stack_sanity_check();
+
     int hartid = get_current_cpu_id();
     cpu_time_t* tim = &cpu_times[hartid];
     uint64_t new_tick = get_ticks();
@@ -47,8 +114,6 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
     }
     tim->last = new_tick;
 
-    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
-    uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid, is_irq, exception_code);
     if (current_running->status == TASK_EXITED) {
         pretty_log(LOG_WARN, "current running process is exited, pid=%d", current_running->pid);

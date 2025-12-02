@@ -34,6 +34,18 @@ static void ARRTIBUTE_BOOTKERNEL map_page(uint64_t va, uint64_t pa, PTE *pgdir)
                         _PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY);
 }
 
+static void unmap_page(uint64_t va, PTE *pgdir)
+{
+    va &= VA_MASK;
+    uint64_t vpn2 =
+        va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^
+                    (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    asserts(pgdir[vpn2] != 0, "unmap_page: pgdir[vpn2] == 0");
+    PTE *pmd = (PTE *)get_pa(pgdir[vpn2]);
+    pmd[vpn1] = 0;
+}
+
 static void ARRTIBUTE_BOOTKERNEL enable_vm()
 {
     // write satp to enable paging
@@ -62,6 +74,15 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
         map_page(pa, pa, early_pgdir);
     }
     enable_vm();
+}
+
+void reset_boot_vm()
+{
+    PTE *early_pgdir = (PTE *)PGDIR_PA;
+    for (uint64_t pa = 0x50000000lu; pa < 0x51000000lu;
+         pa += 0x200000lu) {
+        unmap_page(pa, early_pgdir);
+    }
 }
 
 // extern uintptr_t _start[];

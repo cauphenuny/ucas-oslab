@@ -3,6 +3,7 @@
 #include <asm.h>
 #include <asm/unistd.h>
 #include <assert.h>
+#include <boot.h>
 #include <breakpoint.h>
 #include <common.h>
 #include <csr.h>
@@ -164,7 +165,7 @@ void read_batchfile(char* cmd, int location) { bios_sd_read((uint64_t)cmd, 1, lo
 
 spin_lock_t kernel_lock;
 
-int start;
+int initialized;
 static int batchfile_location;
 
 static void init_task_info(int argc, char** argv) {
@@ -181,16 +182,6 @@ static void init_task_info(int argc, char** argv) {
     batchfile_location = args[2];
 }
 
-const char* log_level_str[] = {
-    "[DEBUG]", "[INFO] ", "[WARN] ", "[ERROR]", "[FATAL]",
-};
-
-const char* log_level_str_color[] = {
-    COLOR_BLUE "[DEBUG]" COLOR_RESET,   COLOR_GREEN "[INFO] " COLOR_RESET,
-    COLOR_YELLOW "[WARN] " COLOR_RESET, COLOR_RED "[ERROR]" COLOR_RESET,
-    COLOR_RED "[FATAL]" COLOR_RESET,
-};
-
 /*
  * Once a CPU core calls this function,
  * it will stop executing!
@@ -198,6 +189,16 @@ const char* log_level_str_color[] = {
 static void kernel_brake(void) {
     disable_interrupt();
     while (1) __asm__ volatile("wfi");
+}
+
+int initialized;      // hart 0 r/w, hart * r
+int booted[NR_CPUS];  // [i]: hart i r/w, hart * r
+
+static bool all_booted() {
+    for (int i = 0; i < NR_CPUS; i++) {
+        if (!booted[i]) return false;
+    }
+    return true;
 }
 
 int main(int argc, char** argv) {
@@ -208,11 +209,17 @@ int main(int argc, char** argv) {
         // Init jump table provided by kernel and bios(ΦωΦ)
         init_jmptab();
 
-        // TODO: remove this
-        pretty_log(LOG_INFO, "[INIT] hart %d started with VM", hartid);
-        start = 1;
+        init_logger();
+
+        // Launch all hart (only boot to VM)
+        pretty_log(LOG_INFO, "[INIT] hart #%d booted", hartid);
+        booted[hartid] = 1;
         wakeup_other_hart();
-        kernel_brake();
+
+        // Wait for all hart to launch, then reset boot mem mapping
+        while (!all_booted());
+        pretty_log(LOG_INFO, "[INIT] All harts booted, resetting boot vm");
+        reset_boot_vm();
 
         // Check whether .bss section is set to zero
         int check = bss_check();
@@ -261,19 +268,14 @@ int main(int argc, char** argv) {
 
         reset_timer();
 
-        start = 1;
-        lock_kernel();
+        initialized = 1;
         pretty_log(LOG_INFO, "[INIT] All done! Waking up other harts");
-        wakeup_other_hart();
 
     } else {
-        while (!start);
+        pretty_log(LOG_INFO, "[INIT] hart #%d booted", hartid);
+        booted[hartid] = 1;
+        while (!initialized);
 
-        // TODO: remove this
-        pretty_log(LOG_INFO, "[INIT] hart %d started with VM", hartid);
-        kernel_brake();
-
-        lock_kernel();
         setup_exception();
         reset_timer();
         current_running = &pcb_kernel[hartid];
@@ -281,7 +283,8 @@ int main(int argc, char** argv) {
         current_running->cpu = hartid;
     }
 
-    pretty_log(LOG_INFO, "hart %d started", hartid);
+    lock_kernel();
+    pretty_log(LOG_INFO, "hart #%d launched", hartid);
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));
@@ -289,8 +292,8 @@ int main(int argc, char** argv) {
     pretty_log(LOG_INFO, "stack pointer: 0x%x", stack_pointer);
 
     asm volatile("csrw sscratch, tp");
-
     unlock_kernel();
+
     while (true) {
         enable_preempt();
         asm volatile("wfi");

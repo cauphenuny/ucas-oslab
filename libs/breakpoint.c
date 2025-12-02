@@ -1,6 +1,6 @@
 #include "breakpoint.h"
 
-#define BREAKPOINT_CNT_LOC 0x5ffffffc  // watch in .gdbinit
+#define BREAKPOINT_CNT_LOC 0xffffffc05ffffffc  // watch in .gdbinit
 
 static inline __attribute__((__always_inline__)) void breakpoint_trigger(breakpoint_level_t level) {
     if (level <= BRK_LEVEL) {

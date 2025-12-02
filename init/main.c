@@ -168,18 +168,18 @@ spin_lock_t kernel_lock;
 int initialized;
 static int batchfile_location;
 
-static void init_task_info(int argc, char** argv) {
+static void init_task_info(int argc, char** physical_argv) {
     // INFO:
     // argc: argc
     // argv+0: int task_num
     // argv+8: task_info_t* task_info
     // argv+16: int batchfile_location
     asserts(argc == 3, "invalid argc");
-    uint64_t* args = (void*)argv;
-    task_num = args[0];
-    task_info_t* task_info = (task_info_t*)args[1];
-    memcpy((void*)tasks, (void*)task_info, sizeof(task_info_t) * task_num);
-    batchfile_location = args[2];
+    uint64_t* argv = (void*)pa2kva((intptr_t)physical_argv);
+    task_num = argv[0];
+    uintptr_t physical_task_info = argv[1];
+    memcpy((void*)tasks, (void*)pa2kva(physical_task_info), sizeof(task_info_t) * task_num);
+    batchfile_location = argv[2];
 }
 
 /*

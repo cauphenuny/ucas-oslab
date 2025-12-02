@@ -42,7 +42,7 @@ static void unmap_page(uint64_t va, PTE *pgdir)
     uint64_t vpn1 = (vpn2 << PPN_BITS) ^
                     (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
     asserts(pgdir[vpn2] != 0, "unmap_page: pgdir[vpn2] == 0");
-    PTE *pmd = (PTE *)get_pa(pgdir[vpn2]);
+    PTE *pmd = (PTE *)pa2kva(get_pa(pgdir[vpn2]));
     pmd[vpn1] = 0;
 }
 
@@ -78,20 +78,20 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
 
 void reset_boot_vm()
 {
-    PTE *early_pgdir = (PTE *)PGDIR_PA;
+    PTE *kernel_pgdir = (PTE *)PGDIR_VA;
     for (uint64_t pa = 0x50000000lu; pa < 0x51000000lu;
          pa += 0x200000lu) {
-        unmap_page(pa, early_pgdir);
+        unmap_page(pa, kernel_pgdir);
     }
 }
 
 // extern uintptr_t _start[];
 extern void (*_start)(int argc, char** argv);
 
-typedef void (*kernel_entry_t)(int argc, char** argv);
+typedef void (*kernel_entry_t)(int argc, intptr_t argv);
 
 /*********** start here **************/
-int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, char** argv)
+int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, intptr_t argv)
 {
     if (mhartid == 0) {
         setup_vm();

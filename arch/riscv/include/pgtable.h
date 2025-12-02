@@ -75,6 +75,8 @@ static inline void set_satp(
 typedef uint64_t PTE;
 
 #define KERNEL_ADDR_TAG 0xffffffc000000000lu
+#define PGDIR_VA (PGDIR_PA | KERNEL_ADDR_TAG)
+
 #define VA_EFFECTIVE_MASK ((1lu << 38) - 1)
 
 #define PA_TOP 0x60000000lu

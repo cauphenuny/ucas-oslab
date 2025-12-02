@@ -1,6 +1,7 @@
 #ifndef _INCLUDE_LOG_H_
 #define _INCLUDE_LOG_H_
 
+#include <os/lock.h>
 #include <breakpoint.h>
 #include <common.h>
 #include <printk.h>
@@ -24,11 +25,15 @@ enum {
 extern const char* log_level_str[];
 extern const char* log_level_str_color[];
 
+extern spin_lock_t logger_lock;
+
 #define pretty_log(level, fmt, ...)                                                                \
     do {                                                                                           \
+        spin_lock_acquire(&logger_lock);                                                           \
         printl(                                                                                    \
             "%s " COLOR_BLACK "%d|%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
             get_current_cpu_id(), __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
+        spin_lock_release(&logger_lock);                                                           \
     } while (0)
 
 #define pretty_loge(fmt, ...)                      \
@@ -37,10 +42,24 @@ extern const char* log_level_str_color[];
         breakpoint();                              \
     } while (0)
 
-#define pretty_ilog(level, fmt, ...)                                                              \
-    do {                                                                                          \
-        pretty_log(level, fmt, ##__VA_ARGS__);                                                    \
-        printk("%s %s:%d: \t" fmt "\n", log_level_str[level], __FILE__, __LINE__, ##__VA_ARGS__); \
+#define pretty_logi(fmt, ...)                      \
+    do {                                           \
+        pretty_log(LOG_INFO, fmt, ##__VA_ARGS__); \
+        breakpoint();                              \
     } while (0)
+
+#define pretty_logd(fmt, ...)                      \
+    do {                                           \
+        pretty_log(LOG_DEBUG, fmt, ##__VA_ARGS__); \
+        breakpoint();                              \
+    } while (0)
+
+#define pretty_logw(fmt, ...)                      \
+    do {                                           \
+        pretty_log(LOG_WARN, fmt, ##__VA_ARGS__); \
+        breakpoint();                              \
+    } while (0)
+
+extern void init_logger();
 
 #endif

@@ -187,6 +187,7 @@ static void init_task_info(int argc, char** physical_argv) {
  * it will stop executing!
  */
 static void kernel_brake(void) {
+    pretty_log(LOG_INFO, "brake hart #%d", get_current_cpu_id());
     disable_interrupt();
     while (1) __asm__ volatile("wfi");
 }
@@ -218,18 +219,13 @@ int main(int argc, char** argv) {
 
         // Wait for all hart to launch, then reset boot mem mapping
         while (!all_booted());
-        pretty_log(LOG_INFO, "[INIT] All harts booted, resetting boot vm");
+        pretty_log(LOG_INFO, "[INIT] All harts booted");
         reset_boot_vm();
+        pretty_log(LOG_INFO, "[INIT] Boot memory unmapped");
 
         // Check whether .bss section is set to zero
         int check = bss_check();
         asserts(check, ".bss check failed");
-
-        init_task_info(argc, argv);
-
-        pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
-        pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
-        pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
@@ -259,17 +255,18 @@ int main(int argc, char** argv) {
         init_screen();
         pretty_log(LOG_INFO, "[INIT] SCREEN initialization succeeded.");
 
-        // DONE: [p2-task4] Setup timer interrupt and enable all interrupt globally
-        // NOTE: The function of sstatus.sie is different from sie's
+        // Init task info
+        init_task_info(argc, argv);
+        pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
+        pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
+        pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
 
-        task_info_t* shell_task = find_task("shell");
-        do_exec("shell", shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
-        pretty_log(LOG_INFO, "[INIT] Created shell process.");
+        // task_info_t* shell_task = find_task("shell");
+        // do_exec("shell", shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
+        // pretty_log(LOG_INFO, "[INIT] Created shell process.");
 
-        reset_timer();
-
+        pretty_log(LOG_INFO, "[INIT] All done! Notifying other harts to continue...");
         initialized = 1;
-        pretty_log(LOG_INFO, "[INIT] All done! Waking up other harts");
 
     } else {
         pretty_log(LOG_INFO, "[INIT] hart #%d booted", hartid);
@@ -277,14 +274,13 @@ int main(int argc, char** argv) {
         while (!initialized);
 
         setup_exception();
-        reset_timer();
         current_running = &pcb_kernel[hartid];
         current_running->status = TASK_RUNNING;
         current_running->cpu = hartid;
     }
 
-    lock_kernel();
     pretty_log(LOG_INFO, "hart #%d launched", hartid);
+    kernel_brake();
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));
@@ -292,7 +288,8 @@ int main(int argc, char** argv) {
     pretty_log(LOG_INFO, "stack pointer: 0x%x", stack_pointer);
 
     asm volatile("csrw sscratch, tp");
-    unlock_kernel();
+
+    reset_timer();
 
     while (true) {
         enable_preempt();

@@ -23,7 +23,7 @@ void mutex_init(mutex_lock_t* mlock) {
 }
 
 void init_locks(void) {
-    /* TODO: [p2-task2] initialize mlocks */
+    /* DONE: [p2-task2] initialize mlocks */
     spin_lock_init(&kernel_lock);
     for (int i = 0; i < LOCK_NUM; i++) {
         mlock_ref[i] = 0;
@@ -31,12 +31,12 @@ void init_locks(void) {
 }
 
 void spin_lock_init(spin_lock_t* lock) {
-    /* TODO: [p2-task2] initialize spin lock */
+    /* DONE: [p2-task2] initialize spin lock */
     lock->status = UNLOCKED;
 }
 
 int spin_lock_try_acquire(spin_lock_t* lock) {
-    /* TODO: [p2-task2] try to acquire spin lock */
+    /* DONE: [p2-task2] try to acquire spin lock */
     /**
      * @brief Atomically compare and exchange a value.
      *
@@ -82,17 +82,17 @@ int spin_lock_try_acquire(spin_lock_t* lock) {
 }
 
 void spin_lock_acquire(spin_lock_t* lock) {
-    /* TODO: [p2-task2] acquire spin lock */
+    /* DONE: [p2-task2] acquire spin lock */
 
-    while (atomic_cmpxchg(UNLOCKED, LOCKED, (ptr_t)&lock->status) != UNLOCKED);
+    // FIXME: check this
     // WARN: check failure order
-    // lock_status_t expected = UNLOCKED;
-    // while (!__atomic_compare_exchange_n(
-    //     &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+    lock_status_t expected = UNLOCKED;
+    while (!__atomic_compare_exchange_n(
+    &lock->status, &expected, LOCKED, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
 }
 
 void spin_lock_release(spin_lock_t* lock) {
-    /* TODO: [p2-task2] release spin lock */
+    /* DONE: [p2-task2] release spin lock */
     __atomic_store_n(&lock->status, UNLOCKED, __ATOMIC_SEQ_CST);
 }
 
@@ -135,7 +135,7 @@ void cleanup_mutexes(pid_t pid) {
 }
 
 int do_mutex_lock_init(int key) {
-    /* TODO: [p2-task2] initialize mutex lock */
+    /* DONE: [p2-task2] initialize mutex lock */
     int pcb_index = get_pcb_index(current_running->pid);
     int id = -1;
     for (int i = 0; id == -1 && i < LOCK_NUM; i++) {
@@ -181,7 +181,7 @@ void mutex_acquire(mutex_lock_t* mutex) {
 }
 
 void do_mutex_lock_acquire(int mlock_idx) {
-    /* TODO: [p2-task2] acquire mutex lock */
+    /* DONE: [p2-task2] acquire mutex lock */
     pretty_log(LOG_INFO, "pid %d trying to acquire mutex lock %d", current_running->pid, mlock_idx);
     if (mlock_idx < 0 || mlock_idx >= LOCK_NUM) {
         pretty_loge("mutex lock index %d out of range!", mlock_idx);
@@ -191,7 +191,7 @@ void do_mutex_lock_acquire(int mlock_idx) {
 }
 
 void do_mutex_lock_release(int mlock_idx) {
-    /* TODO: [p2-task2] release mutex lock */
+    /* DONE: [p2-task2] release mutex lock */
     if (mlock_idx < 0 || mlock_idx >= LOCK_NUM) {
         pretty_loge("mutex lock index %d out of range!", mlock_idx);
         return;

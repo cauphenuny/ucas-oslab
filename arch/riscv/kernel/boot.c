@@ -88,10 +88,10 @@ void reset_boot_vm()
 // extern uintptr_t _start[];
 extern void (*_start)(int argc, char** argv);
 
-typedef void (*kernel_entry_t)(int argc, intptr_t argv);
+typedef void (*kernel_entry_t)(int argc, ptr_t argv);
 
 /*********** start here **************/
-int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, intptr_t argv)
+int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, ptr_t argv)
 {
     if (mhartid == 0) {
         setup_vm();

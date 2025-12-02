@@ -10,3 +10,4 @@ config.mk
 build
 *.txtt4
 createimage
+.gdbinit

@@ -12,7 +12,7 @@ ENTRY(setup_exception)
 
   /* DONE: [p2-task4] enable interrupts globally */
 
-  li   t0, 0x22 # SIE | SPIE
+  li   t0, (SR_SPIE|SR_SUM)
   csrs sstatus, t0
 
   jr ra

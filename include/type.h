@@ -38,6 +38,8 @@ typedef int bool;
     #define false  0
 #endif
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 #else // __cplusplus
 
 #define NULL nullptr
@@ -66,6 +68,7 @@ typedef uint64_t ptr_t;
 typedef uint64_t uintptr_t;
 typedef int64_t intptr_t;
 typedef uint64_t size_t;
+typedef int64_t ssize_t;
 
 /* Minimum of signed integral types.  */
 # define INT8_MIN               (-128)

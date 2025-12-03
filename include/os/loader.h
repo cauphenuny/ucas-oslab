@@ -4,6 +4,7 @@
 #include <os/task.h>
 #include <type.h>
 
-uint64_t load_task_img(task_info_t task);
+uintptr_t create_task_pgdir(const task_info_t* task);
+uint64_t load_task_img(const task_info_t* task, uintptr_t pgdir);
 
 #endif

@@ -1,11 +1,21 @@
 #include <os/kernel.h>
+#include <os/loader.h>
+#include <os/mm.h>
 #include <os/string.h>
 #include <os/task.h>
+#include <logger.h>
 #include <type.h>
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
+uintptr_t create_task_pgdir(const task_info_t* task) {
+    uintptr_t pgdir = new_pgdir();
+    pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
+    for (uintptr_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
+        alloc_page_helper(va, pgdir);
+    }
+    return pgdir;
+}
 
-uint64_t load_task_img(task_info_t task) {
+uint64_t load_task_img(const task_info_t* task, uintptr_t pgdir) {
     /**
      * DONE:
      * 1. [p1-task3] load task from image via task id, and return its entrypoint
@@ -14,23 +24,21 @@ uint64_t load_task_img(task_info_t task) {
 
     uint8_t buffer[SECTOR_SIZE];
 
-    uint64_t dest = task.entrance;
-    int offset = task.phyaddr_start % SECTOR_SIZE;
-    int src_blockid = task.phyaddr_start / SECTOR_SIZE;
-    int aligned_phyaddr = task.phyaddr_start - offset;
-    int nblocks = NBYTES2SEC(task.phyaddr_end - aligned_phyaddr);
-    int sum_len = task.phyaddr_end - task.phyaddr_start;
+    uint64_t dest = task->entrance;
+    int offset = task->phyaddr % SECTOR_SIZE;
+    int src_blockid = task->phyaddr / SECTOR_SIZE;
+    int aligned_phyaddr = task->phyaddr - offset;
+    int nblocks = NBYTES2SEC((task->phyaddr + task->filesize) - aligned_phyaddr);
+    int sum_len = task->filesize;
 
     for (int i = 0; i < nblocks; i++) {
         bios_sd_read((uint64_t)buffer, 1, src_blockid + i);
         int delta_len = min(sum_len, SECTOR_SIZE - offset);
-        memcpy((void*)dest, buffer + offset, delta_len);
+        memcpy_kva2uva(dest, (uintptr_t)(buffer + offset), delta_len, pgdir);
         dest += delta_len;
         sum_len -= delta_len;
         offset = 0;
     }
-    // bios_sd_read(LOAD_TEMP_ADDR, nblocks, src_blockid);
-    // memcpy((void*)dest, (void*)LOAD_TEMP_ADDR + offset, task.phyaddr_end - task.phyaddr_start);
-    // bios_putstr("Loaded.\n");
-    return task.entrance;
+
+    return task->entrance;
 }

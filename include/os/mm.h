@@ -46,6 +46,8 @@ extern ptr_t allocPage(int numPage);
 // TODO [P4-task1] */
 void freePage(ptr_t baseAddr);
 
+extern ptr_t new_pgdir();
+
 // #define S_CORE
 // NOTE: only need for S-core to alloc 2MB large page
 #ifdef S_CORE
@@ -57,7 +59,9 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
-// TODO [P4-task1] */
+// NOTE: all pgdir param are in kernel virtmem space
+
+// DONE [P4-task1] */
 extern void* kmalloc(size_t size);
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
@@ -66,6 +70,11 @@ extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
 uintptr_t shm_page_get(int key);
 void shm_page_dt(uintptr_t addr);
 
+// NOTE: assume use 3-level page table
+uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir);
+
+void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest);
+void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest);
 
 
 #endif /* MM_H */

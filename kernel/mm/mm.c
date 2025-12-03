@@ -87,3 +87,36 @@ void shm_page_dt(uintptr_t addr)
 {
     // TODO [P4-task4] shm_page_dt:
 }
+
+uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir) {
+    uva &= VA_MASK;
+    uint64_t vpn2 = uva >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+    uint64_t vpn1 = (vpn2 << PPN_BITS) ^ (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+    uint64_t vpn0 = ((vpn2 << (PPN_BITS + PPN_BITS)) + (vpn1 << PPN_BITS)) ^ (uva >> NORMAL_PAGE_SHIFT);
+    PTE* current_pgdir = (PTE*)pgdir;
+    asserts(get_attribute(current_pgdir[vpn2], _PAGE_PRESENT), "uva2kva: vpn2 not present");
+    current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
+    asserts(get_attribute(current_pgdir[vpn1], _PAGE_PRESENT), "uva2kva: vpn1 not present");
+    current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
+    asserts(get_attribute(current_pgdir[vpn0], _PAGE_PRESENT), "uva2kva: vpn0 not present");
+    uintptr_t page_base = pa2kva(get_pa(current_pgdir[vpn0]));
+    return page_base + (uva & (PAGE_SIZE - 1));
+}
+
+void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest) {
+    while (size) {
+        uintptr_t dest_kva = uva2kva(dest_va, pgdir_dest);
+        uintptr_t dest_page_end = ((dest_kva >> NORMAL_PAGE_SHIFT) + 1) << NORMAL_PAGE_SHIFT;
+        size_t capacity = dest_page_end - dest_kva;
+        size_t active = min(size, capacity);
+        memcpy((void*)dest_kva, (void*)src, active);
+        size -= active;
+        dest_va += active;
+        src += active;
+    }
+}
+
+void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest) {
+    size_t len = strlen(src) + 1;
+    memcpy_kva2uva(dest_va, (uintptr_t)src, len, pgdir_dest);
+}

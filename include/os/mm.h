@@ -76,5 +76,8 @@ uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir);
 void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest);
 void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest);
 
+void open_user_memory();
+void close_user_memory();
+
 
 #endif /* MM_H */

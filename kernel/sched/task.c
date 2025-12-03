@@ -1,7 +1,7 @@
-#include <os/loader.h>
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
+#include <os/loader.h>
 #include <os/mm.h>
 #include <os/sched.h>
 #include <os/string.h>
@@ -89,7 +89,8 @@ void init_pcb_stack(
         int len = strlen(argv[i]) + 1;
         user_stack -= len;
         strcpy_kva2uva(user_stack, argv[i], pcb->pgdir);
-        memcpy_kva2uva((intptr_t)&user_argv[i], (intptr_t)&user_stack, sizeof(user_stack), pcb->pgdir);
+        memcpy_kva2uva(
+            (intptr_t)&user_argv[i], (intptr_t)&user_stack, sizeof(user_stack), pcb->pgdir);
     }
     user_stack -= user_stack % SP_ALIGNMENT;
 
@@ -105,8 +106,9 @@ void init_pcb_stack(
     pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
 }
 
-pcb_t*
-construct_pcb(const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem, int user_mem) {
+pcb_t* construct_pcb(
+    const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem,
+    int user_mem) {
     pretty_log(LOG_DEBUG, "constructing pcb for task %s", task->name);
     pcb_t* pcb = alloc_pcb();
     if (!pcb) return NULL;
@@ -117,6 +119,8 @@ construct_pcb(const task_info_t* task, uint64_t entrance, int argc, char* argv[]
     pcb->pgdir = create_task_pgdir(task);
     share_pgtable(pcb->pgdir, PGDIR_VA);
     pretty_logi("shared pgtable for task %s", task->name);
+    load_task_img(task, pcb->pgdir);
+    pretty_logi("loaded task image for task %s", task->name);
 
     ptr_t kernel_stack_bottom = allocPage(kernel_mem),
           kernel_stack_base = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
@@ -134,7 +138,7 @@ construct_pcb(const task_info_t* task, uint64_t entrance, int argc, char* argv[]
     strcpy(pcb->name, task->name);
     list_init(&pcb->child_list, "child_list");
     pcb->kernel_stack_base = kernel_stack_base;
-    pcb->kernel_stack_bottom  = kernel_stack_bottom;
+    pcb->kernel_stack_bottom = kernel_stack_bottom;
     pcb->user_stack_base = user_stack_base;
     pcb->user_stack_bottom = user_stack_bottom;
     init_pcb_stack(pcb, kernel_stack_base, user_stack_base, entrance, argc, argv);

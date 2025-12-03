@@ -72,6 +72,8 @@ static void init_pcb(void) {
             .user_sp = 0,
             .kernel_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * i,
             .kernel_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .user_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .user_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
             .pgdir = PGDIR_VA,
             .pid = i,
             .status = TASK_READY,
@@ -279,7 +281,6 @@ int main(int argc, char** argv) {
     }
 
     pretty_log(LOG_INFO, "hart #%d launched", hartid);
-    kernel_brake();
 
     reg_t stack_pointer;
     asm volatile("mv %0, sp" : "=r"(stack_pointer));
@@ -288,6 +289,7 @@ int main(int argc, char** argv) {
 
     asm volatile("csrw sscratch, tp");
 
+    enable_interrupt();
     reset_timer();
 
     while (true) {

@@ -10,9 +10,9 @@
 #include <os/string.h>
 #include <os/task.h>
 #include <os/time.h>
+#include <pgtable.h>
 #include <printk.h>
 #include <screen.h>
-#include <pgtable.h>
 
 pcb_t pcb_kernel[NR_CPUS];
 pcb_t pcb_user[NUM_MAX_TASK];
@@ -219,17 +219,21 @@ void do_scheduler(void) {
     // print_pcb_list(&ready_queue);
     pcb_t* next_running = pick_process();
     list_delete(&next_running->sched_node);
-    // pretty_log(
-    //     LOG_INFO, "switch from pid %d(%s) to pid %d(%s).", current_running->pid,
-    //     current_running->name, next_running->pid, next_running->name);
+    // pretty_logi(
+    //     "switch from pid %d(%s) to pid %d(%s).", current_running->pid, current_running->name,
+    //     next_running->pid, next_running->name);
     next_running->status = TASK_RUNNING;
+
+    set_satp(SATP_MODE_SV39, next_running->pid, kva2pa(next_running->pgdir) >> NORMAL_PAGE_SHIFT);
+    local_flush_tlb_all();
+    // pretty_log(
+    //     LOG_INFO, "satp set to pid %d pgdir 0x%x", next_running->pid, kva2pa(next_running->pgdir));
 
     // DONE: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
+
     screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
     current_running->cpu = get_current_cpu_id();
-    set_satp(SATP_MODE_SV39, current_running->pid, kva2pa(current_running->pgdir) >> NORMAL_PAGE_SHIFT);
-    local_flush_tlb_all();
 
     // breakpoint();
 }
@@ -313,7 +317,8 @@ void attach_subprocess(pcb_t* parent, pcb_t* child) {
     child->parent = parent;
 }
 
-pid_t do_exec(const task_info_t* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
+pid_t do_exec(
+    const task_info_t* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
     pretty_log(LOG_DEBUG, "handling exec for %s", task->name);
     pcb_t* pcb = construct_pcb(task, entrance, argc, argv, 2, 8);
     if (!pcb) {

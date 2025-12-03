@@ -36,18 +36,18 @@ void show_cputime()
 
 static void stack_sanity_check() {
     int san = 1;
-    if (current_running->kernel_sp < current_running->kernel_stack_base ||
-        current_running->kernel_sp > current_running->kernel_stack_top) {
-        pretty_loge("kernel stack overflow/underflow detected! pid=%d, sp=0x%lx, base=0x%lx, top=0x%lx",
+    if (current_running->kernel_sp > current_running->kernel_stack_base ||
+        current_running->kernel_sp < current_running->kernel_stack_bottom) {
+        pretty_loge("kernel stack overflow/underflow detected! pid=%d, sp=0x%lx, high=0x%lx, low=0x%lx",
             current_running->pid, current_running->kernel_sp,
-            current_running->kernel_stack_base, current_running->kernel_stack_top);
+            current_running->kernel_stack_base, current_running->kernel_stack_bottom);
         san = 0;
     }
     if (current_running->user_sp < current_running->user_stack_base ||
-        current_running->user_sp > current_running->user_stack_top) {
-        pretty_loge("user stack overflow/underflow detected! pid=%d, sp=0x%lx, base=0x%lx, top=0x%lx",
+        current_running->user_sp > current_running->user_stack_bottom) {
+        pretty_loge("user stack overflow/underflow detected! pid=%d, sp=0x%lx, high=0x%lx, low=0x%lx",
             current_running->pid, current_running->user_sp,
-            current_running->user_stack_base, current_running->user_stack_top);
+            current_running->user_stack_base, current_running->user_stack_bottom);
         san = 0;
     }
     asserts(san, "stack sanity check failed");
@@ -96,8 +96,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
     int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     if (!((!is_irq) && exception_code == EXCC_SYSCALL)) { // exclude syscall
-        pretty_log(
-            LOG_DEBUG, "pid: %d, is_irq: %d, code: %lu, name: %s", current_running->pid, is_irq,
+        pretty_loge("pid: %d, is_irq: %d, code: %lu, name: %s", current_running->pid, is_irq,
             exception_code, exception_name(is_irq, exception_code));
     }
 

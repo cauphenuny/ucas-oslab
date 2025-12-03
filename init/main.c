@@ -70,13 +70,12 @@ static void init_pcb(void) {
         pcb_kernel[i] = (pcb_t){
             .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
             .user_sp = 0,
-            .kernel_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * i,
-            .kernel_stack_top = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .kernel_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .kernel_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
             .pgdir = PGDIR_VA,
             .pid = i,
             .status = TASK_READY,
             .affinity = 1 << i,
-            .user_stack_top = 0,
         };
         strcpy(pcb_kernel[i].name, "init");
         list_init(&pcb_kernel[i].wait_list, "proc");
@@ -261,9 +260,9 @@ int main(int argc, char** argv) {
         pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
         pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
 
-        // task_info_t* shell_task = find_task("shell");
-        // do_exec("shell", shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
-        // pretty_log(LOG_INFO, "[INIT] Created shell process.");
+        task_info_t* shell_task = find_task("shell");
+        do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
+        pretty_log(LOG_INFO, "[INIT] Created shell process.");
 
         pretty_log(LOG_INFO, "[INIT] All done! Notifying other harts to continue...");
         initialized = 1;

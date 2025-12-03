@@ -81,6 +81,7 @@ void freePage(ptr_t baseAddr) {
     asserts(entry_id <= id, "freePage: corrupted start_addr");
     pretty_logd("free page block at addr 0x%x", kva2pa(entry));
     for (int i = entry_id; start_addr[i] == entry; i = (i + 1) % MAX_PAGE_NUM) {
+        pretty_logd("  free page #%d", i);
         start_addr[i] = 0;
     }
 }
@@ -220,6 +221,8 @@ void use_kernel_satp() {
     local_flush_tlb_all();
 }
 
+// NOTE: this function is dangerous, make sure pcb is not running
 void cleanup_vm(pcb_t* pcb) {
     free_pgdir(pcb->pgdir);
+    freePage(pcb->kernel_stack_bottom);
 }

@@ -62,21 +62,28 @@ long sys_yield(void) {
     return 0;
 }
 
-long sys_exec_with_affinity(char* name, int argc, char* argv[], int affinity) {
+long exec_dispatch(char* name, int argc, char* argv[], uint64_t entrance, int affinity) {
     task_info_t* task = find_task(name);
     if (!task) {
         pretty_log(LOG_WARN, "exec %s failed: task not found!", name);
         return 0;
     }
-    return do_exec(name, task->entrance, argc, argv, affinity);
+    if (entrance == -1) {
+        entrance = task->entrance;
+    }
+    return do_exec(task, entrance, argc, argv, affinity);
+}
+
+long sys_exec_with_affinity(char* name, int argc, char* argv[], int affinity) {
+    return exec_dispatch(name, argc, argv, -1, affinity);
 }
 
 long sys_exec(char* name, int argc, char* argv[]) {
-    return sys_exec_with_affinity(name, argc, argv, current_running->affinity);
+    return exec_dispatch(name, argc, argv, -1, current_running->affinity);
 }
 
 long sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]) {
-    return do_exec(name, entrance, argc, argv, current_running->affinity);
+    return exec_dispatch(name, argc, argv, entrance, current_running->affinity);
 }
 
 long sys_set_affinity(int pid, unsigned affinity_mask) {

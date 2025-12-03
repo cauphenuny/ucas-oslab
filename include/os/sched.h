@@ -123,10 +123,10 @@ typedef struct pcb {
     ptr_t pgdir;
 
     /* process memory info */
-    ptr_t kernel_stack_base;
+    ptr_t kernel_stack_base; // base: highest address
     ptr_t user_stack_base;
-    ptr_t kernel_stack_top;
-    ptr_t user_stack_top;
+    ptr_t kernel_stack_bottom; // bottom: lowest address
+    ptr_t user_stack_bottom;
 
     /* previous, next pointer */
     list_node_t sched_node;  // NOTE: used for scheduling queues, only able to be in one queue
@@ -201,13 +201,15 @@ int set_process_nice(int nice, int pid);
 void log_pcb_list(const list_t* queue);
 void show_process_tree();
 
+struct task_info;
+
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
 extern pid_t
-do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask);
+do_exec(const struct task_info* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

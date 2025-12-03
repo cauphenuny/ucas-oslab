@@ -12,6 +12,7 @@
 #include <os/time.h>
 #include <printk.h>
 #include <screen.h>
+#include <pgtable.h>
 
 pcb_t pcb_kernel[NR_CPUS];
 pcb_t pcb_user[NUM_MAX_TASK];
@@ -227,6 +228,8 @@ void do_scheduler(void) {
     switch_to(current_running, next_running);
     screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
     current_running->cpu = get_current_cpu_id();
+    set_satp(SATP_MODE_SV39, current_running->pid, kva2pa(current_running->pgdir) >> NORMAL_PAGE_SHIFT);
+    local_flush_tlb_all();
 
     // breakpoint();
 }
@@ -310,14 +313,14 @@ void attach_subprocess(pcb_t* parent, pcb_t* child) {
     child->parent = parent;
 }
 
-pid_t do_exec(const char* name, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
-    pretty_log(LOG_DEBUG, "handling exec for %s", name);
-    pcb_t* pcb = construct_pcb(name, entrance, argc, argv, 2, 8);
+pid_t do_exec(const task_info_t* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
+    pretty_log(LOG_DEBUG, "handling exec for %s", task->name);
+    pcb_t* pcb = construct_pcb(task, entrance, argc, argv, 2, 8);
     if (!pcb) {
-        pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", name);
+        pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", task->name);
         return 0;
     }
-    pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
+    pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", task->name, pcb->pid);
     set_proc_affinity(pcb, affinity_mask);
     list_append(&ready_queue, &pcb->sched_node);
     attach_subprocess(current_running, pcb);
@@ -395,11 +398,11 @@ int do_process_show() {
         }
         screen_move_cursor_col(AFF_SUM);
 
-        printkf("%d", proc->kernel_stack_top - proc->kernel_sp);
+        printkf("%d", proc->kernel_stack_base - proc->kernel_sp);
         screen_move_cursor_col(MEM_SUM);
 
         if (proc->pid >= NR_CPUS) {
-            printkf("%d", proc->user_stack_top - proc->user_sp);
+            printkf("%d", proc->user_stack_base - proc->user_sp);
         } else {
             printkf("N/A");
         }

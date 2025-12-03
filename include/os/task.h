@@ -11,7 +11,7 @@
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
 /* TODO: [p1-task4] implement your own task_info_t! */
-typedef struct {
+typedef struct task_info {
     char name[16];
     int phyaddr;  // on SD-card
     int filesize;
@@ -25,10 +25,9 @@ extern task_info_t tasks[TASK_MAXNUM];
 task_info_t* find_task(const char* name);
 void show_tasks();
 void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra);
-void init_pcb_stack(
-    pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv);
 pcb_t* construct_pcb(
-    const char* name, ptr_t entrance, int argc, char* argv[], int kernel_mem, int user_mem);
+    const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem,
+    int user_mem);
 int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask);
 
 #endif

@@ -131,7 +131,7 @@ static void create_image(int nfiles, char* files[]) {
             }
 
             if (taskidx >= 0) {
-                assert(!taskinfo[taskidx].memsize, "multiple load segment");
+                assert(!taskinfo[taskidx].memsize);
                 taskinfo[taskidx].memsize = phdr.p_memsz;
             }
         }

@@ -4,12 +4,46 @@
 
 // NOTE: A/C-core
 static ptr_t kernMemCurr = FREEMEM_KERNEL;
+#define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
+static ptr_t start_addr[MAX_PAGE_NUM] = {0}; // stores first page's base addr
+
+static int page_id(ptr_t addr) {
+    return (addr - FREEMEM_KERNEL) / PAGE_SIZE;
+}
+
+static ptr_t page_addr(int id) {
+    return FREEMEM_KERNEL + id * PAGE_SIZE;
+}
 
 ptr_t allocPage(int numPage) {
     // align PAGE_SIZE
-    ptr_t ret = ROUND(kernMemCurr, PAGE_SIZE);
-    kernMemCurr = ret + numPage * PAGE_SIZE;
-    return ret;
+    int counter = 0;
+    while (counter < MAX_PAGE_NUM) {
+        ptr_t ret = ROUND(kernMemCurr, PAGE_SIZE);
+        int id = page_id(ret);
+        bool available = true;
+        for (int i = 0; i < numPage; i++) {
+            if (id + i >= MAX_PAGE_NUM || start_addr[id + i]) {
+                available = false;
+                break;
+            }
+        }
+        if (available) {
+            kernMemCurr += numPage * PAGE_SIZE;
+            for (int i = 0; i < numPage; i++) {
+                start_addr[id + i] = ret;
+            }
+            return ret;
+        } else {
+            kernMemCurr += PAGE_SIZE;
+            if (kernMemCurr >= ALLMEM_KERNEL) {
+                kernMemCurr = FREEMEM_KERNEL;
+            }
+        }
+        counter++;
+    }
+    asserts(false, "allocPage: out of memory");
+    return 0;
 }
 
 ptr_t new_pgdir() {
@@ -30,7 +64,14 @@ ptr_t allocLargePage(int numPage) {
 #endif
 
 void freePage(ptr_t baseAddr) {
-    // TODO [P4-task1] (design you 'freePage' here if you need):
+    int id = page_id(baseAddr); 
+    asserts(id >= 0 && id < MAX_PAGE_NUM, "freePage: invalid addr");
+    asserts(start_addr[id], "freePage: double free detected");
+    int first_id = page_id(start_addr[id]);
+    asserts(first_id <= id, "freePage: corrupted start_addr");
+    for (int i = first_id; i <= id; i++) {
+        start_addr[i] = 0;
+    }
 }
 
 void* kmalloc(size_t size) {
@@ -68,10 +109,9 @@ void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir) {
    */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir) {
     va &= VA_MASK;
-    uint64_t vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
-    uint64_t vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-    uint64_t vpn0 =
-        ((vpn2 << (PPN_BITS + PPN_BITS)) + (vpn1 << PPN_BITS)) ^ (va >> NORMAL_PAGE_SHIFT);
+    uint64_t vpn2 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
+    uint64_t vpn1 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
+    uint64_t vpn0 = (va >> NORMAL_PAGE_SHIFT) & VPN_MASK;
     PTE* current_pgdir = (PTE*)pgdir;
     if (current_pgdir[vpn2] == 0) clear_pgdir(add_page(vpn2, current_pgdir, 0));
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
@@ -95,10 +135,9 @@ void shm_page_dt(uintptr_t addr) {
 
 uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir) {
     uva &= VA_MASK;
-    uint64_t vpn2 = uva >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
-    uint64_t vpn1 = (vpn2 << PPN_BITS) ^ (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-    uint64_t vpn0 =
-        ((vpn2 << (PPN_BITS + PPN_BITS)) + (vpn1 << PPN_BITS)) ^ (uva >> NORMAL_PAGE_SHIFT);
+    uint64_t vpn2 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
+    uint64_t vpn1 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
+    uint64_t vpn0 = (uva >> NORMAL_PAGE_SHIFT) & VPN_MASK;
     PTE* current_pgdir = (PTE*)pgdir;
     asserts(get_attribute(current_pgdir[vpn2], _PAGE_PRESENT), "uva2kva: vpn2 not present");
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));

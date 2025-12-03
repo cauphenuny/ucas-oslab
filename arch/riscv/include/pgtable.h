@@ -72,6 +72,8 @@ static inline void set_satp(
 #define PPN_BITS 9lu
 #define NUM_PTE_ENTRY (1 << PPN_BITS)
 
+#define VPN_MASK ((1lu << PPN_BITS) - 1)
+
 typedef uint64_t PTE;
 
 #define KERNEL_ADDR_TAG 0xffffffc000000000lu

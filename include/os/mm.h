@@ -37,6 +37,7 @@
 #define PTE_ENTRY_NUM (PAGE_SIZE / sizeof(PTE))
 #define INIT_KERNEL_STACK 0xffffffc052000000
 #define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE * NR_CPUS)
+#define ALLMEM_KERNEL 0xffffffc060000000
 
 /* Rounding; only works for n = power of two */
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))

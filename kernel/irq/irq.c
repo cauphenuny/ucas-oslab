@@ -110,9 +110,9 @@ void interrupt_helper(regs_context_t* regs, uint64_t stval, uint64_t scause) {
 
     // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid,
     // is_irq, exception_code);
-    if (current_running->status == TASK_EXITED) {
-        pretty_log(LOG_WARN, "current running process is exited, pid=%d", current_running->pid);
-        do_scheduler();
+    if (current_running->status == TASK_KILLED) {
+        pretty_log(LOG_WARN, "current running process is killed, pid=%d", current_running->pid);
+        do_exit();
     }
     if (!((is_irq && exception_code < IRQC_COUNT) || (~is_irq && exception_code < EXCC_COUNT))) {
         pretty_log(

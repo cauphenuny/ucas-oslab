@@ -1,3 +1,4 @@
+#include <os/sched.h>
 #include <csr.h>
 #include <logger.h>
 #include <os/mm.h>
@@ -6,6 +7,10 @@
 static ptr_t kernMemCurr = FREEMEM_KERNEL;
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
 static ptr_t start_addr[MAX_PAGE_NUM] = {0}; // stores first page's base addr
+
+typedef struct page {
+    int ref_count;
+} page_t;
 
 static int page_id(ptr_t addr) {
     return (addr - FREEMEM_KERNEL) / PAGE_SIZE;
@@ -65,11 +70,17 @@ ptr_t allocLargePage(int numPage) {
 
 void freePage(ptr_t baseAddr) {
     int id = page_id(baseAddr); 
+    if (id < 0) {
+        pretty_loge("try to free kernel page");
+        return;
+    }
     asserts(id >= 0 && id < MAX_PAGE_NUM, "freePage: invalid addr");
     asserts(start_addr[id], "freePage: double free detected");
-    int first_id = page_id(start_addr[id]);
-    asserts(first_id <= id, "freePage: corrupted start_addr");
-    for (int i = first_id; i <= id; i++) {
+    ptr_t entry = start_addr[id];
+    int entry_id = page_id(start_addr[id]);
+    asserts(entry_id <= id, "freePage: corrupted start_addr");
+    pretty_logd("free page block at addr 0x%x", kva2pa(entry));
+    for (int i = entry_id; start_addr[i] == entry; i = (i + 1) % MAX_PAGE_NUM) {
         start_addr[i] = 0;
     }
 }
@@ -97,7 +108,18 @@ void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir) {
             asserts(
                 !get_attribute(dest[i], _PAGE_PRESENT),
                 "share_pgtable: dest entry already present");
-            dest[i] = src_entry;
+            if (get_attribute(src_entry, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
+                // leaf entry
+                pretty_logd(
+                    "mapping leaf entry va idx %x pa 0x%x", i,
+                    get_pa(src_entry));
+                dest[i] = src_entry;
+            } else {
+                // non-leaf entry
+                pretty_logd("mapping non-leaf entry va idx %x", i);
+                uintptr_t new_page = add_page(i, dest, 0);
+                share_pgtable(new_page, pa2kva(get_pa(src_entry)));
+            }
         }
     }
 }
@@ -175,4 +197,29 @@ void open_user_memory() {
 
 void close_user_memory() {
     asm volatile("csrc sstatus, %0" : : "r"(SR_SUM));
+}
+
+static void free_pgdir(uintptr_t pgdir) {
+    for (int i = 0; i < PTE_ENTRY_NUM; i++) {
+        PTE pte = ((PTE*)pgdir)[i];
+        if (get_attribute(pte, _PAGE_PRESENT)) {
+            if (get_attribute(pte, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
+                if (get_attribute(pte, _PAGE_USER)) {
+                    freePage(pa2kva(get_pa(pte)));
+                }
+            } else {
+                free_pgdir(pa2kva(get_pa(pte)));
+            }
+        }
+    }
+    freePage(pgdir);
+}
+
+void use_kernel_satp() {
+    set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
+    local_flush_tlb_all();
+}
+
+void cleanup_vm(pcb_t* pcb) {
+    free_pgdir(pcb->pgdir);
 }

@@ -110,6 +110,7 @@ typedef enum {
     TASK_RUNNING,
     TASK_READY,
     TASK_EXITED,
+    TASK_KILLED, // killed by other hart while running on some hart, about to exit
 } task_status_t;
 
 /* Process Control Block */

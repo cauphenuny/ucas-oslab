@@ -308,8 +308,15 @@ void cleanup_proc(pcb_t* pcb) {
     cleanup_mailboxes(pid);
     list_node_destruct(&pcb->sched_node);
     list_node_destruct(&pcb->relation_node);
+    if (pcb->status != TASK_RUNNING) {
+        cleanup_vm(pcb);
+    }
     exit_wakeup(pcb);
-    free_pcb(pcb);
+    if (pcb->status != TASK_RUNNING) {
+        free_pcb(pcb);
+    } else {
+        pcb->status = TASK_KILLED;
+    }
 }
 
 void attach_subprocess(pcb_t* parent, pcb_t* child) {
@@ -466,7 +473,22 @@ void show_process_tree() {
     }
 }
 
+static void kill_subprocess(pcb_t* pcb) {
+    for (list_node_t* iter = pcb->child_list.head.next; iter != &pcb->child_list.head;) {
+        asserts(iter, "iterator is NULL");
+        list_node_t* next = iter->next;
+        pcb_t* child = container_of(iter, pcb_t, relation_node);
+        pretty_log(LOG_INFO, "killing child pid %d of pid %d", child->pid, pcb->pid);
+        do_kill(child->pid);
+        iter = next;
+    }
+}
+
 void do_exit() {
+    kill_subprocess(current_running);
+
+    use_kernel_satp(); // use kernel satp before cleaning up
+    current_running->status = TASK_KILLED; // set status to non-running so cleanup will clean vm and free pcb
     cleanup_proc(current_running);
     do_scheduler();
 }
@@ -489,14 +511,11 @@ int do_kill(pid_t pid) {
         pretty_log(LOG_WARN, "cannot find process(pid=%d) to kill", pid);
         return 0;
     }
-    for (list_node_t* iter = pcb->child_list.head.next; iter != &pcb->child_list.head;) {
-        asserts(iter, "iterator is NULL");
-        list_node_t* next = iter->next;
-        pcb_t* child = container_of(iter, pcb_t, relation_node);
-        pretty_log(LOG_INFO, "killing child pid %d of pid %d", child->pid, pid);
-        do_kill(child->pid);
-        iter = next;
+    if (pcb->status == TASK_RUNNING) {
+        pcb->status = TASK_KILLED;
+        return 1;
     }
+    kill_subprocess(pcb);
     cleanup_proc(pcb);
     pretty_log(LOG_INFO, "killed process(pid=%d) successfully", pid);
     return 1;

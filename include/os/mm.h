@@ -28,6 +28,7 @@
 
 #include <type.h>
 #include <pgtable.h>
+#include <os/sched.h>
 #include <os/smp.h>
 
 #define MAP_KERNEL 1
@@ -79,6 +80,8 @@ void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest);
 
 void open_user_memory();
 void close_user_memory();
+void use_kernel_satp();
+void cleanup_vm(pcb_t* pcb);
 
 
 #endif /* MM_H */

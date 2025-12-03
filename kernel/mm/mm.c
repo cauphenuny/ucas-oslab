@@ -12,6 +12,13 @@ ptr_t allocPage(int numPage)
     return ret;
 }
 
+ptr_t new_pgdir()
+{
+    ptr_t pgdir = allocPage(1);
+    clear_pgdir(pgdir);
+    return pgdir;
+}
+
 // NOTE: Only need for S-core to alloc 2MB large page
 #ifdef S_CORE
 static ptr_t largePageMemCurr = LARGE_PAGE_FREEMEM;
@@ -34,11 +41,12 @@ void *kmalloc(size_t size)
     // TODO [P4-task1] (design you 'kmalloc' here if you need):
 }
 
-static inline uintptr_t add_page(uint64_t vpn, PTE* pgdir)
+static inline uintptr_t add_page(uint64_t vpn, PTE* pgdir, uint64_t extra_attrs)
 {
     ptr_t new_page = allocPage(1);
     set_pfn(&pgdir[vpn], kva2pa(new_page) >> NORMAL_PAGE_SHIFT);
     set_attribute(&pgdir[vpn], _PAGE_PRESENT);
+    set_attribute(&pgdir[vpn], extra_attrs);
     return new_page;
 }
 
@@ -57,24 +65,25 @@ void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)
     }
 }
 
+// NOTE: does this func need a `mask` to specify attributes?
+
 /* allocate physical page for `va`, mapping it into `pgdir`,
    return the kernel virtual address for the page
    */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir)
 {
-    // DONE [P4-task1] alloc_page_helper
     va &= VA_MASK;
     uint64_t vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
     uint64_t vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
     uint64_t vpn0 = ((vpn2 << (PPN_BITS + PPN_BITS)) + (vpn1 << PPN_BITS)) ^ (va >> NORMAL_PAGE_SHIFT);
     PTE* current_pgdir = (PTE*)pgdir;
-    if (current_pgdir[vpn2] == 0) clear_pgdir(add_page(vpn2, current_pgdir));
+    if (current_pgdir[vpn2] == 0) clear_pgdir(add_page(vpn2, current_pgdir, 0));
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
-    if (current_pgdir[vpn1] == 0) clear_pgdir(add_page(vpn1, current_pgdir));
+    if (current_pgdir[vpn1] == 0) clear_pgdir(add_page(vpn1, current_pgdir, 0));
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
     asserts(current_pgdir[vpn0] == 0, "alloc_page_helper: page already allocated");
-    uintptr_t new_page = add_page(vpn0, current_pgdir);
-    pretty_log(LOG_INFO, "va 0x%lx mapped to new page 0x%lx", va, new_page);
+    uintptr_t new_page = add_page(vpn0, current_pgdir, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+    pretty_logd("va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
     return new_page;
 }
 

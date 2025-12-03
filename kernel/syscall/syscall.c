@@ -29,19 +29,19 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     } else {
         assert(false);
     }
-    int sysno = regs->regs[REG_A7];
-    int arg0 = regs->regs[REG_A0];
-    int arg1 = regs->regs[REG_A1];
-    int arg2 = regs->regs[REG_A2];
-    int arg3 = regs->regs[REG_A3];
-    int arg4 = regs->regs[REG_A4];
-    int arg5 = regs->regs[REG_A5];
+    reg_t sysno = regs->regs[REG_A7];
+    reg_t arg0 = regs->regs[REG_A0];
+    reg_t arg1 = regs->regs[REG_A1];
+    reg_t arg2 = regs->regs[REG_A2];
+    reg_t arg3 = regs->regs[REG_A3];
+    reg_t arg4 = regs->regs[REG_A4];
+    reg_t arg5 = regs->regs[REG_A5];
     // pretty_log(
     //     LOG_INFO, "syscall no: %d, args: %d, %d, %d, %d, %d, %d", sysno, arg0, arg1, arg2, arg3,
     //     arg4, arg5);
-    long ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
-    regs->regs[REG_A0] = ret;
     regs->sepc += 4;
+    reg_t ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
+    regs->regs[REG_A0] = ret;
 }
 
 /***************** proc *****************/

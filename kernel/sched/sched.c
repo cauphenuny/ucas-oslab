@@ -184,7 +184,10 @@ pcb_t* pick_process() {
         // pretty_log(LOG_WARN, "process insufficient, may fallback to init");
         proc = pick_process_impl(&ready_queue, filter_affinity, NULL, update_by_first);
     }
-    asserts(proc, "no process to run");
+    if (!proc) {
+        do_process_show();
+        asserts(false, "no process to run");
+    }
 
     // pretty_log(
     //     LOG_DEBUG, "selected pid %d (task_id=%d, workload=%d, slice_cnt=%d)", proc->pid,

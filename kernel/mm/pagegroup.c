@@ -1,9 +1,10 @@
 #include <logger.h>
 #include <os/mm.h>
 #include <os/task.h>
+#include <os/time.h>
 #include <pgtable.h>
 
-pageframe_group_t page_groups[NUM_MAX_TASK];
+pageframe_group_t page_groups[NUM_MAX_PAGEGROUP];
 pageframe_group_t* const PAGE_GROUP_KERNEL = &page_groups[0];
 
 pageframe_group_t* find_pagegroup(kva_t page) {
@@ -25,17 +26,50 @@ void init_pageframe_group() {
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }
 
-void show_pagegroups() {
-    for (int i = 0; i < NUM_MAX_TASK; i++) {
+void show_pagegroup_details(int pgid) {
+    pageframe_group_t* group = &page_groups[pgid];
+    printk(
+        "group #%d '%s': capacity=%d, used=%d, refcount=%d\n", pgid, group->pages.name,
+        group->capacity, group->used, group->refcount);
+    uint64_t cur = get_ticks();
+    list_foreach_node(iter, &group->pages.head) {
+        pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+        kva_t page = pageframe_addr(pf - pages);
+        printk("  page 0x%x: delta_t=%lu\n", kva2pa(page), cur - pf->last_accessed);
+    }
+}
+
+void show_pagegroup(const char* name) {
+    int hit = 0;
+    for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
+        if (!page_groups[i].refcount) continue;
+        if (strcmp(page_groups[i].pages.name, name) == 0) {
+            show_pagegroup_details(i);
+            hit = 1;
+        }
+    }
+    if (!hit) {
+        pretty_logw("no such pageframe group '%s'", name);
+    }
+}
+
+void show_pagegroups(int argc, char** argv) {
+    if (argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            show_pagegroup(argv[i]);
+        }
+        return;
+    }
+    for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
         if (!page_groups[i].refcount) continue;
         printk(
-            "group %d: name=%s, capacity=%d, used=%d, refcount=%d\n", i, page_groups[i].pages.name,
+            "group #%d '%s': capacity=%d, used=%d, refcount=%d\n", i, page_groups[i].pages.name,
             page_groups[i].capacity, page_groups[i].used, page_groups[i].refcount);
     }
 }
 
 static pageframe_group_t* alloc_pageframe_group() {
-    for (int i = 1; i < NUM_MAX_TASK; i++) {
+    for (int i = 1; i < NUM_MAX_PAGEGROUP; i++) {
         if (page_groups[i].refcount == 0) {
             return &page_groups[i];
         }
@@ -73,7 +107,8 @@ void shrink_pagegroup(pageframe_group_t* group, size_t space) {
 int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     pageframe_group_t* group = find_pagegroup(top_pgdir);
     if (capacity >= group->capacity) {
-        pretty_loge("original capacity %lu is less than new capacity %lu", group->capacity, capacity);
+        pretty_loge(
+            "original capacity %lu is less than new capacity %lu", group->capacity, capacity);
         return 1;
     }
 
@@ -92,7 +127,9 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
 
     immigrate(top_pgdir, group, new_group);
 
-    pretty_logi("forked new pagegroup '%s' with capacity %lu from group '%s'", name, capacity, group->pages.name);
+    pretty_logi(
+        "forked new pagegroup '%s' with capacity %lu from group '%s'", name, capacity,
+        group->pages.name);
     return 0;
 }
 

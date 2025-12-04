@@ -172,7 +172,7 @@ void show_time() {
 
 void show_help(int argc, char** argv) {
     const int CMD_LEN = 13;
-    printk("usage: %s [subcmd ...]\n", argc ? argv[0] : "info");
+    printk("usage: info [subcmd ...]\n");
     for (int i = 0; i < NUM_INFO_COMMANDS; i++) {
         printk("  %s:", INFO_COMMANDS[i].name);
         screen_move_cursor_col(CMD_LEN);
@@ -186,7 +186,7 @@ long sys_display_info(int argc, char** argv) {
         char* subcmd = argv[i];
         for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
             if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
-                INFO_COMMANDS[j].handler(argc, argv);
+                INFO_COMMANDS[j].handler(argc - 1, argv + 1);
                 hit = 1;
                 break;
             }

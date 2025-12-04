@@ -91,6 +91,8 @@ static void merge_block(kva_t addr, int order) {
     push_block(order, addr);
 }
 
+static int kmalloc_ready = false;
+
 void init_kmalloc() {
     pool_base = alloc_pageframe(PAGE_GROUP_KERNEL, POOL_PAGES);
     asserts(pool_base != 0, "init_kmalloc: alloc_pageframe failed");
@@ -98,9 +100,11 @@ void init_kmalloc() {
     memset((void*)free_lists, 0, sizeof(free_lists));
     push_block(MAX_ORDER, pool_base);
     pretty_log(LOG_INFO, "kmalloc pool initialized: base=0x%lx size=%lu", pool_base, POOL_BYTES);
+    kmalloc_ready = 1;
 }
 
 void* kmalloc(size_t size) {
+    if (!kmalloc_ready) init_kmalloc();
     if (size == 0) return NULL;
     size_t total = size + sizeof(block_header_t);
     if (total < MIN_BLOCK_SIZE) total = MIN_BLOCK_SIZE;
@@ -122,6 +126,7 @@ void* kmalloc(size_t size) {
 }
 
 void kfree(void* ptr) {
+    if (!kmalloc_ready) init_kmalloc();
     if (!ptr) return;
     kva_t addr = (kva_t)ptr - sizeof(block_header_t);
     if (addr < pool_base || addr >= pool_end) {

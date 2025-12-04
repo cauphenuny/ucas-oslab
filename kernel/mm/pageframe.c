@@ -14,10 +14,6 @@ typedef struct private_pf_attr {
 
 static private_pf_attr_t attrs[MAX_PAGE_NUM];
 
-static int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
-
-static ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
-
 kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
     if (!group) {
         pretty_loge("invalid pageframe group");
@@ -112,4 +108,23 @@ void detach_pageframe(kva_t page, pageframe_group_t* group) {
     list_delete(&pages[id].group_node);
     group->used--;
     pretty_logd("detached page 0x%x from group '%s'", kva2pa(page), group->pages.name);
+}
+
+void update_page_access(uint64_t current_tick) {
+    for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
+        if (!page_groups[i].refcount) continue;
+        list_foreach_node(iter, &page_groups[i].pages.head) {
+            pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+            if (!pf->pte) {
+                // NOTE: maybe kernel memory page or root pgdir
+                continue;
+            }
+            if (!get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+                // NOTE: skip non-leaf page table entries
+                continue;
+            }
+            if (get_attribute(*pf->pte, _PAGE_ACCESSED))
+                pf->last_accessed = current_tick;
+        }
+    }
 }

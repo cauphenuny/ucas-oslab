@@ -31,6 +31,8 @@
 #include <pgtable.h>
 #include <type.h>
 
+#define NUM_MAX_PAGEGROUP 64
+
 #define MAP_KERNEL        1
 #define MAP_USER          2
 #define MEM_SIZE          32
@@ -86,7 +88,7 @@ typedef struct pageframe_group {
     int refcount;  // one group may be shared by multiple processes
 } pageframe_group_t;
 
-extern pageframe_group_t page_groups[NUM_MAX_TASK];
+extern pageframe_group_t page_groups[NUM_MAX_PAGEGROUP];
 extern pageframe_group_t* const PAGE_GROUP_KERNEL;
 
 extern pageframe_group_t* find_pagegroup(kva_t page);
@@ -99,7 +101,7 @@ extern int resize_pagegroup(pageframe_group_t* group, size_t new_capacity);
 extern void shrink_pagegroup(pageframe_group_t* group, size_t space);
 extern void free_pagegroup(pageframe_group_t* group);
 
-extern void show_pagegroups();
+extern void show_pagegroups(int argc, char** argv);
 
 extern kva_t new_top_pgdir(pageframe_group_t* group);
 
@@ -116,12 +118,19 @@ extern void free_pageframe(kva_t base_addr);
 typedef struct pageframe {
     uint64_t last_accessed;
     list_node_t group_node;
+    PTE* pte;
 } pageframe_t;
 
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
 
 extern pageframe_t pages[MAX_PAGE_NUM];
 extern pageframe_t* get_page_attr(kva_t page);
+
+static int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
+static ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
+
+
+extern void update_page_access(uint64_t current_tick);
 
 extern int swap_location;
 

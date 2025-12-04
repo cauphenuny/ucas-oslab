@@ -14,6 +14,9 @@ static inline kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
     set_pfn(pte, kva2pa(page) >> NORMAL_PAGE_SHIFT);
     set_attribute(pte, _PAGE_PRESENT);
     set_attribute(pte, extra_attrs);
+    pageframe_t* attr = get_page_attr(page);
+    attr->pte = pte;
+    pretty_logd("bind page 0x%x to pte 0x%x", kva2pa(page), pte);
     return page;
 }
 

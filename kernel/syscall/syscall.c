@@ -143,6 +143,7 @@ const struct {
     {"sema", "display semaphore status", show_semaphores},
     {"sync", "display all synchronization machanics", show_sync},
     {"mbox", "display mailbox status", show_mailboxes},
+    {"page", "display page frame group status", show_pagegroups},
     {"help", "display this help message", show_help},
 };
 

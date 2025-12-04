@@ -24,3 +24,11 @@ void init_pageframe_group() {
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }
 
+void show_pagegroups() {
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        if (!page_groups[i].refcount) continue;
+        printk("group %d: name=%s, capacity=%d, used=%d, refcount=%d\n", i,
+               page_groups[i].pages.name, page_groups[i].capacity, page_groups[i].used,
+               page_groups[i].refcount);
+    }
+}

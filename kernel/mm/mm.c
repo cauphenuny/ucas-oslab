@@ -162,13 +162,16 @@ uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir) {
     uint64_t vpn1 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
     uint64_t vpn0 = (uva >> NORMAL_PAGE_SHIFT) & VPN_MASK;
     PTE* current_pgdir = (PTE*)pgdir;
-    asserts(get_attribute(current_pgdir[vpn2], _PAGE_PRESENT), "uva2kva: vpn2 not present");
+    if (!get_attribute(current_pgdir[vpn2], _PAGE_PRESENT)) goto not_exist;
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
-    asserts(get_attribute(current_pgdir[vpn1], _PAGE_PRESENT), "uva2kva: vpn1 not present");
+    if (!get_attribute(current_pgdir[vpn1], _PAGE_PRESENT)) goto not_exist;
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
-    asserts(get_attribute(current_pgdir[vpn0], _PAGE_PRESENT), "uva2kva: vpn0 not present");
+    if (!get_attribute(current_pgdir[vpn0], _PAGE_PRESENT)) goto not_exist;
     uintptr_t page_base = pa2kva(get_pa(current_pgdir[vpn0]));
     return page_base + (uva & (PAGE_SIZE - 1));
+not_exist:
+    alloc_page_helper(uva, pgdir);
+    return uva2kva(uva, pgdir);
 }
 
 void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest) {

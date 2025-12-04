@@ -148,6 +148,11 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     do_scheduler();
 }
 
+void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+    pretty_logi("handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause, exception_name(0, scause));
+    alloc_page_helper(stval, current_running->pgdir);
+}
+
 void init_exception() {
     /* DONE: [p2-task3] initialize exc_table */
     /* NOTE: handle_syscall, handle_other, etc.*/
@@ -155,6 +160,7 @@ void init_exception() {
         exc_table[i] = handle_other;
     }
     exc_table[EXCC_SYSCALL] = handle_syscall;
+    exc_table[EXCC_LOAD_PAGE_FAULT] = exc_table[EXCC_STORE_PAGE_FAULT] = exc_table[EXCC_INST_PAGE_FAULT] = handle_page_fault;
 
     /* DONE: [p2-task4] initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/

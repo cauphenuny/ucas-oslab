@@ -127,11 +127,6 @@ pcb_t* construct_pcb(
     ptr_t user_stack_base = USER_STACK_ADDR,
           user_stack_bottom = user_stack_base - user_mem * PAGE_SIZE;
 
-    for (uintptr_t uva = user_stack_bottom; uva < user_stack_base; uva += PAGE_SIZE) {
-        alloc_page_helper(uva, pcb->pgdir);
-    }
-    pretty_logi("allocated user stack %dB for task %s", user_mem * PAGE_SIZE, task->name);
-
     pcb->pid = process_id++;
     list_init(&pcb->wait_list, "proc");
     pcb->status = TASK_READY;

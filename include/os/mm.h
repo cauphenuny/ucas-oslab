@@ -44,9 +44,9 @@
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
 
-extern ptr_t allocPage(int numPage);
+extern ptr_t alloc_page(int numPage);
 // TODO [P4-task1] */
-void freePage(ptr_t baseAddr);
+void free_page(ptr_t baseAddr);
 
 extern ptr_t new_pgdir();
 
@@ -68,7 +68,7 @@ extern ptr_t allocLargePage(int numPage);
 // DONE [P4-task1] */
 extern void* kmalloc(size_t size);
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
-extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
+extern uintptr_t alloc_page_va(uintptr_t va, uintptr_t pgdir);
 
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
@@ -84,6 +84,17 @@ void open_user_memory();
 void close_user_memory();
 void use_kernel_satp();
 void cleanup_vm(pcb_t* pcb);
+
+void init_vm();
+
+typedef struct pageframe {
+    uintptr_t start; // start phyaddr of allocated block
+    uint64_t last_accessed;
+} pageframe_t;
+
+#define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
+
+extern pageframe_t pages[MAX_PAGE_NUM];
 
 extern int swap_location;
 

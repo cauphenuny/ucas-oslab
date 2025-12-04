@@ -253,6 +253,9 @@ int main(int argc, char** argv) {
         init_screen();
         pretty_log(LOG_INFO, "[INIT] SCREEN initialization succeeded.");
 
+        // Init virtual memory (>_<)
+        init_vm();
+
         // Init task info
         init_task_info(argc, argv);
         pretty_log(LOG_INFO, "[META] OS kernel arguments: ");

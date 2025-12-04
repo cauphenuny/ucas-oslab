@@ -6,12 +6,12 @@ Checks: >
   clang-analyzer-core.*,
   clang-analyzer-cplusplus.*,
   performance-*,
+  readability-identifier-naming,
   -performance-no-int-to-ptr,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-reserved-identifier,
-  -readability-identifier-naming,
 
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: ''

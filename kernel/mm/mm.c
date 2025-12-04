@@ -4,13 +4,9 @@
 #include <os/mm.h>
 
 // NOTE: A/C-core
-static ptr_t kernMemCurr = FREEMEM_KERNEL;
-#define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
-static ptr_t start_addr[MAX_PAGE_NUM] = {0}; // stores first page's base addr
+static ptr_t cur_kernel_mem = FREEMEM_KERNEL;
 
-typedef struct page {
-    int ref_count;
-} page_t;
+pageframe_t pages[MAX_PAGE_NUM];
 
 static int page_id(ptr_t addr) {
     return (addr - FREEMEM_KERNEL) / PAGE_SIZE;
@@ -20,29 +16,29 @@ static ptr_t page_addr(int id) {
     return FREEMEM_KERNEL + id * PAGE_SIZE;
 }
 
-ptr_t allocPage(int numPage) {
+ptr_t alloc_page(int numPage) {
     // align PAGE_SIZE
     int counter = 0;
     while (counter < MAX_PAGE_NUM) {
-        ptr_t ret = ROUND(kernMemCurr, PAGE_SIZE);
+        ptr_t ret = ROUND(cur_kernel_mem, PAGE_SIZE);
         int id = page_id(ret);
         bool available = true;
         for (int i = 0; i < numPage; i++) {
-            if (id + i >= MAX_PAGE_NUM || start_addr[id + i]) {
+            if (id + i >= MAX_PAGE_NUM || pages[id + i].start) {
                 available = false;
                 break;
             }
         }
         if (available) {
-            kernMemCurr += numPage * PAGE_SIZE;
+            cur_kernel_mem += numPage * PAGE_SIZE;
             for (int i = 0; i < numPage; i++) {
-                start_addr[id + i] = ret;
+                pages[id + i].start = ret;
             }
             return ret;
         } else {
-            kernMemCurr += PAGE_SIZE;
-            if (kernMemCurr >= ALLMEM_KERNEL) {
-                kernMemCurr = FREEMEM_KERNEL;
+            cur_kernel_mem += PAGE_SIZE;
+            if (cur_kernel_mem >= ALLMEM_KERNEL) {
+                cur_kernel_mem = FREEMEM_KERNEL;
             }
         }
         counter++;
@@ -52,7 +48,7 @@ ptr_t allocPage(int numPage) {
 }
 
 ptr_t new_pgdir() {
-    ptr_t pgdir = allocPage(1);
+    ptr_t pgdir = alloc_page(1);
     clear_pgdir(pgdir);
     return pgdir;
 }
@@ -60,7 +56,7 @@ ptr_t new_pgdir() {
 size_t get_free_memory() {
     size_t free_mem = 0;
     for (int i = 0; i < MAX_PAGE_NUM; i++) {
-        if (start_addr[i] == 0) {
+        if (pages[i].start == 0) {
             free_mem += PAGE_SIZE;
         }
     }
@@ -78,21 +74,21 @@ ptr_t allocLargePage(int numPage) {
 }
 #endif
 
-void freePage(ptr_t baseAddr) {
+void free_page(ptr_t baseAddr) {
     int id = page_id(baseAddr); 
     if (id < 0) {
         pretty_loge("try to free kernel page");
         return;
     }
     asserts(id >= 0 && id < MAX_PAGE_NUM, "freePage: invalid addr");
-    asserts(start_addr[id], "freePage: double free detected");
-    ptr_t entry = start_addr[id];
-    int entry_id = page_id(start_addr[id]);
+    asserts(pages[id].start, "freePage: double free detected");
+    ptr_t entry = pages[id].start;
+    int entry_id = page_id(pages[id].start);
     asserts(entry_id <= id, "freePage: corrupted start_addr");
     pretty_logd("free page block at addr 0x%x", kva2pa(entry));
-    for (int i = entry_id; start_addr[i] == entry; i = (i + 1) % MAX_PAGE_NUM) {
+    for (int i = entry_id; pages[i].start == entry; i = (i + 1) % MAX_PAGE_NUM) {
         pretty_logd("  free page #%d", i);
-        start_addr[i] = 0;
+        pages[i].start = 0;
     }
 }
 
@@ -101,7 +97,7 @@ void* kmalloc(size_t size) {
 }
 
 static inline uintptr_t add_page(uint64_t vpn, PTE* pgdir, uint64_t extra_attrs) {
-    ptr_t new_page = allocPage(1);
+    ptr_t new_page = alloc_page(1);
     set_pfn(&pgdir[vpn], kva2pa(new_page) >> NORMAL_PAGE_SHIFT);
     set_attribute(&pgdir[vpn], _PAGE_PRESENT);
     set_attribute(&pgdir[vpn], extra_attrs);
@@ -140,7 +136,7 @@ void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir) {
 /* allocate physical page for `va`, mapping it into `pgdir`,
    return the kernel virtual address for the page
    */
-uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir) {
+uintptr_t alloc_page_va(uintptr_t va, uintptr_t pgdir) {
     va &= VA_MASK;
     uint64_t vpn2 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
     uint64_t vpn1 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
@@ -180,7 +176,7 @@ uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir) {
     uintptr_t page_base = pa2kva(get_pa(current_pgdir[vpn0]));
     return page_base + (uva & (PAGE_SIZE - 1));
 not_exist:
-    alloc_page_helper(uva, pgdir);
+    alloc_page_va(uva, pgdir);
     return uva2kva(uva, pgdir);
 }
 
@@ -219,14 +215,14 @@ static void free_pgdir(uintptr_t pgdir) {
         if (get_attribute(pte, _PAGE_PRESENT)) {
             if (get_attribute(pte, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
                 if (get_attribute(pte, _PAGE_USER)) {
-                    freePage(pa2kva(get_pa(pte)));
+                    free_page(pa2kva(get_pa(pte)));
                 }
             } else {
                 free_pgdir(pa2kva(get_pa(pte)));
             }
         }
     }
-    freePage(pgdir);
+    free_page(pgdir);
 }
 
 void use_kernel_satp() {
@@ -237,5 +233,9 @@ void use_kernel_satp() {
 // NOTE: this function is dangerous, make sure pcb is not running
 void cleanup_vm(pcb_t* pcb) {
     free_pgdir(pcb->pgdir);
-    freePage(pcb->kernel_stack_bottom);
+    free_page(pcb->kernel_stack_bottom);
+}
+
+void init_vm() {
+    pretty_logi("capacity: %d pages", MAX_PAGE_NUM);
 }

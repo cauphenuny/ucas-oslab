@@ -3,6 +3,7 @@
 
 #include <os/string.h>
 #include <type.h>
+#include <csr.h>
 #include <assert.h>
 
 #define SATP_MODE_SV39 8
@@ -44,7 +45,21 @@ static inline void set_satp(
     __asm__ __volatile__("sfence.vma\ncsrw satp, %0" : : "rK"(__v) : "memory");
 }
 
+static inline void open_user_memory() {
+    asm volatile("csrs sstatus, %0" : : "r"(SR_SUM));
+}
+
+static inline void close_user_memory() {
+    asm volatile("csrc sstatus, %0" : : "r"(SR_SUM));
+}
+
 #define PGDIR_PA 0x51000000lu  // use 51000000 page as PGDIR
+
+static inline void use_kernel_satp() {
+    set_satp(SATP_MODE_SV39, 0, PGDIR_PA >> NORMAL_PAGE_SHIFT);
+    local_flush_tlb_all();
+}
+
 
 /*
  * PTE format:

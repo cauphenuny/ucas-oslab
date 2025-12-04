@@ -10,7 +10,7 @@ uintptr_t create_task_pgdir(const task_info_t* task) {
     uintptr_t pgdir = new_pgdir();
     pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
     for (uintptr_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
-        alloc_page_helper(va, pgdir);
+        alloc_page_va(va, pgdir);
     }
     return pgdir;
 }

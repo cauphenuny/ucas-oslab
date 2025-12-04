@@ -44,9 +44,8 @@
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
 
-extern ptr_t alloc_page(int numPage);
-// TODO [P4-task1] */
-void free_page(ptr_t baseAddr);
+extern ptr_t alloc_pageframe(int num_page);
+void free_pageframe(ptr_t base_addr);
 
 extern ptr_t new_pgdir();
 
@@ -65,8 +64,9 @@ extern ptr_t allocLargePage(int numPage);
 
 // NOTE: all pgdir param are in kernel virtmem space
 
-// DONE [P4-task1] */
 extern void* kmalloc(size_t size);
+extern void kfree(void* ptr);
+
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_va(uintptr_t va, uintptr_t pgdir);
 
@@ -80,9 +80,6 @@ uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir);
 void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest);
 void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest);
 
-void open_user_memory();
-void close_user_memory();
-void use_kernel_satp();
 void cleanup_vm(pcb_t* pcb);
 
 void init_vm();

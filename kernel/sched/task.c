@@ -122,7 +122,7 @@ pcb_t* construct_pcb(
     load_task_img(task, pcb->pgdir);
     pretty_logi("loaded task image for task %s", task->name);
 
-    ptr_t kernel_stack_bottom = allocPage(kernel_mem),
+    ptr_t kernel_stack_bottom = alloc_pageframe(kernel_mem),
           kernel_stack_base = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
     ptr_t user_stack_base = USER_STACK_ADDR,
           user_stack_bottom = user_stack_base - user_mem * PAGE_SIZE;

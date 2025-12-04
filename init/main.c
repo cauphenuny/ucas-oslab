@@ -272,12 +272,13 @@ int main(int argc, char** argv) {
     } else {
         pretty_log(LOG_INFO, "[INIT] hart #%d booted", hartid);
         booted[hartid] = 1;
-        while (!initialized);
 
         setup_exception();
         current_running = &pcb_kernel[hartid];
         current_running->status = TASK_RUNNING;
         current_running->cpu = hartid;
+
+        while (!initialized);
     }
 
     pretty_log(LOG_INFO, "hart #%d launched", hartid);

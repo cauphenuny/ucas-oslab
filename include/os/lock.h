@@ -58,6 +58,12 @@ typedef struct mutex_lock {
     int key;
 } mutex_lock_t;
 
+extern mutex_lock_t mlocks[LOCK_NUM];
+extern pid_bitmap_t mlock_ref[LOCK_NUM];
+
+void mutex_init(mutex_lock_t* mlock);
+void mutex_destruct(mutex_lock_t* mutex);
+
 void spin_lock_init(spin_lock_t* lock);
 int spin_lock_try_acquire(spin_lock_t* lock);
 void spin_lock_acquire(spin_lock_t* lock);
@@ -104,6 +110,12 @@ typedef struct condition {
 #define CONDITION_NUM 16
 
 void init_conditions(void);
+void condition_init(condition_t* cond);
+void condition_destruct(condition_t* cond);
+void condition_wait(condition_t* cond, mutex_lock_t* mutex);
+void condition_signal(condition_t* cond);
+void condition_broadcast(condition_t* cond);
+
 int do_condition_init(int key);
 void do_condition_wait(int cond_idx, int mutex_idx);
 void do_condition_signal(int cond_idx);

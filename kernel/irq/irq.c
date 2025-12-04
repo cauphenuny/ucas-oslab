@@ -150,7 +150,7 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
 
 void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     pretty_logi("handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause, exception_name(0, scause));
-    alloc_page_helper(stval, current_running->pgdir);
+    alloc_page_va(stval, current_running->pgdir);
 }
 
 void init_exception() {

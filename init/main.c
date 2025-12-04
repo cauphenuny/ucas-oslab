@@ -112,6 +112,7 @@ static void init_syscall(void) {
     syscall[SYSCALL_PS] = sys_process_show;
     syscall[SYSCALL_TASK_SHOW] = sys_task_show;
     syscall[SYSCALL_DISPLAY_INFO] = sys_display_info;
+    syscall[SYSCALL_GET_FREE_MEM] = sys_get_free_memory;
 
     syscall[SYSCALL_WRITE] = sys_write;
     syscall[SYSCALL_READCH] = sys_readch;

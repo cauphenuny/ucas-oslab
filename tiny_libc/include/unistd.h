@@ -36,6 +36,8 @@ void sys_screen_set_color(int start_col, int end_col, int foreground, int backgr
 void sys_screen_clear_color(void);
 void sys_screen_delete_line(int nlines);
 
+size_t sys_get_free_memory(void);
+
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
 int sys_ps(void);

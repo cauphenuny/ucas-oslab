@@ -57,6 +57,16 @@ ptr_t new_pgdir() {
     return pgdir;
 }
 
+size_t get_free_memory() {
+    size_t free_mem = 0;
+    for (int i = 0; i < MAX_PAGE_NUM; i++) {
+        if (start_addr[i] == 0) {
+            free_mem += PAGE_SIZE;
+        }
+    }
+    return free_mem;
+}
+
 // NOTE: Only need for S-core to alloc 2MB large page
 #ifdef S_CORE
 static ptr_t largePageMemCurr = LARGE_PAGE_FREEMEM;

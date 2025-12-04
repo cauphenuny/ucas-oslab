@@ -50,6 +50,8 @@ void freePage(ptr_t baseAddr);
 
 extern ptr_t new_pgdir();
 
+extern size_t get_free_memory();
+
 // #define S_CORE
 // NOTE: only need for S-core to alloc 2MB large page
 #ifdef S_CORE

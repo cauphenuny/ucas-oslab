@@ -4,6 +4,7 @@
 #include <os/irq.h>
 #include <os/kernel.h>
 #include <os/lock.h>
+#include <os/mm.h>
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
@@ -100,9 +101,7 @@ long sys_set_workload(int workload) {
     return 0;
 }
 
-long sys_set_nice(int nice, int pid) {
-    return set_process_nice(nice, pid);
-}
+long sys_set_nice(int nice, int pid) { return set_process_nice(nice, pid); }
 
 long sys_exit(void) {
     do_exit();
@@ -114,6 +113,8 @@ long sys_kill(pid_t pid) { return do_kill(pid); }
 long sys_waitpid(pid_t pid) { return do_waitpid(pid); }
 
 long sys_getpid() { return current_running->pid; }
+
+long sys_get_free_memory() { return get_free_memory(); }
 
 long sys_process_show() { return do_process_show(); }
 

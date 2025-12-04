@@ -534,6 +534,27 @@ int nice(int argc, char** argv) {
     return err;
 }
 
+int free(int argc, char** argv) {
+    int human;
+    if (argc == 1) {
+        human = 0;
+    } else {
+        if (argc == 2 && strcmp("-h", argv[1]) == 0) {
+            human = 1;
+        } else {
+            log_info("usage: free [-h]");
+            return 1;
+        }
+    }
+    size_t free_mem = sys_get_free_memory();
+    if (human) {
+        log_info("free memory: %d KB", free_mem / 1024);
+    } else {
+        log_info("free memory: %d bytes", free_mem);
+    }
+    return 0;
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -548,6 +569,7 @@ const task_t COMMAND_TABLE[] = {
     {"help", "show help information", subcmd_lint_help, help},
     {"exit", "exit shell", subcmd_lint, exit},
     {"nice", "set scheduling nice value", subcmd_lint, nice},
+    {"free", "show free memory", subcmd_lint, free},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

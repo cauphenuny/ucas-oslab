@@ -175,7 +175,7 @@ static void init_task_info(int argc, char** physical_argv) {
     asserts(argc == 3, "invalid argc");
     uint64_t* argv = (void*)pa2kva((ptr_t)physical_argv);
     task_num = argv[0];
-    uintptr_t physical_task_info = argv[1];
+    pa_t physical_task_info = argv[1];
     memcpy((void*)tasks, (void*)pa2kva(physical_task_info), sizeof(task_info_t) * task_num);
     swap_location = argv[2];
 }

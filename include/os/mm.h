@@ -44,11 +44,6 @@
 #define ROUND(a, n)     (((((uint64_t)(a)) + (n) - 1)) & ~((n) - 1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n) - 1))
 
-extern ptr_t alloc_pageframe(int num_page);
-void free_pageframe(ptr_t base_addr);
-
-extern ptr_t new_pgdir();
-
 extern size_t get_free_memory();
 
 // #define S_CORE
@@ -62,32 +57,49 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
-// NOTE: all pgdir param are in kernel virtmem space
+extern kva_t alloc_pageframe(int num_page);
+void free_pageframe(kva_t base_addr);
+
+extern kva_t new_pgdir();
 
 extern void* kmalloc(size_t size);
 extern void kfree(void* ptr);
 extern void init_kmalloc(void);
 
-extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
-extern uintptr_t alloc_page_va(uintptr_t va, uintptr_t pgdir);
+extern void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir);
+extern kva_t alloc_page_va(kva_t va, kva_t pgdir);
 
 // TODO [P4-task4]: shm_page_get/dt */
-uintptr_t shm_page_get(int key);
-void shm_page_dt(uintptr_t addr);
+kva_t shm_page_get(int key);
+void shm_page_dt(kva_t addr);
 
 // NOTE: assume use 3-level page table
-uintptr_t uva2kva(uintptr_t uva, uintptr_t pgdir);
+kva_t uva2kva(uva_t uva, kva_t pgdir);
 
-void memcpy_kva2uva(uintptr_t dest_va, uintptr_t src, size_t size, uintptr_t pgdir_dest);
-void strcpy_kva2uva(uintptr_t dest_va, const char* src, uintptr_t pgdir_dest);
+void memcpy_kva2uva(kva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest);
+void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
 void cleanup_vm(pcb_t* pcb);
 
 void init_vm();
 
+typedef struct pageframe_group {
+    list_t pages;
+    size_t capacity;
+    size_t used;
+    int refcount;  // one group may be shared by multiple processes
+} pageframe_group_t;
+
+extern pageframe_group_t page_groups[NUM_MAX_TASK];
+
+pageframe_group_t* find_pageframe_group(uintptr_t pgdir);
+
+// swap out one page from group, return its addr(in kva)
+kva_t swapout(pageframe_group_t* group);
+
 typedef struct pageframe {
-    uintptr_t start;  // start phyaddr of allocated block
     uint64_t last_accessed;
+    list_node_t group_node;
 } pageframe_t;
 
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)

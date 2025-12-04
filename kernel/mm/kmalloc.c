@@ -30,36 +30,36 @@ typedef struct {
 } block_header_t;
 
 static free_block_t* free_lists[ORDER_COUNT];
-static uintptr_t pool_base;
-static uintptr_t pool_end;
+static kva_t pool_base;
+static kva_t pool_end;
 
 #define HEADER_MAGIC 0xC0DECAFEu
 
 static inline size_t order_size(int order) { return 1UL << order; }
 static inline int order_index(int order) { return order - MIN_ORDER; }
 
-static void push_block(int order, uintptr_t addr) {
+static void push_block(int order, kva_t addr) {
     int idx = order_index(order);
     free_block_t* block = (free_block_t*)addr;
     block->next = free_lists[idx];
     free_lists[idx] = block;
 }
 
-static uintptr_t pop_block(int order) {
+static kva_t pop_block(int order) {
     int idx = order_index(order);
     free_block_t* block = free_lists[idx];
     if (!block) return 0;
     free_lists[idx] = block->next;
-    return (uintptr_t)block;
+    return (kva_t)block;
 }
 
-static uintptr_t acquire_block(int order) {
+static kva_t acquire_block(int order) {
     for (int cur = order; cur <= MAX_ORDER; cur++) {
-        uintptr_t block = pop_block(cur);
+        kva_t block = pop_block(cur);
         if (!block) continue;
         while (cur > order) {
             cur--;
-            uintptr_t buddy = block + order_size(cur);
+            kva_t buddy = block + order_size(cur);
             push_block(cur, buddy);
         }
         return block;
@@ -67,16 +67,16 @@ static uintptr_t acquire_block(int order) {
     return 0;
 }
 
-static void merge_block(uintptr_t addr, int order) {
+static void merge_block(kva_t addr, int order) {
     while (order < MAX_ORDER) {
-        uintptr_t offset = addr - pool_base;
-        uintptr_t buddy = pool_base + (offset ^ order_size(order));
+        kva_t offset = addr - pool_base;
+        kva_t buddy = pool_base + (offset ^ order_size(order));
         int idx = order_index(order);
         free_block_t** prev = &free_lists[idx];
         free_block_t* cur = *prev;
         bool found = false;
         while (cur) {
-            if ((uintptr_t)cur == buddy) {
+            if ((kva_t)cur == buddy) {
                 *prev = cur->next;
                 found = true;
                 break;
@@ -110,7 +110,7 @@ void* kmalloc(size_t size) {
         pretty_log(LOG_ERROR, "kmalloc: request too large (%lu bytes)", size);
         return NULL;
     }
-    uintptr_t block = acquire_block(order);
+    kva_t block = acquire_block(order);
     if (!block) {
         pretty_log(LOG_ERROR, "kmalloc: out of memory for %lu bytes", size);
         return NULL;
@@ -123,9 +123,9 @@ void* kmalloc(size_t size) {
 
 void kfree(void* ptr) {
     if (!ptr) return;
-    uintptr_t addr = (uintptr_t)ptr - sizeof(block_header_t);
+    kva_t addr = (kva_t)ptr - sizeof(block_header_t);
     if (addr < pool_base || addr >= pool_end) {
-        pretty_log(LOG_ERROR, "kfree: pointer 0x%lx out of range", (uintptr_t)ptr);
+        pretty_log(LOG_ERROR, "kfree: pointer 0x%lx out of range", (kva_t)ptr);
         return;
     }
     block_header_t* header = (block_header_t*)addr;

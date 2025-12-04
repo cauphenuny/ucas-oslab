@@ -91,6 +91,10 @@ static inline void use_kernel_satp() {
 
 typedef uint64_t PTE;
 
+typedef uintptr_t kva_t;
+typedef uintptr_t uva_t;
+typedef uintptr_t pa_t;
+
 #define KERNEL_ADDR_TAG 0xffffffc000000000lu
 #define PGDIR_VA (PGDIR_PA | KERNEL_ADDR_TAG)
 
@@ -100,14 +104,14 @@ typedef uint64_t PTE;
 #define PA_BOTTOM 0x50000000lu
 
 /* Translation between physical addr and kernel virtual addr */
-static inline uintptr_t kva2pa(uintptr_t kva)
+static inline pa_t kva2pa(kva_t kva)
 {
     /* TODO: [P4-task1] */
     asserts((kva & (~VA_EFFECTIVE_MASK)) == KERNEL_ADDR_TAG, "kva2pa called with invalid kva");
     return kva ^ KERNEL_ADDR_TAG;
 }
 
-static inline uintptr_t pa2kva(uintptr_t pa)
+static inline kva_t pa2kva(pa_t pa)
 {
     /* TODO: [P4-task1] */
     asserts(pa >= PA_BOTTOM && pa < PA_TOP, "pa2kva called with invalid pa");
@@ -115,7 +119,7 @@ static inline uintptr_t pa2kva(uintptr_t pa)
 }
 
 /* get physical page addr from PTE 'entry' */
-static inline uint64_t get_pa(PTE entry)
+static inline pa_t get_pa(PTE entry)
 {
     /* TODO: [P4-task1] */
     return (entry >> _PAGE_PFN_SHIFT) << NORMAL_PAGE_SHIFT;
@@ -146,7 +150,7 @@ static inline void set_attribute(PTE *entry, uint64_t bits)
     *entry = (*entry) | bits;
 }
 
-static inline void clear_pgdir(uintptr_t pgdir_addr)
+static inline void clear_pgdir(kva_t pgdir_addr)
 {
     /* TODO: [P4-task1] */
     memset((void*)pgdir_addr, 0, NORMAL_PAGE_SIZE);

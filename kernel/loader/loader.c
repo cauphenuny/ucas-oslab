@@ -6,16 +6,16 @@
 #include <logger.h>
 #include <type.h>
 
-uintptr_t create_task_pgdir(const task_info_t* task) {
-    uintptr_t pgdir = new_pgdir();
+kva_t create_task_pgdir(const task_info_t* task) {
+    kva_t pgdir = new_pgdir();
     pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
-    for (uintptr_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
+    for (uva_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
         alloc_page_va(va, pgdir);
     }
     return pgdir;
 }
 
-uint64_t load_task_img(const task_info_t* task, uintptr_t pgdir) {
+uint64_t load_task_img(const task_info_t* task, kva_t pgdir) {
     /**
      * DONE:
      * 1. [p1-task3] load task from image via task id, and return its entrypoint
@@ -24,7 +24,7 @@ uint64_t load_task_img(const task_info_t* task, uintptr_t pgdir) {
 
     uint8_t buffer[SECTOR_SIZE];
 
-    uint64_t dest = task->entrance;
+    uva_t dest = task->entrance;
     int offset = task->phyaddr % SECTOR_SIZE;
     int src_blockid = task->phyaddr / SECTOR_SIZE;
     int aligned_phyaddr = task->phyaddr - offset;
@@ -34,7 +34,7 @@ uint64_t load_task_img(const task_info_t* task, uintptr_t pgdir) {
     for (int i = 0; i < nblocks; i++) {
         bios_sd_read((uint64_t)buffer, 1, src_blockid + i);
         int delta_len = min(sum_len, SECTOR_SIZE - offset);
-        memcpy_kva2uva(dest, (uintptr_t)(buffer + offset), delta_len, pgdir);
+        memcpy_kva2uva(dest, (kva_t)(buffer + offset), delta_len, pgdir);
         dest += delta_len;
         sum_len -= delta_len;
         offset = 0;

@@ -5,9 +5,9 @@
 #define ARRTIBUTE_BOOTKERNEL __attribute__((section(".bootkernel")))
 
 /********* setup memory mapping ***********/
-static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
+static pa_t ARRTIBUTE_BOOTKERNEL alloc_page()
 {
-    static uintptr_t pg_base = PGDIR_PA;
+    static pa_t pg_base = PGDIR_PA;
     pg_base += 0x1000;
     return pg_base;
 }
@@ -100,7 +100,7 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, ptr_t argv
     }
 
     /* enter kernel */
-    ((kernel_entry_t)pa2kva((uintptr_t)&_start))(argc, argv);
+    ((kernel_entry_t)pa2kva((pa_t)&_start))(argc, argv);
 
     return 0;
 }

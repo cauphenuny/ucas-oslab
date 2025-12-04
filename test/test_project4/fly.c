@@ -18,6 +18,7 @@ static char plane7[] = {"        '-'      "};
 
 int main(void)
 {
+    sys_set_max_memory(4096 * 64);
     int j = 10;
 
     while (1)

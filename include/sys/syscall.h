@@ -31,7 +31,7 @@
 #include <os/sched.h>
 #include <type.h>
 
-#define NUM_SYSCALLS 96
+#define NUM_SYSCALLS 128
 
 /* syscall function pointer */
 extern long (*syscall[NUM_SYSCALLS])();
@@ -48,6 +48,7 @@ long sys_waitpid(pid_t);
 long sys_getpid(void);
 
 long sys_get_free_memory(void);
+long sys_set_max_memory(size_t max_mem);
 
 long sys_process_show();
 long sys_task_show();

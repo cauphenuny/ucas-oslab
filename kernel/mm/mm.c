@@ -1,11 +1,12 @@
-#include <os/sched.h>
 #include <csr.h>
 #include <logger.h>
 #include <os/mm.h>
+#include <os/sched.h>
 
-kva_t new_pgdir(pageframe_group_t* group) {
+kva_t new_top_pgdir(pageframe_group_t* group) {
     kva_t pgdir = alloc_pageframe(group, 1);
     clear_pgdir(pgdir);
+    group->refcount++;
     return pgdir;
 }
 
@@ -17,7 +18,7 @@ static inline kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
 }
 
 static inline kva_t add_page(uint64_t vpn, kva_t pgdir, uint64_t extra_attrs) {
-    pageframe_group_t* group = find_pageframe_group(pgdir);
+    pageframe_group_t* group = find_pagegroup(pgdir);
     ptr_t new_page = alloc_pageframe(group, 1);
     PTE* pte = (PTE*)pgdir;
     return bind_page(&pte[vpn], new_page, extra_attrs);
@@ -83,12 +84,13 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
 PTE* alloc_page_va(uva_t va, kva_t pgdir) {
     PTE* pte = find_pte(va, pgdir, true);
     asserts(*pte == 0, "alloc_page_va: page already allocated");
-    kva_t new_page = alloc_pageframe(find_pageframe_group(pgdir), 1);
+    kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
     bind_page(pte, new_page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
 
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(va, &vpn2, &vpn1, &vpn0);
-    pretty_logd("va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
+    pretty_logd(
+        "va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
 
     return pte;
 }
@@ -100,8 +102,7 @@ PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
 
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(va, &vpn2, &vpn1, &vpn0);
-    pretty_logd(
-        "va 0x%lx(%x,%x,%x) bound to page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(page));
+    pretty_logd("va 0x%lx(%x,%x,%x) bound to page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(page));
 
     return pte;
 }
@@ -139,7 +140,8 @@ void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest) {
         size_t capacity = dest_page_end - dest_kva;
         size_t active = min(size, capacity);
         // pretty_logd(
-        //     "copying %d bytes from %lx to uva %lx (pa %x)", active, src, dest_va, kva2pa(dest_kva));
+        //     "copying %d bytes from %lx to uva %lx (pa %x)", active, src, dest_va,
+        //     kva2pa(dest_kva));
         memcpy((void*)dest_kva, (void*)src, active);
         size -= active;
         dest_va += active;
@@ -169,12 +171,19 @@ static void free_pgdir(kva_t pgdir) {
     free_pageframe(pgdir);
 }
 
+static void free_top_pgdir(kva_t pgdir) {
+    pageframe_group_t* group = find_pagegroup(pgdir);
+    free_pgdir(pgdir);
+    group->refcount--;
+    if (!group->refcount) {
+        free_pagegroup(group);
+    }
+}
+
 // NOTE: this function is dangerous, make sure pcb is not running
 void cleanup_vm(pcb_t* pcb) {
-    free_pgdir(pcb->pgdir);
+    free_top_pgdir(pcb->pgdir);
     free_pageframe(pcb->kernel_stack_bottom);
 }
 
-void init_vm() {
-    pretty_logi("capacity: %d pages", MAX_PAGE_NUM);
-}
+void init_vm() { pretty_logi("capacity: %d pages", MAX_PAGE_NUM); }

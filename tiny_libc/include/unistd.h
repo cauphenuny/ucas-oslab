@@ -37,6 +37,7 @@ void sys_screen_clear_color(void);
 void sys_screen_delete_line(int nlines);
 
 size_t sys_get_free_memory(void);
+int sys_set_max_memory(size_t max_mem);
 
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */

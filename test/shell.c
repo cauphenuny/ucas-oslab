@@ -41,8 +41,8 @@
 #define COLOR_RESET  0
 #define COLOR_DIM    2
 
-#define SHELL_BEGIN 10
-#define SHELL_END   25
+#define SHELL_BEGIN 20
+#define SHELL_END   48
 
 int shell_begin = SHELL_BEGIN;
 int shell_end = SHELL_END;

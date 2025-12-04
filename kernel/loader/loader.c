@@ -1,13 +1,13 @@
+#include <logger.h>
 #include <os/kernel.h>
 #include <os/loader.h>
 #include <os/mm.h>
 #include <os/string.h>
 #include <os/task.h>
-#include <logger.h>
 #include <type.h>
 
 kva_t create_task_pgdir(const task_info_t* task) {
-    kva_t pgdir = new_pgdir(PAGE_GROUP_KERNEL);
+    kva_t pgdir = new_top_pgdir(find_pagegroup(current_running->pgdir));
     pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
     for (uva_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
         alloc_page_va(va, pgdir);

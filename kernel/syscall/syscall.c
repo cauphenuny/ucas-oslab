@@ -116,6 +116,14 @@ long sys_getpid() { return current_running->pid; }
 
 long sys_get_free_memory() { return get_free_memory(); }
 
+long sys_set_max_memory(size_t max_mem) {
+    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
+    if (group == PAGE_GROUP_KERNEL) {
+        return fork_pagegroup(current_running->pgdir, max_mem / PAGE_SIZE, current_running->name);
+    }
+    return resize_pagegroup(group, max_mem / PAGE_SIZE);
+}
+
 long sys_process_show() { return do_process_show(); }
 
 long sys_task_show() {

@@ -89,13 +89,19 @@ typedef struct pageframe_group {
 extern pageframe_group_t page_groups[NUM_MAX_TASK];
 extern pageframe_group_t* const PAGE_GROUP_KERNEL;
 
-pageframe_group_t* find_pageframe_group(kva_t page);
-extern void attach_page(kva_t page, pageframe_group_t* group);
-extern void detach_page(kva_t page, pageframe_group_t* group);
+extern pageframe_group_t* find_pagegroup(kva_t page);
+extern void attach_pageframe(kva_t frame, pageframe_group_t* group);
+extern void detach_pageframe(kva_t frame, pageframe_group_t* group);
+
+// NOTE: fork a new pageframe group and move all memory under pgdir to it
+extern int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name); // success: 0, otherwise 1
+extern int resize_pagegroup(pageframe_group_t* group, size_t new_capacity);
+extern void shrink_pagegroup(pageframe_group_t* group, size_t space);
+extern void free_pagegroup(pageframe_group_t* group);
 
 extern void show_pagegroups();
 
-extern kva_t new_pgdir(pageframe_group_t* group);
+extern kva_t new_top_pgdir(pageframe_group_t* group);
 
 // swap out one page from group, return its addr(in kva)
 kva_t swapout(pageframe_group_t* group);

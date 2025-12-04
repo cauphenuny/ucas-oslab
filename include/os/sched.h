@@ -180,6 +180,12 @@ extern pcb_t pcb_kernel[NR_CPUS];
 
 #define NUM_MAX_PCB ((NUM_MAX_TASK) + (NR_CPUS))
 
+#if NUM_MAX_PCB <= 64
+typedef uint64_t pid_bitmap_t;
+#else
+#error "NUM_MAX_PCB too large!"
+#endif
+
 extern pcb_t* pcb_all[NUM_MAX_PCB];
 
 pcb_t* alloc_pcb();

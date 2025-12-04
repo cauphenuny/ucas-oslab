@@ -22,42 +22,36 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
         pretty_logw(
             "exceeding pageframe group '%s': capacity: %d, used: %d, alloc: %d", group->pages.name,
             group->capacity, group->used, num_page);
-        if (num_page > 1) {
-            asserts(false, "alloc_pageframe: can not swapout multi-page");
-            return 0;
-        } else {
-            return swapout(group);
-        }
-    } else {
-        int counter = 0;
-        while (counter < MAX_PAGE_NUM) {
-            ptr_t ret = ROUND(cur_kernel_mem, PAGE_SIZE);
-            int id = pageframe_id(ret);
-            bool available = true;
-            for (int i = 0; i < num_page; i++) {
-                if (id + i >= MAX_PAGE_NUM || attrs[id + i].start) {
-                    available = false;
-                    break;
-                }
-            }
-            if (available) {
-                cur_kernel_mem += num_page * PAGE_SIZE;
-                for (int i = 0; i < num_page; i++) {
-                    attach_pageframe(ret + i * PAGE_SIZE, group);
-                    attrs[id + i].start = ret;
-                }
-                return ret;
-            } else {
-                cur_kernel_mem += PAGE_SIZE;
-                if (cur_kernel_mem >= ALLMEM_KERNEL) {
-                    cur_kernel_mem = FREEMEM_KERNEL;
-                }
-            }
-            counter++;
-        }
-        asserts(false, "alloc_pageframe: out of memory");
-        return 0;
+        shrink_pagegroup(group, num_page);
     }
+    int counter = 0;
+    while (counter < MAX_PAGE_NUM) {
+        ptr_t ret = ROUND(cur_kernel_mem, PAGE_SIZE);
+        int id = pageframe_id(ret);
+        bool available = true;
+        for (int i = 0; i < num_page; i++) {
+            if (id + i >= MAX_PAGE_NUM || attrs[id + i].start) {
+                available = false;
+                break;
+            }
+        }
+        if (available) {
+            cur_kernel_mem += num_page * PAGE_SIZE;
+            for (int i = 0; i < num_page; i++) {
+                attach_pageframe(ret + i * PAGE_SIZE, group);
+                attrs[id + i].start = ret;
+            }
+            return ret;
+        } else {
+            cur_kernel_mem += PAGE_SIZE;
+            if (cur_kernel_mem >= ALLMEM_KERNEL) {
+                cur_kernel_mem = FREEMEM_KERNEL;
+            }
+        }
+        counter++;
+    }
+    asserts(false, "alloc_pageframe: out of memory");
+    return 0;
 }
 
 void free_pageframe(ptr_t base_addr) {
@@ -128,4 +122,11 @@ void update_page_access(uint64_t current_tick) {
             }
         }
     }
+}
+
+void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group) {
+    pf->pte = NULL;
+    pf->last_accessed = 0;
+    detach_pageframe(addr, group);
+    free_pageframe(addr);
 }

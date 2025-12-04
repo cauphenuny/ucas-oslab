@@ -101,4 +101,8 @@ void list_traverse(list_t* head, void (*func)(list_node_t* node));
     for (list_node_t* iter = (head)->next, *iter_next= iter->next; iter != (head); \
          iter = iter_next, iter_next = iter->next)
 
+#define list_foreach_node_reversed(iter, head)                     \
+    for (list_node_t* iter = (head)->prev, *iter_prev= iter->prev; iter != (head); \
+         iter = iter_prev, iter_prev = iter->prev)
+
 #endif

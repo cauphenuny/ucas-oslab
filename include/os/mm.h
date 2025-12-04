@@ -59,6 +59,8 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
+kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs);
+
 extern void* kmalloc(size_t size);
 extern void kfree(void* ptr);
 extern void init_kmalloc(void);
@@ -129,10 +131,11 @@ extern pageframe_t* get_page_attr(kva_t page);
 static int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
 static ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
 
+extern void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group);
 
 extern void update_page_access(uint64_t current_tick);
 
-extern int swap_location;
+extern int swap_base_location;
 
 void init_vm();
 void init_pageframe_group();

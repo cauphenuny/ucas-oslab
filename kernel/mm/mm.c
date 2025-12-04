@@ -10,7 +10,7 @@ kva_t new_top_pgdir(pageframe_group_t* group) {
     return pgdir;
 }
 
-static inline kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
+kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
     set_pfn(pte, kva2pa(page) >> NORMAL_PAGE_SHIFT);
     set_attribute(pte, _PAGE_PRESENT);
     set_attribute(pte, extra_attrs);
@@ -52,13 +52,6 @@ void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir) {
             }
         }
     }
-}
-
-static inline void get_vpn(uva_t va, uint64_t* vpn2, uint64_t* vpn1, uint64_t* vpn0) {
-    va &= VA_MASK;
-    *vpn2 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
-    *vpn1 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
-    *vpn0 = (va >> NORMAL_PAGE_SHIFT) & VPN_MASK;
 }
 
 PTE* find_pte(uva_t va, kva_t pgdir, bool create) {

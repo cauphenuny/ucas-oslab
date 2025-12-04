@@ -31,14 +31,9 @@
 #include "type.h"
 
 #include <os/list.h>
+#include <os/sched.h>
 
 #define LOCK_NUM 16
-
-#if NUM_MAX_PCB <= 64
-typedef uint64_t pid_bitmap_t;
-#else
-#error "NUM_MAX_PCB too large!"
-#endif
 
 typedef enum {
     UNLOCKED,

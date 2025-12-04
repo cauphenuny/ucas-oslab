@@ -3,18 +3,24 @@
 #include <logger.h>
 #include <os/mm.h>
 
-ptr_t new_pgdir() {
-    ptr_t pgdir = alloc_pageframe(1);
+kva_t new_pgdir(pageframe_group_t* group) {
+    kva_t pgdir = alloc_pageframe(group, 1);
     clear_pgdir(pgdir);
     return pgdir;
 }
 
-static inline kva_t add_page(uint64_t vpn, PTE* pgdir, uint64_t extra_attrs) {
-    ptr_t new_page = alloc_pageframe(1);
-    set_pfn(&pgdir[vpn], kva2pa(new_page) >> NORMAL_PAGE_SHIFT);
-    set_attribute(&pgdir[vpn], _PAGE_PRESENT);
-    set_attribute(&pgdir[vpn], extra_attrs);
-    return new_page;
+static inline kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
+    set_pfn(pte, kva2pa(page) >> NORMAL_PAGE_SHIFT);
+    set_attribute(pte, _PAGE_PRESENT);
+    set_attribute(pte, extra_attrs);
+    return page;
+}
+
+static inline kva_t add_page(uint64_t vpn, kva_t pgdir, uint64_t extra_attrs) {
+    pageframe_group_t* group = find_pageframe_group(pgdir);
+    ptr_t new_page = alloc_pageframe(group, 1);
+    PTE* pte = (PTE*)pgdir;
+    return bind_page(&pte[vpn], new_page, extra_attrs);
 }
 
 /* this is used for mapping kernel virtual address into user page table */
@@ -30,41 +36,74 @@ void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir) {
                 "share_pgtable: dest entry already present");
             if (get_attribute(src_entry, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
                 // leaf entry
-                pretty_logd(
-                    "mapping leaf entry va idx %x pa 0x%x", i,
-                    get_pa(src_entry));
+                // pretty_logd(
+                //     "mapping leaf entry va idx %x pa 0x%x", i,
+                //     get_pa(src_entry));
                 dest[i] = src_entry;
             } else {
                 // non-leaf entry
-                pretty_logd("mapping non-leaf entry va idx %x", i);
-                kva_t new_page = add_page(i, dest, 0);
+                // pretty_logd("mapping non-leaf entry va idx %x", i);
+                kva_t new_page = add_page(i, (kva_t)dest, 0);
                 share_pgtable(new_page, pa2kva(get_pa(src_entry)));
             }
         }
     }
 }
 
-// NOTE: does this func need a `mask` to specify attributes?
-
-/* allocate physical page for `va`, mapping it into `pgdir`,
-   return the kernel virtual address for the page
-   */
-kva_t alloc_page_va(uva_t va, kva_t pgdir) {
+static inline void get_vpn(uva_t va, uint64_t* vpn2, uint64_t* vpn1, uint64_t* vpn0) {
     va &= VA_MASK;
-    uint64_t vpn2 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
-    uint64_t vpn1 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
-    uint64_t vpn0 = (va >> NORMAL_PAGE_SHIFT) & VPN_MASK;
+    *vpn2 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
+    *vpn1 = (va >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
+    *vpn0 = (va >> NORMAL_PAGE_SHIFT) & VPN_MASK;
+}
+
+PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
+    uint64_t vpn2, vpn1, vpn0;
+    get_vpn(va, &vpn2, &vpn1, &vpn0);
     PTE* current_pgdir = (PTE*)pgdir;
-    if (current_pgdir[vpn2] == 0) clear_pgdir(add_page(vpn2, current_pgdir, 0));
+    if (!get_attribute(current_pgdir[vpn2], _PAGE_PRESENT)) {
+        if (create) {
+            clear_pgdir(add_page(vpn2, (kva_t)current_pgdir, 0));
+        } else {
+            asserts(false, "find_pte: vpn2 not present");
+        }
+    }
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
-    if (current_pgdir[vpn1] == 0) clear_pgdir(add_page(vpn1, current_pgdir, 0));
+    if (!get_attribute(current_pgdir[vpn1], _PAGE_PRESENT)) {
+        if (create) {
+            clear_pgdir(add_page(vpn1, (kva_t)current_pgdir, 0));
+        } else {
+            asserts(false, "find_pte: vpn1 not present");
+        }
+    }
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
-    asserts(current_pgdir[vpn0] == 0, "alloc_page_helper: page already allocated");
-    kva_t new_page =
-        add_page(vpn0, current_pgdir, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+    return &current_pgdir[vpn0];
+}
+
+PTE* alloc_page_va(uva_t va, kva_t pgdir) {
+    PTE* pte = find_pte(va, pgdir, true);
+    asserts(*pte == 0, "alloc_page_va: page already allocated");
+    kva_t new_page = alloc_pageframe(find_pageframe_group(pgdir), 1);
+    bind_page(pte, new_page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+
+    uint64_t vpn2, vpn1, vpn0;
+    get_vpn(va, &vpn2, &vpn1, &vpn0);
+    pretty_logd("va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
+
+    return pte;
+}
+
+PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
+    PTE* pte = find_pte(va, pgdir, false);
+    asserts(!get_attribute(*pte, _PAGE_PRESENT), "bind_page_va: pte already occupied");
+    bind_page(pte, page, _PAGE_USER | _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE);
+
+    uint64_t vpn2, vpn1, vpn0;
+    get_vpn(va, &vpn2, &vpn1, &vpn0);
     pretty_logd(
-        "va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
-    return new_page;
+        "va 0x%lx(%x,%x,%x) bound to page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(page));
+
+    return pte;
 }
 
 kva_t shm_page_get(int key) {
@@ -99,8 +138,8 @@ void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest) {
         kva_t dest_page_end = ((dest_kva >> NORMAL_PAGE_SHIFT) + 1) << NORMAL_PAGE_SHIFT;
         size_t capacity = dest_page_end - dest_kva;
         size_t active = min(size, capacity);
-        pretty_logd(
-            "copying %d bytes from %lx to uva %lx (pa %x)", active, src, dest_va, kva2pa(dest_kva));
+        // pretty_logd(
+        //     "copying %d bytes from %lx to uva %lx (pa %x)", active, src, dest_va, kva2pa(dest_kva));
         memcpy((void*)dest_kva, (void*)src, active);
         size -= active;
         dest_va += active;
@@ -109,7 +148,7 @@ void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest) {
 }
 
 void strcpy_kva2uva(uva_t dest_va, const char* src, kva_t pgdir_dest) {
-    pretty_logd("strcpy to uva %lx from src %lx", dest_va, (kva_t)src);
+    // pretty_logd("strcpy to uva %lx from src %lx", dest_va, (kva_t)src);
     size_t len = strlen(src) + 1;
     memcpy_kva2uva(dest_va, (kva_t)src, len, pgdir_dest);
 }

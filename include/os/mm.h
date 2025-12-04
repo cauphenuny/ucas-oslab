@@ -57,17 +57,15 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
-extern kva_t alloc_pageframe(int num_page);
-void free_pageframe(kva_t base_addr);
-
-extern kva_t new_pgdir();
-
 extern void* kmalloc(size_t size);
 extern void kfree(void* ptr);
 extern void init_kmalloc(void);
 
 extern void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir);
-extern kva_t alloc_page_va(kva_t va, kva_t pgdir);
+extern PTE* alloc_page_va(uva_t va, kva_t pgdir);
+extern PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page);
+
+extern PTE* find_pte(uva_t va, kva_t pgdir, bool create);
 
 // TODO [P4-task4]: shm_page_get/dt */
 kva_t shm_page_get(int key);
@@ -81,8 +79,6 @@ void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
 void cleanup_vm(pcb_t* pcb);
 
-void init_vm();
-
 typedef struct pageframe_group {
     list_t pages;
     size_t capacity;
@@ -91,11 +87,25 @@ typedef struct pageframe_group {
 } pageframe_group_t;
 
 extern pageframe_group_t page_groups[NUM_MAX_TASK];
+extern pageframe_group_t* const PAGE_GROUP_KERNEL;
 
-pageframe_group_t* find_pageframe_group(uintptr_t pgdir);
+pageframe_group_t* find_pageframe_group(kva_t page);
+extern void attach_page(kva_t page, pageframe_group_t* group);
+extern void detach_page(kva_t page, pageframe_group_t* group);
+
+extern void show_pagegroups();
+
+extern kva_t new_pgdir(pageframe_group_t* group);
 
 // swap out one page from group, return its addr(in kva)
 kva_t swapout(pageframe_group_t* group);
+
+// swap in one page to given page, then bind it to pgdir
+// NOTE: page must be disattached from any pgdir when passes to this function
+void swapin(uva_t uva, kva_t pgdir, kva_t page);
+
+extern kva_t alloc_pageframe(pageframe_group_t* group, int num_page);
+extern void free_pageframe(kva_t base_addr);
 
 typedef struct pageframe {
     uint64_t last_accessed;
@@ -105,7 +115,11 @@ typedef struct pageframe {
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
 
 extern pageframe_t pages[MAX_PAGE_NUM];
+extern pageframe_t* get_page_attr(kva_t page);
 
 extern int swap_location;
+
+void init_vm();
+void init_pageframe_group();
 
 #endif /* MM_H */

@@ -255,6 +255,7 @@ int main(int argc, char** argv) {
 
         // Init virtual memory (>_<)
         init_vm();
+        init_pageframe_group();
         init_kmalloc();
         pretty_log(LOG_INFO, "[INIT] Memory initialization succeeded.");
 

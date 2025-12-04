@@ -92,7 +92,7 @@ static void merge_block(kva_t addr, int order) {
 }
 
 void init_kmalloc() {
-    pool_base = alloc_pageframe(POOL_PAGES);
+    pool_base = alloc_pageframe(PAGE_GROUP_KERNEL, POOL_PAGES);
     asserts(pool_base != 0, "init_kmalloc: alloc_pageframe failed");
     pool_end = pool_base + POOL_BYTES;
     memset((void*)free_lists, 0, sizeof(free_lists));

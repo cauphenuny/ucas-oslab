@@ -134,7 +134,7 @@ static inline long get_pfn(PTE entry)
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
     /* TODO: [P4-task1] */
-    *entry = (*entry & ~((1lu << _PAGE_PFN_SHIFT) - 1)) | (pfn << _PAGE_PFN_SHIFT);
+    *entry = (*entry & ((1lu << _PAGE_PFN_SHIFT) - 1)) | (pfn << _PAGE_PFN_SHIFT);
 }
 
 /* Get/Set attribute(s) of the `entry` */

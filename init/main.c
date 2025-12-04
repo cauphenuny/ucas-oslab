@@ -255,12 +255,14 @@ int main(int argc, char** argv) {
 
         // Init virtual memory (>_<)
         init_vm();
+        init_kmalloc();
+        pretty_log(LOG_INFO, "[INIT] Memory initialization succeeded.");
 
         // Init task info
         init_task_info(argc, argv);
         pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
-        pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
-        pretty_log(LOG_INFO, "[META] swap_location: %d", swap_location);
+        pretty_log(LOG_INFO, "[META]   task_num: %d", task_num);
+        pretty_log(LOG_INFO, "[META]   swap_location: %d", swap_location);
 
         task_info_t* shell_task = find_task("shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);

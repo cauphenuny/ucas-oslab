@@ -26,23 +26,23 @@
 #ifndef MM_H
 #define MM_H
 
-#include <type.h>
-#include <pgtable.h>
 #include <os/sched.h>
 #include <os/smp.h>
+#include <pgtable.h>
+#include <type.h>
 
-#define MAP_KERNEL 1
-#define MAP_USER 2
-#define MEM_SIZE 32
-#define PAGE_SIZE 4096 // 4K
-#define PTE_ENTRY_NUM (PAGE_SIZE / sizeof(PTE))
+#define MAP_KERNEL        1
+#define MAP_USER          2
+#define MEM_SIZE          32
+#define PAGE_SIZE         4096  // 4K
+#define PTE_ENTRY_NUM     (PAGE_SIZE / sizeof(PTE))
 #define INIT_KERNEL_STACK 0xffffffc052000000
-#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE * NR_CPUS)
-#define ALLMEM_KERNEL 0xffffffc060000000
+#define FREEMEM_KERNEL    (INIT_KERNEL_STACK + PAGE_SIZE * NR_CPUS)
+#define ALLMEM_KERNEL     0xffffffc060000000
 
 /* Rounding; only works for n = power of two */
-#define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
-#define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
+#define ROUND(a, n)     (((((uint64_t)(a)) + (n) - 1)) & ~((n) - 1))
+#define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n) - 1))
 
 extern ptr_t alloc_pageframe(int num_page);
 void free_pageframe(ptr_t base_addr);
@@ -55,7 +55,7 @@ extern size_t get_free_memory();
 // NOTE: only need for S-core to alloc 2MB large page
 #ifdef S_CORE
 #define LARGE_PAGE_FREEMEM 0xffffffc056000000
-#define USER_STACK_ADDR 0x400000
+#define USER_STACK_ADDR    0x400000
 extern ptr_t allocLargePage(int numPage);
 #else
 // NOTE: A/C-core
@@ -66,6 +66,7 @@ extern ptr_t allocLargePage(int numPage);
 
 extern void* kmalloc(size_t size);
 extern void kfree(void* ptr);
+extern void init_kmalloc(void);
 
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_va(uintptr_t va, uintptr_t pgdir);
@@ -85,7 +86,7 @@ void cleanup_vm(pcb_t* pcb);
 void init_vm();
 
 typedef struct pageframe {
-    uintptr_t start; // start phyaddr of allocated block
+    uintptr_t start;  // start phyaddr of allocated block
     uint64_t last_accessed;
 } pageframe_t;
 

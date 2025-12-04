@@ -85,5 +85,6 @@ void close_user_memory();
 void use_kernel_satp();
 void cleanup_vm(pcb_t* pcb);
 
+extern int swap_location;
 
 #endif /* MM_H */

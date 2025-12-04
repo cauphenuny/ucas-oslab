@@ -162,26 +162,22 @@ static void init_syscall(void) {
 
 /************************************************************/
 
-void write_batchfile(char* cmd, int location) { bios_sd_write((uint64_t)cmd, 1, location); }
-void read_batchfile(char* cmd, int location) { bios_sd_read((uint64_t)cmd, 1, location); }
-
 spin_lock_t kernel_lock;
 
 int initialized;
-static int batchfile_location;
 
 static void init_task_info(int argc, char** physical_argv) {
     // INFO:
     // argc: argc
     // argv+0: int task_num
     // argv+8: task_info_t* task_info
-    // argv+16: int batchfile_location
+    // argv+16: int swap_location
     asserts(argc == 3, "invalid argc");
     uint64_t* argv = (void*)pa2kva((ptr_t)physical_argv);
     task_num = argv[0];
     uintptr_t physical_task_info = argv[1];
     memcpy((void*)tasks, (void*)pa2kva(physical_task_info), sizeof(task_info_t) * task_num);
-    batchfile_location = argv[2];
+    swap_location = argv[2];
 }
 
 /*
@@ -261,7 +257,7 @@ int main(int argc, char** argv) {
         init_task_info(argc, argv);
         pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
         pretty_log(LOG_INFO, "[META] task_num: %d", task_num);
-        pretty_log(LOG_INFO, "[META] batchfile_location: %d", batchfile_location);
+        pretty_log(LOG_INFO, "[META] swap_location: %d", swap_location);
 
         task_info_t* shell_task = find_task("shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);

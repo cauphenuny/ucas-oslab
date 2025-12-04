@@ -6,7 +6,7 @@
 .equ task_start_loc, 0x502001f8
 .equ task_size_loc, 0x502001f6
 .equ task_num_loc, 0x502001f4
-.equ batchfile_loc, 0x502001f2
+.equ swap_loc, 0x502001f2
 
 // kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50202000
@@ -87,9 +87,9 @@ main:
     sd t0, 0(t1) // t1+0: task_num
     la t0, taskinfo
     sd t0, 8(t1) // t1+8: taskinfo
-    la t0, batchfile_loc
+    la t0, swap_loc
     lh t0, 0(t0)
-    sd t0, 16(t1) // t1+16: batchfile
+    sd t0, 16(t1) // t1+16: swap
     li a0, 3 // argc
     mv a1, t1 // argv
     la ra, stop

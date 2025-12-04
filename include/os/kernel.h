@@ -38,14 +38,14 @@ static inline void bios_putchar(int ch) { call_jmptab(CONSOLE_PUTCHAR, (long)ch,
 
 static inline int bios_getchar(void) { return call_jmptab(CONSOLE_GETCHAR, 0, 0, 0, 0, 0); }
 
-static inline int bios_sd_read(unsigned mem_address, unsigned num_of_blocks, unsigned block_id) {
-    return call_jmptab(SD_READ, (long)mem_address, (long)num_of_blocks, (long)block_id, 0, 0);
+static inline int bios_sd_read(uint64_t mem_address, unsigned num_of_blocks, unsigned block_id) {
+    return call_jmptab(SD_READ, (long)kva2pa(mem_address), (long)num_of_blocks, (long)block_id, 0, 0);
 }
 
 /************************************************************/
 
-static inline int bios_sd_write(unsigned mem_address, unsigned num_of_blocks, unsigned block_id) {
-    return call_jmptab(SD_WRITE, (long)mem_address, (long)num_of_blocks, (long)block_id, 0, 0);
+static inline int bios_sd_write(uint64_t mem_address, unsigned num_of_blocks, unsigned block_id) {
+    return call_jmptab(SD_WRITE, (long)kva2pa(mem_address), (long)num_of_blocks, (long)block_id, 0, 0);
 }
 
 static inline void bios_logging(char* str) { call_jmptab(QEMU_LOGGING, (long)str, 0, 0, 0, 0); }

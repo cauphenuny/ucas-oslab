@@ -151,7 +151,15 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
 
 void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     pretty_logi("handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause, exception_name(0, scause));
-    alloc_page_va(stval, current_running->pgdir);
+
+    // check if non-allocated or swapped out
+    PTE* pte = find_pte(stval, current_running->pgdir, false);
+    if (!pte || !get_attribute(*pte, _PAGE_SOFT)) {
+        alloc_page_va(stval, current_running->pgdir);
+    } else {
+        kva_t new_page = alloc_pageframe(find_pagegroup(current_running->pgdir), 1);
+        swapin(stval, current_running->pgdir, new_page);
+    }
 }
 
 void init_exception() {

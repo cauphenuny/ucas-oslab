@@ -18,12 +18,7 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
     if (!group) {
         pretty_loge("invalid pageframe group");
     }
-    if (group->used + num_page > group->capacity) {
-        pretty_logw(
-            "exceeding pageframe group '%s': capacity: %d, used: %d, alloc: %d", group->pages.name,
-            group->capacity, group->used, num_page);
-        shrink_pagegroup(group, num_page);
-    }
+    shrink_pagegroup(group, num_page);
     int counter = 0;
     while (counter < MAX_PAGE_NUM) {
         ptr_t ret = ROUND(cur_kernel_mem, PAGE_SIZE);
@@ -127,6 +122,5 @@ void update_page_access(uint64_t current_tick) {
 void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group) {
     pf->pte = NULL;
     pf->last_accessed = 0;
-    detach_pageframe(addr, group);
     free_pageframe(addr);
 }

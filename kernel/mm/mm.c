@@ -62,7 +62,7 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
         if (create) {
             clear_pgdir(add_page(vpn2, (kva_t)current_pgdir, 0));
         } else {
-            asserts(false, "find_pte: vpn2 not present");
+            return NULL;
         }
     }
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
@@ -70,7 +70,7 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
         if (create) {
             clear_pgdir(add_page(vpn1, (kva_t)current_pgdir, 0));
         } else {
-            asserts(false, "find_pte: vpn1 not present");
+            return NULL;
         }
     }
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
@@ -93,6 +93,7 @@ PTE* alloc_page_va(uva_t va, kva_t pgdir) {
 
 PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
     PTE* pte = find_pte(va, pgdir, false);
+    asserts(pte, "bind_page_va: pte not found");
     asserts(!get_attribute(*pte, _PAGE_PRESENT), "bind_page_va: pte already occupied");
     bind_page(pte, page, _PAGE_USER | _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE);
 

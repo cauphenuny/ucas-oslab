@@ -10,9 +10,26 @@ int swap_base_location;
 
 #define SWAP_LEN (PAGE_SIZE / SECTOR_SIZE)
 
-int8_t swap_used[SWAP_SIZE / PAGE_SIZE] = {0};
+int8_t swap_using[SWAP_SIZE / PAGE_SIZE] = {0};
+uint64_t swap_used, swap_next_idx;
 
-static uint64_t alloc_swap() { return 0; }
+static uint64_t alloc_swap() {
+    if (swap_used >= NUM_MAX_SWAP) {
+        pretty_loge("out of swap space!");
+        asserts(false, "alloc_swap: out of swap space");
+    }
+    while (swap_using[swap_next_idx]) {
+        swap_next_idx = (swap_next_idx + 1) % NUM_MAX_SWAP;
+    }
+    swap_using[swap_next_idx] = 1;
+    swap_used++;
+    return swap_next_idx;
+}
+
+static void free_swap(uint64_t swap_id) {
+    swap_using[swap_id] = 0;
+    swap_used--;
+}
 
 // NOTE: do not swapout pagedir in grouop, only swapout leaf nodes
 kva_t swapout(pageframe_group_t* group) {
@@ -24,7 +41,7 @@ kva_t swapout(pageframe_group_t* group) {
             kva_t page = pageframe_addr(pf - pages);
             // find a swap location
             uint64_t swap_id = alloc_swap();
-            pretty_logw("swapping out page 0x%x to swap addr 0x%x", kva2pa(page), swap_id);
+            pretty_logw("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
             bios_sd_write(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
             clear_attribute(pte, _PAGE_PRESENT);
             set_attribute(pte, _PAGE_SOFT);
@@ -62,7 +79,8 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     asserts(get_attribute(*entry_level0, _PAGE_SOFT), "swapin: level 0 entry not swapped out");
     // find swap location
     uint64_t swap_id = get_pfn(*entry_level0);
-    pretty_logw("swapping in page 0x%x from swap addr 0x%x", kva2pa(page), swap_id);
+    pretty_logw("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
     bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+    free_swap(swap_id);
 }

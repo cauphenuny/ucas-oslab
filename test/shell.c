@@ -111,16 +111,21 @@ int shifti(int* argc, char*** argv) {
     return atoi(buffer);
 }
 
-task_t* lint(int dest[], int argc, char** argv) {
-    memset((void*)dest, 0, sizeof(dest[0]) * argc);
+task_t* find(const char* name) {
     task_t* matched = NULL;
-    if (!argv[0]) return matched;
+    if (!name) return matched;
     for (int i = 0; i < NUM_CMD; i++) {
-        if (strcmp(argv[0], COMMAND_TABLE[i].name) == 0) {
+        if (strcmp(name, COMMAND_TABLE[i].name) == 0) {
             matched = (task_t*)&COMMAND_TABLE[i];
             break;
         }
     }
+    return matched;
+}
+
+void lint(int dest[], int argc, char** argv) {
+    memset((void*)dest, 0, sizeof(dest[0]) * argc);
+    task_t* matched = find(argv[0]);
     if (!matched) {
         dest[0] = COLOR_RED;
         dest[1] = COLOR_RESET;
@@ -128,7 +133,6 @@ task_t* lint(int dest[], int argc, char** argv) {
         dest[0] = COLOR_GREEN;
         matched->subcmd_linter(dest + 1, argc - 1, argv + 1);
     }
-    return matched;
 }
 
 void render(char* buffer, int argc, int colors[]) {
@@ -274,8 +278,9 @@ command_t readline() {
 
         strcpy(args_buffer, buffer);
         args = parse(args_buffer, BUFFER_LEN);
-        task = lint(color_buffer, args.argc, args.argv);
+        lint(color_buffer, args.argc, args.argv);
         render(buffer, args.argc, color_buffer);
+        task = find(args.argv[0]);
         // display(display_buffer, display_color_buffer);
     }
 
@@ -347,6 +352,13 @@ void subcmd_lint_taskset(int dest[], int argc, char** argv) {
 void subcmd_lint_help(int dest[], int argc, char** argv) {
     subcmd_lint(dest, argc, argv);
     if (argc >= 1 && strcmp("-a", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+    }
+}
+
+void subcmd_lint_free(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
+    if (argc >= 1 && strcmp("-h", argv[0]) == 0) {
         dest[0] = COLOR_YELLOW;
     }
 }
@@ -555,6 +567,24 @@ int free(int argc, char** argv) {
     return 0;
 }
 
+int time(int argc, char** argv) {
+    if (argc <= 1) {
+        log_info("usage: time {subcmd ...}");
+        return 1;
+    }
+    shift(&argc, &argv);
+    const task_t* task = find(argv[0]);
+    if (!task) {
+        log_info("no such command: %s", argv[0]);
+        return 1;
+    }
+    uint64_t start = sys_get_tick();
+    task->handler(argc, argv);
+    uint64_t end = sys_get_tick();
+    log_info("%d ticks", end - start);
+    return 0;
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -570,6 +600,7 @@ const task_t COMMAND_TABLE[] = {
     {"exit", "exit shell", subcmd_lint, exit},
     {"nice", "set scheduling nice value", subcmd_lint, nice},
     {"free", "show free memory", subcmd_lint, free},
+    {"time", "measure command execution time", lint, time},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

@@ -143,11 +143,17 @@ static inline long get_attribute(PTE entry, uint64_t mask)
     /* TODO: [P4-task1] */
     return entry & mask;
 }
+
 static inline void set_attribute(PTE *entry, uint64_t bits)
 {
     /* TODO: [P4-task1] */
     asserts((bits & (~((1 << _PAGE_PFN_SHIFT) - 1))) == 0, "set_attribute with invalid bits");
     *entry = (*entry) | bits;
+}
+
+static inline void clear_attribute(PTE *entry, uint64_t bits)
+{
+    *entry = (*entry) & (~bits);
 }
 
 static inline void clear_pgdir(kva_t pgdir_addr)

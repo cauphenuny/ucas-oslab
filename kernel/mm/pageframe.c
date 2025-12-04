@@ -115,16 +115,17 @@ void update_page_access(uint64_t current_tick) {
         if (!page_groups[i].refcount) continue;
         list_foreach_node(iter, &page_groups[i].pages.head) {
             pageframe_t* pf = container_of(iter, pageframe_t, group_node);
-            if (!pf->pte) {
-                // NOTE: maybe kernel memory page or root pgdir
-                continue;
+            if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+                if (!get_attribute(*pf->pte, _PAGE_ACCESSED)) {
+                    continue;
+                }
             }
-            if (!get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-                // NOTE: skip non-leaf page table entries
-                continue;
+            pf->last_accessed = current_tick;
+            list_delete(iter);
+            list_prepend(&page_groups[i].pages, iter);
+            if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+                clear_attribute(pf->pte, _PAGE_ACCESSED);
             }
-            if (get_attribute(*pf->pte, _PAGE_ACCESSED))
-                pf->last_accessed = current_tick;
         }
     }
 }

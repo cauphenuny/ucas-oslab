@@ -44,7 +44,7 @@ struct list;
 // double-linked list
 typedef struct list_node {
     struct list_node *next, *prev;
-    struct list *container;
+    struct list* container;
 } list_node_t;
 
 typedef struct list {
@@ -97,7 +97,8 @@ void list_traverse(list_t* head, void (*func)(list_node_t* node));
          iter = iter->member->next == head ? NULL                                               \
                                            : container_of(iter->member->next, type, member))
 
-#define list_foreach_node(iter, head) \
-    for (list_node_t* iter = (head)->next; iter != (head); iter = iter->next)
+#define list_foreach_node(iter, head)                                          \
+    for (list_node_t* iter = (head)->next, *iter_next= iter->next; iter != (head); \
+         iter = iter_next, iter_next = iter->next)
 
 #endif

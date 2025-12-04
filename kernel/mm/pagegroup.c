@@ -35,7 +35,16 @@ void show_pagegroup_details(int pgid) {
     list_foreach_node(iter, &group->pages.head) {
         pageframe_t* pf = container_of(iter, pageframe_t, group_node);
         kva_t page = pageframe_addr(pf - pages);
-        printk("  page 0x%x: delta_t=%lu\n", kva2pa(page), cur - pf->last_accessed);
+        if (!pf->pte) {
+            if (group == PAGE_GROUP_KERNEL)
+                printk("  page 0x%x: pagedir (top) or kernel page\n", kva2pa(page));
+            else
+                printk("  page 0x%x: pagedir (top)\n", kva2pa(page));
+        } else if (!get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            printk("  page 0x%x: pagedir (intermediate)\n", kva2pa(page));
+        } else {
+            printk("  page 0x%x: leaf: delta_t=%lu\n", kva2pa(page), cur - pf->last_accessed);
+        }
     }
 }
 

@@ -27,6 +27,9 @@ extern const char* log_level_str_color[];
 
 extern spin_lock_t logger_lock;
 
+#define DISPLAY_HARTID 0
+
+#if DISPLAY_HARTID
 #define pretty_log(level, fmt, ...)                                                                \
     do {                                                                                           \
         spin_lock_acquire(&logger_lock);                                                           \
@@ -35,6 +38,16 @@ extern spin_lock_t logger_lock;
             get_current_cpu_id(), __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
         spin_lock_release(&logger_lock);                                                           \
     } while (0)
+#else
+#define pretty_log(level, fmt, ...)                                                                \
+    do {                                                                                           \
+        spin_lock_acquire(&logger_lock);                                                           \
+        printl(                                                                                    \
+            "%s " COLOR_BLACK "%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
+            __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
+        spin_lock_release(&logger_lock);                                                           \
+    } while (0)
+#endif
 
 #define pretty_loge(fmt, ...)                      \
     do {                                           \

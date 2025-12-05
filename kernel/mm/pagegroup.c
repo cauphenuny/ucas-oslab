@@ -88,6 +88,9 @@ static pageframe_group_t* alloc_pageframe_group() {
 }
 
 static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* new_group) {
+    shrink_pagegroup(new_group, 1);
+    detach_pageframe(pgdir, group);
+    attach_pageframe(pgdir, new_group);
     for (int i = 0; i < PTE_ENTRY_NUM; i++) {
         PTE pte = ((PTE*)pgdir)[i];
         // NOTE: only consider acvitve pages (ignore swapped-out pages)
@@ -95,6 +98,7 @@ static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* 
             kva_t page = pa2kva(get_pa(pte));
             if (get_attribute(pte, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
                 if (get_attribute(pte, _PAGE_USER)) {
+                    shrink_pagegroup(new_group, 1);
                     detach_pageframe(page, group);
                     attach_pageframe(page, new_group);
                 }
@@ -103,8 +107,6 @@ static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* 
             }
         }
     }
-    detach_pageframe(pgdir, group);
-    attach_pageframe(pgdir, new_group);
 }
 
 void shrink_pagegroup(pageframe_group_t* group, size_t space) {

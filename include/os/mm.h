@@ -128,8 +128,8 @@ typedef struct pageframe {
 extern pageframe_t pages[MAX_PAGE_NUM];
 extern pageframe_t* get_page_attr(kva_t page);
 
-static int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
-static ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
+static inline int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
+static inline ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
 
 extern void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group);
 

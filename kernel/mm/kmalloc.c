@@ -95,7 +95,7 @@ static int kmalloc_ready = false;
 
 void init_kmalloc() {
     pool_base = alloc_pageframe(PAGE_GROUP_KERNEL, POOL_PAGES);
-    asserts(pool_base != 0, "init_kmalloc: alloc_pageframe failed");
+    asserts(pool_base != 0, "alloc_pageframe failed");
     pool_end = pool_base + POOL_BYTES;
     memset((void*)free_lists, 0, sizeof(free_lists));
     push_block(MAX_ORDER, pool_base);
@@ -111,12 +111,12 @@ void* kmalloc(size_t size) {
     int order = MIN_ORDER;
     while (order <= MAX_ORDER && order_size(order) < total) order++;
     if (order > MAX_ORDER) {
-        pretty_log(LOG_ERROR, "kmalloc: request too large (%lu bytes)", size);
+        pretty_log(LOG_ERROR, "request too large (%lu bytes)", size);
         return NULL;
     }
     kva_t block = acquire_block(order);
     if (!block) {
-        pretty_log(LOG_ERROR, "kmalloc: out of memory for %lu bytes", size);
+        pretty_log(LOG_ERROR, "out of memory for %lu bytes", size);
         return NULL;
     }
     block_header_t* header = (block_header_t*)block;
@@ -130,12 +130,12 @@ void kfree(void* ptr) {
     if (!ptr) return;
     kva_t addr = (kva_t)ptr - sizeof(block_header_t);
     if (addr < pool_base || addr >= pool_end) {
-        pretty_log(LOG_ERROR, "kfree: pointer 0x%lx out of range", (kva_t)ptr);
+        pretty_log(LOG_ERROR, "pointer 0x%lx out of range", (kva_t)ptr);
         return;
     }
     block_header_t* header = (block_header_t*)addr;
     if (header->magic != HEADER_MAGIC || header->order > MAX_ORDER || header->order < MIN_ORDER) {
-        pretty_log(LOG_ERROR, "kfree: invalid block header at 0x%lx", addr);
+        pretty_log(LOG_ERROR, "invalid block header at 0x%lx", addr);
         return;
     }
     header->magic = 0;

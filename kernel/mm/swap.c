@@ -17,8 +17,8 @@ uint64_t swap_counter_in, swap_counter_out;
 
 static uint64_t alloc_swap() {
     if (swap_used >= NUM_MAX_SWAP) {
-        pretty_loge("out of swap space!");
-        asserts(false, "alloc_swap: out of swap space");
+    pretty_loge("out of swap space!");
+    asserts(false, "out of swap space");
     }
     while (swap_using[swap_next_idx]) {
         swap_next_idx = (swap_next_idx + 1) % NUM_MAX_SWAP;
@@ -74,13 +74,13 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(uva, &vpn2, &vpn1, &vpn0);
     PTE entry_level2 = pte[vpn2];
-    asserts(get_attribute(entry_level2, _PAGE_PRESENT), "swapin: level 2 entry not present");
+    asserts(get_attribute(entry_level2, _PAGE_PRESENT), "level 2 entry not present");
     kva_t level1_pgdir = pa2kva(get_pa(entry_level2));
     PTE entry_level1 = ((PTE*)level1_pgdir)[vpn1];
-    asserts(get_attribute(entry_level1, _PAGE_PRESENT), "swapin: level 1 entry not present");
+    asserts(get_attribute(entry_level1, _PAGE_PRESENT), "level 1 entry not present");
     kva_t level0_pgdir = pa2kva(get_pa(entry_level1));
     PTE* entry_level0 = &((PTE*)level0_pgdir)[vpn0];
-    asserts(get_attribute(*entry_level0, _PAGE_SOFT), "swapin: level 0 entry not swapped out");
+    asserts(get_attribute(*entry_level0, _PAGE_SOFT), "level 0 entry not swapped out");
     // find swap location
     uint64_t swap_id = get_pfn(*entry_level0);
     pretty_logn("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);

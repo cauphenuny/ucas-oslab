@@ -45,7 +45,7 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
         }
         counter++;
     }
-    asserts(false, "alloc_pageframe: out of memory");
+    asserts(false, "out of memory");
     return 0;
 }
 
@@ -55,11 +55,11 @@ void free_pageframe(ptr_t base_addr) {
         pretty_loge("try to free kernel page");
         return;
     }
-    asserts(id >= 0 && id < MAX_PAGE_NUM, "free_page: invalid addr");
-    asserts(attrs[id].start, "free_page: double free detected");
+    asserts(id >= 0 && id < MAX_PAGE_NUM, "invalid addr");
+    asserts(attrs[id].start, "double free detected");
     ptr_t entry = attrs[id].start;
     int entry_id = pageframe_id(attrs[id].start);
-    asserts(entry_id <= id, "free_page: corrupted start_addr");
+    asserts(entry_id <= id, "corrupted start_addr");
     pretty_logd("free page block at addr 0x%x", kva2pa(entry));
     pageframe_group_t* group = find_pagegroup(entry);
     for (int i = entry_id; attrs[i].start == entry; i = (i + 1) % MAX_PAGE_NUM) {
@@ -80,7 +80,7 @@ size_t get_free_memory() {
 
 pageframe_t* get_page_attr(kva_t page) {
     int id = pageframe_id(page);
-    asserts(id >= 0 && id < MAX_PAGE_NUM, "get_page_attr: invalid page addr");
+    asserts(id >= 0 && id < MAX_PAGE_NUM, "invalid page addr");
     return &pages[id];
 }
 

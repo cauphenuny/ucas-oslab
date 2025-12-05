@@ -41,7 +41,7 @@ static void unmap_page(uint64_t va, PTE *pgdir)
         va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
     uint64_t vpn1 = (vpn2 << PPN_BITS) ^
                     (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-    asserts(pgdir[vpn2] != 0, "unmap_page: pgdir[vpn2] == 0");
+    asserts(pgdir[vpn2] != 0, "pgdir[vpn2] == 0");
     PTE *pmd = (PTE *)pa2kva(get_pa(pgdir[vpn2]));
     pmd[vpn1] = 0;
 }

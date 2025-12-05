@@ -137,17 +137,17 @@ static pipe_segment_t* pipe_alloc_segment(void) {
 static pipe_segment_t* pipe_detach_page_from_sender(uva_t va, pageframe_group_t* owner_group) {
     PTE* pte = find_pte(va, current_running->pgdir, false);
     if (!pte) {
-        pretty_loge("pipe give: invalid VA 0x%lx", va);
+        pretty_loge("invalid VA 0x%lx", va);
         return NULL;
     }
     if (!(get_attribute(*pte, _PAGE_PRESENT) || get_attribute(*pte, _PAGE_SOFT))) {
-        pretty_loge("pipe give: VA 0x%lx not mapped", va);
+        pretty_loge("VA 0x%lx not mapped", va);
         return NULL;
     }
 
     pipe_segment_t* seg = pipe_alloc_segment();
     if (!seg) {
-        pretty_loge("pipe give: kmalloc pipe_segment failed");
+        pretty_loge("kmalloc pipe_segment failed");
         return NULL;
     }
 
@@ -270,7 +270,7 @@ int pipe_open(const char* name) {
 
     if (free_idx == -1) {
         spin_lock_release(&pipe_table_lock);
-        pretty_loge("pipe open: no free slot for %s", local_name);
+        pretty_loge("no free slot for %s", local_name);
         return -1;
     }
 
@@ -295,11 +295,11 @@ long pipe_give_pages(int idx, kva_t src, size_t length) {
     pipe_system_init();
     pipe_entry_t* pipe = pipe_lookup_by_index(idx);
     if (!pipe) {
-        pretty_loge("pipe give: invalid pipe idx %d", idx);
+        pretty_loge("invalid pipe idx %d", idx);
         return -1;
     }
     if ((src & (PIPE_PAGE_SIZE - 1)) || (length & (PIPE_PAGE_SIZE - 1))) {
-        pretty_loge("pipe give: unaligned src=0x%lx len=%lu", src, length);
+        pretty_loge("unaligned src=0x%lx len=%lu", src, length);
         return -1;
     }
     if (length == 0) {
@@ -334,11 +334,11 @@ long pipe_take_pages(int idx, kva_t dest, size_t length) {
     pipe_system_init();
     pipe_entry_t* pipe = pipe_lookup_by_index(idx);
     if (!pipe) {
-        pretty_loge("pipe take: invalid pipe idx %d", idx);
+        pretty_loge("invalid pipe idx %d", idx);
         return -1;
     }
     if ((dest & (PIPE_PAGE_SIZE - 1)) || (length & (PIPE_PAGE_SIZE - 1))) {
-        pretty_loge("pipe take: unaligned dest=0x%lx len=%lu", dest, length);
+        pretty_loge("unaligned dest=0x%lx len=%lu", dest, length);
         return -1;
     }
     if (length == 0) {

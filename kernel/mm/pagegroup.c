@@ -11,9 +11,9 @@ pageframe_group_t* find_pagegroup(kva_t page) {
     if (page == PGDIR_VA) return PAGE_GROUP_KERNEL;
     asserts(
         page >= INIT_KERNEL_STACK && page <= ALLMEM_KERNEL,
-        "find_pageframe_group: invalid pageframe address");
+        "invalid pageframe address");
     pageframe_t* attr = get_page_attr(page);
-    asserts(attr->group_node.container, "find_pageframe_group: isolated pageframe");
+    asserts(attr->group_node.container, "isolated pageframe");
     return container_of(attr->group_node.container, pageframe_group_t, pages);
 }
 
@@ -174,7 +174,7 @@ int resize_pagegroup(pageframe_group_t* group, size_t new_capacity) {
 }
 
 void free_pagegroup(pageframe_group_t* group) {
-    asserts(group->used == 0, "free_pagegroup: group is not empty");
+    asserts(group->used == 0, "group is not empty");
     PAGE_GROUP_KERNEL->capacity += group->capacity;
     pretty_logi("freed pagegroup '%s'", group->pages.name);
 }

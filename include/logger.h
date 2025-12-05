@@ -30,6 +30,9 @@ extern spin_lock_t logger_lock;
 
 #define DISPLAY_HARTID 0
 
+#ifdef DISABLE_LOG
+#define pretty_log(...)
+#else
 #if DISPLAY_HARTID
 #define pretty_log(level, fmt, ...)                                                                \
     do {                                                                                           \
@@ -48,6 +51,7 @@ extern spin_lock_t logger_lock;
             __FILE__, __LINE__, __func__, ##__VA_ARGS__);                                       \
         spin_lock_release(&logger_lock);                                                        \
     } while (0)
+#endif
 #endif
 
 #define pretty_loge(fmt, ...)                      \

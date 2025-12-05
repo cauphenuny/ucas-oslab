@@ -41,14 +41,15 @@ MINICOM         ?= minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
-CFLAGS          = -std=gnu11 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
-CFLAGS          += -g
-CFLAGS          += -O0
-CFLAGS          += -DBRK_LEVEL=BRK_DEBUG
-CXXFLAGS        = -std=gnu++20 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -fno-exceptions -fno-rtti
-CXXFLAGS        += -g
-CXXFLAGS        += -O0
-CXXFLAGS        += -Wno-register
+COMMON_FLAGS    = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
+COMMON_FLAGS    += -g
+COMMON_FLAGS    += -O0
+COMMON_FLAGS    += -DDISABLE_LOG
+
+CFLAGS          = -std=gnu11
+CFLAGS          += $(COMMON_FLAGS)
+CXXFLAGS        = -std=gnu++20 -fno-exceptions -fno-rtti -Wno-register
+CXXFLAGS        += $(COMMON_FLAGS)
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds

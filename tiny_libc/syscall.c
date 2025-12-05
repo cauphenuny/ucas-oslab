@@ -115,6 +115,10 @@ void sys_screen_delete_line(int nlines) {
     invoke_syscall(SYSCALL_DELETE_LINE, (long)nlines, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+void sys_screen_clear_lines(int start, int end) {
+    invoke_syscall(SYSCALL_CLEAR_LINE, (long)start, (long)end, IGNORE, IGNORE, IGNORE);
+}
+
 int sys_exec_by_entry(char* name, uint64_t entrance, int argc, char* argv[]) {
     return invoke_syscall(SYSCALL_EXEC_BY_ENTRY, (long)name, (long)entrance, (long)argc, (long)argv, IGNORE);
 }

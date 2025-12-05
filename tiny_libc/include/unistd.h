@@ -36,6 +36,7 @@ void sys_screen_clear_scroll(void);
 void sys_screen_set_color(int start_col, int end_col, int foreground, int background);
 void sys_screen_clear_color(void);
 void sys_screen_delete_line(int nlines);
+void sys_screen_clear_lines(int start, int end);
 
 size_t sys_get_free_memory(void);
 int sys_set_max_memory(size_t max_mem);

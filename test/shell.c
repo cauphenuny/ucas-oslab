@@ -363,6 +363,16 @@ void subcmd_lint_free(int dest[], int argc, char** argv) {
     }
 }
 
+void subcmd_lint_watch(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
+    if (argc >= 1 && strcmp("-n", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+        if (argc > 2) {
+            lint(dest + 2, argc - 2, argv + 2);
+        }
+    }
+}
+
 int keycode(int argc, char** argv) {
     int ch = getchar();
     do {
@@ -569,7 +579,7 @@ int free(int argc, char** argv) {
 
 int time(int argc, char** argv) {
     if (argc <= 1) {
-        log_info("usage: time {subcmd ...}");
+        log_info("usage: time cmd ...");
         return 1;
     }
     shift(&argc, &argv);
@@ -583,6 +593,36 @@ int time(int argc, char** argv) {
     uint64_t end = sys_get_tick();
     log_info("%d ticks", end - start);
     return 0;
+}
+
+int watch(int argc, char** argv) {
+    if (argc < 2) goto usage;
+    shift(&argc, &argv); // shift 'watch'
+    unsigned interval = 1;
+    if (strcmp(argv[0], "-n") == 0) {
+        shift(&argc, &argv);
+        if (argc < 2) goto usage;
+        interval = shifti(&argc, &argv);
+    }
+    const task_t* task = find(argv[0]);
+    if (!task) {
+        log_info("no such command: %s", argv[0]);
+        return 1;
+    }
+    while (1) {
+        sys_screen_clear_lines(shell_begin + 1, shell_end);
+        sys_move_cursor(0, shell_begin + 1);
+        printf("watch -n %d %s ", interval, argv[0]);
+        echo(argc, argv);
+        task->handler(argc, argv);
+        int ch = sys_getchar();
+        if (ch != -1) break;
+        sys_sleep(interval);
+    }
+    return 0;
+usage:
+    log_info("usage: watch [-n INTERVAL] cmd ...");
+    return 1;
 }
 
 const task_t COMMAND_TABLE[] = {
@@ -601,6 +641,7 @@ const task_t COMMAND_TABLE[] = {
     {"nice", "set scheduling nice value", subcmd_lint, nice},
     {"free", "show free memory", subcmd_lint_free, free},
     {"time", "measure command execution time", lint, time},
+    {"watch", "execute a program periodically", subcmd_lint_watch, watch},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

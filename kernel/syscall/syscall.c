@@ -353,6 +353,11 @@ long sys_screen_clear(void) {
     return 0;
 }
 
+long sys_screen_clear_lines(int start, int end) {
+    screen_clear_lines(start, end);
+    return 0;
+}
+
 /***************** time *****************/
 
 long sys_get_timebase(void) { return get_time_base(); }
@@ -428,4 +433,5 @@ void init_syscall(void) {
     syscall[SYSCALL_SET_COLOR] = sys_screen_set_color;
     syscall[SYSCALL_CLEAR_COLOR] = sys_screen_clear_color;
     syscall[SYSCALL_DELETE_LINE] = sys_screen_delete_line;
+    syscall[SYSCALL_CLEAR_LINE] = sys_screen_clear_lines;
 }

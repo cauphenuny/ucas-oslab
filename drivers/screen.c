@@ -1,4 +1,3 @@
-#include "logger.h"
 #include <screen.h>
 #include <printk.h>
 #include <os/string.h>
@@ -266,7 +265,7 @@ void screen_delete_line(int nlines)
     int i, j;
     for (i = 0; i < nlines; i++)
     {
-        for (j = 0; j < SCREEN_WIDTH - 1; j++)
+        for (j = 0; j < SCREEN_WIDTH; j++)
         {
             new_screen[SCREEN_LOC(j, current_running->cursor_y)] = ' ';
             color_trigger[SCREEN_LOC(j, current_running->cursor_y)] = 0;
@@ -274,4 +273,13 @@ void screen_delete_line(int nlines)
         current_running->cursor_y--;
     }
     current_running->cursor_x = 0, current_running->cursor_y++;
+}
+
+void screen_clear_lines(int start, int end) {
+    for (int i = start; i < end; i++) {
+        for (int j = 0; j < SCREEN_WIDTH; j++) {
+            new_screen[SCREEN_LOC(j, i)] = ' ';
+            color_trigger[SCREEN_LOC(j, i)] = 0;
+        }
+    }
 }

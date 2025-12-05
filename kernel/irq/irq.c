@@ -146,7 +146,8 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     // uint64_t ticks = get_ticks();
     // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval,
     // scause);
-    update_page_access(get_ticks());
+    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
+    group->maintain(group, get_ticks());
     reset_timer();
     do_scheduler();
 }

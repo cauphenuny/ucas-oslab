@@ -137,6 +137,11 @@ int sys_set_max_memory(size_t max_mem)
     return invoke_syscall(SYSCALL_SET_MAX_MEM, (long)max_mem, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+int sys_set_page_repl_algo(const char* algo)
+{
+    return invoke_syscall(SYSCALL_SET_PAGE_ALGO, (long)algo, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 /************************************************************/
 #ifdef S_CORE
 pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2)

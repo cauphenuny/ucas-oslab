@@ -49,6 +49,7 @@ long sys_getpid(void);
 
 long sys_get_free_memory(void);
 long sys_set_max_memory(size_t max_mem);
+long sys_set_page_repl_algo(const char* algo);
 
 long sys_process_show();
 long sys_task_show();

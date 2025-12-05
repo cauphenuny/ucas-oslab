@@ -17,12 +17,13 @@ int main() {
     sys_set_max_memory(PAGE_SIZE * 64);
     sys_sleep(5);
     sys_set_max_memory(PAGE_SIZE * (10 + 4));
+    sys_set_page_repl_algo("fifo");
     for (int i = 0; i < 4; i++) {
         touch_page(i + 10);
     }
 
     printf("test swap...\n");
-    int test_sequence[] = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4,  1, 2, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
+    int test_sequence[] = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
     int total = sizeof(test_sequence) / sizeof(test_sequence[0]), swap = 0, page_fault = 0;
     uint64_t sum_ticks = 0;
     for (int i = 0; i < total; i++) {

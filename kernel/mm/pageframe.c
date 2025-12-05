@@ -99,22 +99,34 @@ void detach_pageframe(kva_t page, pageframe_group_t* group) {
     pretty_logd("detached page 0x%x from group '%s'", kva2pa(page), group->pages.name);
 }
 
-void update_page_access(uint64_t current_tick) {
-    for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
-        if (!page_groups[i].refcount) continue;
-        list_foreach_node(iter, &page_groups[i].pages.head) {
-            pageframe_t* pf = container_of(iter, pageframe_t, group_node);
-            if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-                if (!get_attribute(*pf->pte, _PAGE_ACCESSED)) {
-                    continue;
-                }
+void maintain_pagelist_lru(pageframe_group_t* group, uint64_t current_tick) {
+    list_foreach_node(iter, &group->pages.head) {
+        pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+        if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            if (!get_attribute(*pf->pte, _PAGE_ACCESSED)) {
+                continue;
             }
-            pf->last_accessed = current_tick;
-            list_delete(iter);
-            list_prepend(&page_groups[i].pages, iter);
-            if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-                clear_attribute(pf->pte, _PAGE_ACCESSED);
+        }
+        pf->last_accessed = current_tick;
+        list_delete(iter);
+        list_prepend(&group->pages, iter);
+        if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            clear_attribute(pf->pte, _PAGE_ACCESSED);
+        }
+    }
+}
+
+void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_tick) {
+    list_foreach_node(iter, &group->pages.head) {
+        pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+        if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            if (!get_attribute(*pf->pte, _PAGE_ACCESSED)) {
+                continue;
             }
+        }
+        pf->last_accessed = current_tick;
+        if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            clear_attribute(pf->pte, _PAGE_ACCESSED);
         }
     }
 }

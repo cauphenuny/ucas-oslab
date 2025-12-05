@@ -39,6 +39,7 @@ void sys_screen_delete_line(int nlines);
 
 size_t sys_get_free_memory(void);
 int sys_set_max_memory(size_t max_mem);
+int sys_set_page_repl_algo(const char *algo);
 
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */

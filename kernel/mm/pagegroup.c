@@ -22,6 +22,7 @@ void init_pageframe_group() {
         .capacity = MAX_PAGE_NUM,
         .used = 0,
         .refcount = 1,
+        .maintain = maintain_pagelist_lru,
     };
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }
@@ -131,6 +132,7 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     new_group->capacity = capacity;
     new_group->refcount = 1;
     list_init(&new_group->pages, name);
+    new_group->maintain = group->maintain;
 
     group->refcount--;
     group->capacity -= capacity;

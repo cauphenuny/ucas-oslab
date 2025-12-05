@@ -124,6 +124,20 @@ long sys_set_max_memory(size_t max_mem) {
     return resize_pagegroup(group, max_mem / PAGE_SIZE);
 }
 
+long sys_set_page_repl_algo(const char* algo) {
+    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
+    int ret = 0;
+    pretty_logi("try set group '%s' replacement algorithm to %s", group->pages.name, algo);
+    if (strcmp(algo, "lru") == 0) {
+        group->maintain = maintain_pagelist_lru;
+    } else if (strcmp(algo, "fifo") == 0) {
+        group->maintain = maintain_pagelist_fifo;
+    } else {
+        ret = 1;
+    }
+    return ret;
+}
+
 long sys_process_show() { return do_process_show(); }
 
 long sys_task_show() {

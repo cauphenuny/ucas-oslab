@@ -88,6 +88,7 @@ typedef struct pageframe_group {
     size_t capacity;
     size_t used;
     int refcount;  // one group may be shared by multiple processes
+    void (*maintain)(struct pageframe_group* group, uint64_t current_tick);
 } pageframe_group_t;
 
 extern pageframe_group_t page_groups[NUM_MAX_PAGEGROUP];
@@ -136,7 +137,8 @@ static inline ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_S
 
 extern void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group);
 
-extern void update_page_access(uint64_t current_tick);
+extern void maintain_pagelist_lru(pageframe_group_t* group, uint64_t current_tick);
+extern void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_tick);
 
 extern int swap_base_location;
 

@@ -115,6 +115,7 @@ kva_t swapout(pageframe_group_t* group);
 void swapin(uva_t uva, kva_t pgdir, kva_t page);
 
 void show_swap();
+void free_swap(uint64_t swap_id);
 
 extern kva_t alloc_pageframe(pageframe_group_t* group, int num_page);
 extern void free_pageframe(kva_t base_addr);

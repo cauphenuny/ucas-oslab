@@ -28,7 +28,7 @@ static uint64_t alloc_swap() {
     return swap_next_idx;
 }
 
-static void free_swap(uint64_t swap_id) {
+void free_swap(uint64_t swap_id) {
     swap_using[swap_id] = 0;
     swap_used--;
 }

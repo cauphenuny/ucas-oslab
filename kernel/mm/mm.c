@@ -163,6 +163,9 @@ static void free_pgdir(kva_t pgdir) {
             } else {
                 free_pgdir(pa2kva(get_pa(pte)));
             }
+        } else if (get_attribute(pte, _PAGE_SOFT)) {
+            uint64_t swap_id = get_pfn(pte);
+            free_swap(swap_id);
         }
     }
     free_pageframe(pgdir);

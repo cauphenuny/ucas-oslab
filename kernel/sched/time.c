@@ -22,6 +22,11 @@ uint64_t get_ticks()
     return time_elapsed;
 }
 
+uint64_t get_proc_tick()
+{
+     return current_running->cputime;
+}
+
 void reset_timer()
 {
     uint64_t ticks = get_ticks();

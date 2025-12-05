@@ -71,6 +71,10 @@ long sys_get_tick(void) {
     return invoke_syscall(SYSCALL_GET_TICK, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
+long sys_get_proc_tick(void) {
+    return invoke_syscall(SYSCALL_GET_PROC_TICK, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
 void sys_sleep(uint32_t time) {
     invoke_syscall(SYSCALL_SLEEP, time, IGNORE, IGNORE, IGNORE, IGNORE);
 }

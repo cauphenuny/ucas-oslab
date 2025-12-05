@@ -85,8 +85,8 @@ PTE* alloc_page_va(uva_t va, kva_t pgdir) {
 
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(va, &vpn2, &vpn1, &vpn0);
-    pretty_logd(
-        "va 0x%lx(%x,%x,%x) mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(new_page));
+    pretty_logn(
+        "va 0x%lx(%x,%x,%x) in 0x%x mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(pgdir), kva2pa(new_page));
 
     return pte;
 }

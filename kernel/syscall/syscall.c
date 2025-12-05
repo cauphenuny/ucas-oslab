@@ -343,3 +343,5 @@ long sys_screen_clear(void) {
 long sys_get_timebase(void) { return get_time_base(); }
 
 long sys_get_tick(void) { return get_ticks(); }
+
+long sys_get_proc_tick(void) { return get_proc_tick(); }

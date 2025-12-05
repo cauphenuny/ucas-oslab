@@ -158,6 +158,7 @@ typedef struct pcb {
     /* process cpu affinity */
     unsigned affinity;  // bitmask
     int cpu;            // last running cpu id
+    uint64_t cputime;
 
     /* process relationship */
     struct pcb* parent;

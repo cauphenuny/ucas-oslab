@@ -16,6 +16,7 @@ void sys_clear(void);
 
 long sys_get_timebase(void);
 long sys_get_tick(void);
+long sys_get_proc_tick(void);
 
 int sys_mutex_init(int key);
 void sys_mutex_acquire(int mutex_idx);

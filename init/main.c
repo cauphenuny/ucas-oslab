@@ -125,6 +125,7 @@ static void init_syscall(void) {
 
     syscall[SYSCALL_GET_TIMEBASE] = sys_get_timebase;
     syscall[SYSCALL_GET_TICK] = sys_get_tick;
+    syscall[SYSCALL_GET_PROC_TICK] = sys_get_proc_tick;
 
     syscall[SYSCALL_LOCK_INIT] = sys_lock_init;
     syscall[SYSCALL_LOCK_ACQ] = sys_lock_acquire;

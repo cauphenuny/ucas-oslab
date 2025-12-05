@@ -43,7 +43,7 @@ kva_t swapout(pageframe_group_t* group) {
             kva_t page = pageframe_addr(pf - pages);
             // find a swap location
             uint64_t swap_id = alloc_swap();
-            pretty_logw("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
+            pretty_logn("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
             bios_sd_write(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
             clear_attribute(pte, _PAGE_PRESENT);
             set_attribute(pte, _PAGE_SOFT);
@@ -83,7 +83,7 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     asserts(get_attribute(*entry_level0, _PAGE_SOFT), "swapin: level 0 entry not swapped out");
     // find swap location
     uint64_t swap_id = get_pfn(*entry_level0);
-    pretty_logw("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
+    pretty_logn("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
     bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
     free_swap(swap_id);

@@ -105,6 +105,7 @@ void interrupt_helper(regs_context_t* regs, uint64_t stval, uint64_t scause) {
             tim->user += new_tick - tim->last;
         else
             tim->idle += new_tick - tim->last;
+        current_running->cputime += new_tick - tim->last;
     }
     tim->last = new_tick;
 
@@ -135,6 +136,7 @@ void interrupt_helper(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     } else {
         tim->sys_exc += new_tick - tim->last;
     }
+    current_running->cputime += new_tick - tim->last;
     tim->last = new_tick;
 }
 

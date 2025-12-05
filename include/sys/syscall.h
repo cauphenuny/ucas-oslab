@@ -64,6 +64,7 @@ long sys_screen_clear(void);
 
 long sys_get_timebase(void);
 long sys_get_tick(void);
+long sys_get_proc_tick(void);
 
 long sys_lock_init(int);
 long sys_lock_acquire(int);

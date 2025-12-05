@@ -13,6 +13,8 @@ int swap_base_location;
 int8_t swap_using[SWAP_SIZE / PAGE_SIZE] = {0};
 uint64_t swap_used, swap_next_idx;
 
+uint64_t swap_counter_in, swap_counter_out;
+
 static uint64_t alloc_swap() {
     if (swap_used >= NUM_MAX_SWAP) {
         pretty_loge("out of swap space!");
@@ -47,6 +49,7 @@ kva_t swapout(pageframe_group_t* group) {
             set_attribute(pte, _PAGE_SOFT);
             set_pfn(pte, swap_id);
             pageframe_destruct(pf, page, group);
+            swap_counter_out++;
             return page;
         }
     }
@@ -84,4 +87,11 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
     free_swap(swap_id);
+    swap_counter_in++;
+}
+
+void show_swap() {
+    printk("swap: capacity=%lu, used=%lu\n", NUM_MAX_SWAP, swap_used);
+    printk("counter: swap_in=%lu, swap_out=%lu\n", swap_counter_in, swap_counter_out);
+    swap_counter_in = swap_counter_out = 0;
 }

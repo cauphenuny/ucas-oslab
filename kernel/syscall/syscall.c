@@ -152,6 +152,7 @@ const struct {
     {"sync", "display all synchronization machanics", show_sync},
     {"mbox", "display mailbox status", show_mailboxes},
     {"page", "display page frame group status", show_pagegroups},
+    {"swap", "display swap status", show_swap},
     {"help", "display this help message", show_help},
 };
 

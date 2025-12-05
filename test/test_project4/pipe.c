@@ -1,9 +1,4 @@
 // Small test program exercising kernel pipe page-give/take primitives.
-int main() {
-	return 0;
-}
-/*
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -141,7 +136,7 @@ int main(int argc, char *argv[])
 	if (receiver == 0)
 	{
 		printf("pipe: failed to start receiver\n");
-		return;
+		return 1;
 	}
 
 	sys_sleep(1);
@@ -151,14 +146,13 @@ int main(int argc, char *argv[])
 	{
 		printf("pipe: failed to start sender\n");
 		sys_kill(receiver);
-		return;
+		return 1;
 	}
 
 	sys_waitpid(receiver);
 	sys_waitpid(sender);
 
-	printf("pipe: cross-process test finished\n");
+	printf("\npipe: cross-process test finished\n");
 
 	return 0;
 }
-*/

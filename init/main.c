@@ -153,6 +153,7 @@ int main(int argc, char** argv) {
         // Init virtual memory (>_<)
         init_vm();
         init_pagegroup();
+        init_pipe();
         pretty_log(LOG_INFO, "[INIT] Memory initialization succeeded.");
 
         // Init task info (TAT)

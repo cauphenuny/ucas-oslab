@@ -85,6 +85,7 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     uint64_t swap_id = get_pfn(*entry_level0);
     pretty_logn("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
     bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
+    clear_attribute(entry_level0, _PAGE_SOFT);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
     free_swap(swap_id);
     swap_counter_in++;
@@ -93,5 +94,4 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
 void show_swap() {
     printk("swap: capacity=%lu, used=%lu\n", NUM_MAX_SWAP, swap_used);
     printk("counter: swap_in=%lu, swap_out=%lu\n", swap_counter_in, swap_counter_out);
-    swap_counter_in = swap_counter_out = 0;
 }

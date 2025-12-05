@@ -270,3 +270,19 @@ int sys_mbox_recv(int mbox_idx, void *msg, int msg_length)
     return invoke_syscall(SYSCALL_MBOX_RECV, (long)mbox_idx, (long)msg, (long)msg_length, IGNORE, IGNORE);
 }
 /************************************************************/
+
+
+int sys_pipe_open(const char* name)
+{
+    return invoke_syscall(SYSCALL_PIPE_OPEN, (long)name, IGNORE, IGNORE, IGNORE, IGNORE);
+}
+
+long sys_pipe_give_pages(int idx, void* src, size_t length)
+{
+    return invoke_syscall(SYSCALL_PIPE_GIVE, (long)idx, (long)src, (long)length, IGNORE, IGNORE);
+}
+
+long sys_pipe_take_pages(int idx, void* dest, size_t length)
+{
+    return invoke_syscall(SYSCALL_PIPE_TAKE, (long)idx, (long)dest, (long)length, IGNORE, IGNORE);
+}

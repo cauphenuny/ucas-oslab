@@ -86,4 +86,8 @@ void sys_semaphore_down(int sema_idx);
 
 /************************************************************/
 
+int sys_pipe_open(const char* name);
+long sys_pipe_give_pages(int idx, void* src, size_t length);
+long sys_pipe_take_pages(int idx, void* dest, size_t length);
+
 #endif

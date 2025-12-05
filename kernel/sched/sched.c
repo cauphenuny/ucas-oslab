@@ -309,6 +309,7 @@ void cleanup_proc(pcb_t* pcb) {
     cleanup_conditions(pid);
     cleanup_semaphores(pid);
     cleanup_mailboxes(pid);
+    cleanup_pipe(pid);
     list_node_destruct(&pcb->sched_node);
     list_node_destruct(&pcb->relation_node);
     if (pcb->status != TASK_RUNNING) {

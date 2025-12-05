@@ -71,17 +71,22 @@ extern PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page);
 
 extern PTE* find_pte(uva_t va, kva_t pgdir, bool create);
 
-// TODO [P4-task4]: shm_page_get/dt */
-kva_t shm_page_get(int key);
-void shm_page_dt(kva_t addr);
+// NOTE: the address must be aligned to PAGE_SIZE
+extern int pipe_open(const char* name);
+// send length bytes data from src to pipe[idx]
+extern long pipe_give_pages(int idx, kva_t src, size_t length);
+// receive length(aligned) bytes data from pipe[idx] to dest
+extern long pipe_take_pages(int idx, kva_t dest, size_t length);
+extern void init_pipe();
+extern void cleanup_pipe(pid_t pid);
 
 // NOTE: assume use 3-level page table
-kva_t uva2kva(uva_t uva, kva_t pgdir);
+extern kva_t uva2kva(uva_t uva, kva_t pgdir);
 
-void memcpy_kva2uva(kva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest);
-void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
+extern void memcpy_kva2uva(kva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest);
+extern void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
-void cleanup_vm(pcb_t* pcb);
+extern void cleanup_vm(pcb_t* pcb);
 
 typedef struct pageframe_group {
     list_t pages;
@@ -109,14 +114,14 @@ extern void show_pagegroups(int argc, char** argv);
 extern kva_t new_top_pgdir(pageframe_group_t* group);
 
 // swap out one page from group, return its addr(in kva)
-kva_t swapout(pageframe_group_t* group);
+extern kva_t swapout(pageframe_group_t* group);
 
 // swap in one page to given page, then bind it to pgdir
 // NOTE: page must be disattached from any pgdir when passes to this function
-void swapin(uva_t uva, kva_t pgdir, kva_t page);
+extern void swapin(uva_t uva, kva_t pgdir, kva_t page);
 
-void show_swap();
-void free_swap(uint64_t swap_id);
+extern void show_swap();
+extern void free_swap(uint64_t swap_id);
 
 extern kva_t alloc_pageframe(pageframe_group_t* group, int num_page);
 extern void free_pageframe(kva_t base_addr);
@@ -142,7 +147,7 @@ extern void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_ti
 
 extern int swap_base_location;
 
-void init_vm();
-void init_pagegroup();
+extern void init_vm();
+extern void init_pagegroup();
 
 #endif /* MM_H */

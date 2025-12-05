@@ -364,6 +364,16 @@ long sys_get_tick(void) { return get_ticks(); }
 
 long sys_get_proc_tick(void) { return get_proc_tick(); }
 
+/***************** pipe *****************/
+
+long sys_pipe_open(const char* name) { return pipe_open(name); }
+long sys_pipe_give_pages(int idx, void *src, size_t length) {
+    return pipe_give_pages(idx, (kva_t)src, length);
+}
+long sys_pipe_take_pages(int idx, void *dest, size_t length) {
+    return pipe_take_pages(idx, (kva_t)dest, length);
+}
+
 /***************** set handler *****************/
 
 void init_syscall(void) {
@@ -421,6 +431,10 @@ void init_syscall(void) {
     syscall[SYSCALL_MBOX_CLOSE] = sys_mbox_close;
     syscall[SYSCALL_MBOX_SEND] = sys_mbox_send;
     syscall[SYSCALL_MBOX_RECV] = sys_mbox_recv;
+
+    syscall[SYSCALL_PIPE_OPEN] = sys_pipe_open;
+    syscall[SYSCALL_PIPE_GIVE] = sys_pipe_give_pages;
+    syscall[SYSCALL_PIPE_TAKE] = sys_pipe_take_pages;
 
     syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
     syscall[SYSCALL_SET_AFFINITY] = sys_set_affinity;

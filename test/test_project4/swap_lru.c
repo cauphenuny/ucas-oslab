@@ -15,6 +15,7 @@ void delay(int n) { for (volatile int i = 0; i < n * 100000; i++); }
 
 int main() {
     sys_set_max_memory(PAGE_SIZE * 64);
+    sys_set_page_repl_algo("lru");
     sys_sleep(5);
     sys_set_max_memory(PAGE_SIZE * (10 + 4));
     for (int i = 0; i < 4; i++) {

@@ -22,7 +22,7 @@ void init_pagegroup() {
         .capacity = MAX_PAGE_NUM,
         .used = 0,
         .refcount = 1,
-        .maintain = maintain_pagelist_lru,
+        .maintain = maintain_pagelist_fifo,
     };
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }

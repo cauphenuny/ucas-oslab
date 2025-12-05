@@ -152,3 +152,38 @@ int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask) {
     pcb->affinity = affinity_mask & valid_mask;
     return 0;
 }
+
+void init_pcb(void) {
+    int cnt = 0;
+
+    for (int i = 0; i < NR_CPUS; i++) {
+        pcb_kernel[i] = (pcb_t){
+            .kernel_sp = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .user_sp = 0,
+            .kernel_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .kernel_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .user_stack_bottom = INIT_KERNEL_STACK + PAGE_SIZE * i,
+            .user_stack_base = INIT_KERNEL_STACK + PAGE_SIZE * (i + 1),
+            .pgdir = PGDIR_VA,
+            .pid = i,
+            .status = TASK_READY,
+            .affinity = 1 << i,
+        };
+        strcpy(pcb_kernel[i].name, "init");
+        list_init(&pcb_kernel[i].wait_list, "proc");
+        list_init(&pcb_kernel[i].child_list, "child_list");
+        pcb_all[cnt++] = &pcb_kernel[i];
+    }
+
+    for (int i = 0; i < NUM_MAX_TASK; i++) {
+        pcb_user[i].status = TASK_EXITED;
+        pcb_all[cnt++] = &pcb_user[i];
+    }
+
+    asserts(cnt == (sizeof(pcb_all) / sizeof(pcb_all[0])), "pcb_all size broken");
+    asserts(get_current_cpu_id() == 0, "init_pcb called on sub-hart");
+    current_running = &pcb_kernel[0];
+    current_running->status = TASK_RUNNING;
+    current_running->cpu = 0;
+}
+

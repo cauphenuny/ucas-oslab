@@ -17,7 +17,7 @@ pageframe_group_t* find_pagegroup(kva_t page) {
     return container_of(attr->group_node.container, pageframe_group_t, pages);
 }
 
-void init_pageframe_group() {
+void init_pagegroup() {
     *PAGE_GROUP_KERNEL = (pageframe_group_t){
         .capacity = MAX_PAGE_NUM,
         .used = 0,

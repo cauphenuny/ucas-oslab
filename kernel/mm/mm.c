@@ -104,14 +104,6 @@ PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
     return pte;
 }
 
-kva_t shm_page_get(int key) {
-    // TODO [P4-task4] shm_page_get:
-}
-
-void shm_page_dt(kva_t addr) {
-    // TODO [P4-task4] shm_page_dt:
-}
-
 kva_t uva2kva(uva_t uva, kva_t pgdir) {
     uva &= VA_MASK;
     uint64_t vpn2 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;

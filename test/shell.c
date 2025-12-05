@@ -599,7 +599,7 @@ const task_t COMMAND_TABLE[] = {
     {"help", "show help information", subcmd_lint_help, help},
     {"exit", "exit shell", subcmd_lint, exit},
     {"nice", "set scheduling nice value", subcmd_lint, nice},
-    {"free", "show free memory", subcmd_lint, free},
+    {"free", "show free memory", subcmd_lint_free, free},
     {"time", "measure command execution time", lint, time},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };

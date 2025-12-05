@@ -5,9 +5,12 @@
 #include <os/lock.h>
 #include <os/kernel.h>
 
-void smp_init()
+static spin_lock_t kernel_lock;
+
+void init_smp()
 {
     /* DONE: P3-TASK3 multicore*/
+    spin_lock_init(&kernel_lock);
 }
 
 void wakeup_other_hart()

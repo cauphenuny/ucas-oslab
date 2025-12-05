@@ -13,7 +13,6 @@ extern "C" {
 
 void init_locks(void) {
     /* DONE: [p2-task2] initialize mlocks */
-    spin_lock_init(&kernel_lock);
     for (int i = 0; i < LOCK_NUM; i++) {
         mlock_ref[i] = 0;
     }

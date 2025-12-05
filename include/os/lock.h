@@ -44,8 +44,6 @@ typedef struct spin_lock {
     volatile lock_status_t status;
 } spin_lock_t;
 
-extern spin_lock_t kernel_lock;
-
 typedef struct mutex_lock {
     spin_lock_t lock;
     list_t block_list;  // container type: pcb_t

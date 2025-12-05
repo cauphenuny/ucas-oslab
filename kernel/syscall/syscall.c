@@ -1,3 +1,4 @@
+#include <asm/unistd.h>
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
@@ -359,3 +360,72 @@ long sys_get_timebase(void) { return get_time_base(); }
 long sys_get_tick(void) { return get_ticks(); }
 
 long sys_get_proc_tick(void) { return get_proc_tick(); }
+
+/***************** set handler *****************/
+
+void init_syscall(void) {
+    // DONE: [p2-task3] initialize system call table.
+    syscall[SYSCALL_EXEC] = sys_exec;
+    syscall[SYSCALL_EXIT] = sys_exit;
+    syscall[SYSCALL_EXEC_WITH_AFF] = sys_exec_with_affinity;
+    syscall[SYSCALL_EXEC_BY_ENTRY] = sys_exec_by_entry;
+    syscall[SYSCALL_SLEEP] = sys_sleep;
+    syscall[SYSCALL_KILL] = sys_kill;
+    syscall[SYSCALL_WAITPID] = sys_waitpid;
+    syscall[SYSCALL_GETPID] = sys_getpid;
+    syscall[SYSCALL_YIELD] = sys_yield;
+
+    syscall[SYSCALL_PS] = sys_process_show;
+    syscall[SYSCALL_TASK_SHOW] = sys_task_show;
+    syscall[SYSCALL_DISPLAY_INFO] = sys_display_info;
+
+    syscall[SYSCALL_FREE_MEM] = sys_get_free_memory;
+    syscall[SYSCALL_SET_MAX_MEM] = sys_set_max_memory;
+    syscall[SYSCALL_SET_PAGE_ALGO] = sys_set_page_repl_algo;
+
+    syscall[SYSCALL_WRITE] = sys_write;
+    syscall[SYSCALL_READCH] = sys_readch;
+    syscall[SYSCALL_CURSOR] = sys_move_cursor;
+    syscall[SYSCALL_CURSOR_COL] = sys_move_cursor_col;
+    syscall[SYSCALL_CURSOR_ROW] = sys_move_cursor_row;
+    syscall[SYSCALL_REFLUSH] = sys_screen_reflush;
+    syscall[SYSCALL_CLEAR] = sys_screen_clear;
+
+    syscall[SYSCALL_GET_TIMEBASE] = sys_get_timebase;
+    syscall[SYSCALL_GET_TICK] = sys_get_tick;
+    syscall[SYSCALL_GET_PROC_TICK] = sys_get_proc_tick;
+
+    syscall[SYSCALL_LOCK_INIT] = sys_lock_init;
+    syscall[SYSCALL_LOCK_ACQ] = sys_lock_acquire;
+    syscall[SYSCALL_LOCK_RELEASE] = sys_lock_release;
+
+    syscall[SYSCALL_BARR_INIT] = sys_barrier_init;
+    syscall[SYSCALL_BARR_WAIT] = sys_barrier_wait;
+    syscall[SYSCALL_BARR_DESTROY] = sys_barrier_destroy;
+
+    syscall[SYSCALL_COND_INIT] = sys_condition_init;
+    syscall[SYSCALL_COND_WAIT] = sys_condition_wait;
+    syscall[SYSCALL_COND_SIGNAL] = sys_condition_signal;
+    syscall[SYSCALL_COND_BROADCAST] = sys_condition_broadcast;
+    syscall[SYSCALL_COND_DESTROY] = sys_condition_destroy;
+
+    syscall[SYSCALL_SEMA_INIT] = sys_semaphore_init;
+    syscall[SYSCALL_SEMA_UP] = sys_semaphore_up;
+    syscall[SYSCALL_SEMA_DOWN] = sys_semaphore_down;
+    syscall[SYSCALL_SEMA_DESTROY] = sys_semaphore_destroy;
+
+    syscall[SYSCALL_MBOX_OPEN] = sys_mbox_open;
+    syscall[SYSCALL_MBOX_CLOSE] = sys_mbox_close;
+    syscall[SYSCALL_MBOX_SEND] = sys_mbox_send;
+    syscall[SYSCALL_MBOX_RECV] = sys_mbox_recv;
+
+    syscall[SYSCALL_SET_WORKLOAD] = sys_set_workload;
+    syscall[SYSCALL_SET_AFFINITY] = sys_set_affinity;
+    syscall[SYSCALL_SET_NICE] = sys_set_nice;
+
+    syscall[SYSCALL_SET_SCROLL] = sys_screen_set_scroll;
+    syscall[SYSCALL_CLEAR_SCROLL] = sys_screen_clear_scroll;
+    syscall[SYSCALL_SET_COLOR] = sys_screen_set_color;
+    syscall[SYSCALL_CLEAR_COLOR] = sys_screen_clear_color;
+    syscall[SYSCALL_DELETE_LINE] = sys_screen_delete_line;
+}

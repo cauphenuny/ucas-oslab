@@ -29,5 +29,6 @@ pcb_t* construct_pcb(
     const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem,
     int user_mem);
 int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask);
+void init_pcb(void);
 
 #endif

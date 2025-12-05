@@ -129,7 +129,7 @@ int sys_set_sche_nice(int nice, int pid) {
 
 size_t sys_get_free_memory(void)
 {
-    return invoke_syscall(SYSCALL_GET_FREE_MEM, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+    return invoke_syscall(SYSCALL_FREE_MEM, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_set_max_memory(size_t max_mem)

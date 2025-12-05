@@ -143,6 +143,6 @@ extern void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_ti
 extern int swap_base_location;
 
 void init_vm();
-void init_pageframe_group();
+void init_pagegroup();
 
 #endif /* MM_H */

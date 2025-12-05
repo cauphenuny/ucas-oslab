@@ -87,7 +87,7 @@ pageframe_t* get_page_attr(kva_t page) {
 void attach_pageframe(kva_t page, pageframe_group_t* group) {
     shrink_pagegroup(group, 1);
     int id = pageframe_id(page);
-    list_append(&group->pages, &pages[id].group_node);
+    list_prepend(&group->pages, &pages[id].group_node);
     group->used++;
     pretty_logd("attached page 0x%x to group '%s'", kva2pa(page), group->pages.name);
 }

@@ -136,6 +136,8 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     group->capacity -= capacity;
     shrink_pagegroup(group, 0);
 
+    pretty_logi("immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
+                group->pages.name, new_group->pages.name);
     immigrate(top_pgdir, group, new_group);
 
     pretty_logi(

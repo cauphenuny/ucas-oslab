@@ -51,13 +51,13 @@ kva_t swapout(pageframe_group_t* group) {
         }
     }
 
-    pretty_logw("no suitable page to swap out in group '%s'", group->pages.name);
+    pretty_loge("no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
     bool exit = false;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* pcb = pcb_all[i];
         if (pcb->status == TASK_EXITED) continue;
         if (find_pagegroup(pcb->pgdir) == group) {
-            pretty_logw("  kill proc %d '%s'", pcb->pid, pcb->name);
+            pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
             if (pcb->pid == current_running->pid) exit = true;
             else do_kill(pcb->pid);
         }

@@ -303,7 +303,7 @@ void exit_wakeup(pcb_t* pcb) { unblock_list(&pcb->wait_list, "pcb wait_list"); }
 
 void cleanup_proc(pcb_t* pcb) {
     pid_t pid = pcb->pid;
-    pretty_log(LOG_INFO, "cleaning up pid %d", pid);
+    pretty_log(LOG_INFO, "cleaning pid %d", pid);
     cleanup_mutexes(pid);
     cleanup_barriers(pid);
     cleanup_conditions(pid);
@@ -320,6 +320,7 @@ void cleanup_proc(pcb_t* pcb) {
     } else {
         pcb->status = TASK_KILLED;
     }
+    pretty_logi("pid %d cleaned", pid);
 }
 
 void attach_subprocess(pcb_t* parent, pcb_t* child) {

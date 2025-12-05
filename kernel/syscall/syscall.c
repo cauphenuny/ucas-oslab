@@ -198,14 +198,12 @@ void show_help(int argc, char** argv) {
 
 long sys_display_info(int argc, char** argv) {
     int hit = 0;
-    for (int i = 1; i < argc; i++) {
-        char* subcmd = argv[i];
-        for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
-            if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
-                INFO_COMMANDS[j].handler(argc - 1, argv + 1);
-                hit = 1;
-                break;
-            }
+    char* subcmd = argv[1];
+    for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
+        if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
+            INFO_COMMANDS[j].handler(argc - 1, argv + 1);
+            hit = 1;
+            break;
         }
     }
     if (!hit) {

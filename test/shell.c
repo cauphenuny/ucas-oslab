@@ -614,6 +614,7 @@ int watch(int argc, char** argv) {
         sys_move_cursor(0, shell_begin + 1);
         printf("watch -n %d %s ", interval, argv[0]);
         echo(argc, argv);
+        printf("---\n");
         task->handler(argc, argv);
         int ch = sys_getchar();
         if (ch != -1) break;

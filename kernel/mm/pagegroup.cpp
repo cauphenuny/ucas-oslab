@@ -135,9 +135,6 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
         "immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
         group->pages.name, new_group->pages.name);
     immigrate(top_pgdir, group, new_group);
-    if (new_group->vtable->init) {
-        new_group->vtable->init(new_group);
-    }
 
     pretty_logi(
         "forked new pagegroup '%s' with capacity %lu from group '%s'", name, capacity,

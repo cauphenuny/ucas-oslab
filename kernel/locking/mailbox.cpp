@@ -133,22 +133,23 @@ int do_mbox_send(int mbox_idx, void* msg, int msg_length) {
     }
 
     int blocked = 0;
-    while (true) {
+    int sent = 0;
+    while (sent < msg_length) {
         with_mutex guard(mbox->buffer_lock);
-        int rest = MAX_MBOX_LENGTH - mbox->used;
-        if (rest >= msg_length) {
-            for (int i = 0; i < msg_length; i++) {
-                mbox->buffer[mbox->tail] = ((char*)msg)[i];
-                mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
-                mbox->used++;
-            }
-            break;
+        if (mbox->used < MAX_MBOX_LENGTH) {
+            mbox->buffer[mbox->tail] = ((char*)msg)[sent];
+            mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
+            mbox->used++;
+            sent++;
+            pretty_logd(
+                "mbox %d: sent byte %d/%d, used=%d", mbox_idx, sent, msg_length, mbox->used);
+            condition_signal(&mbox->empty);
         } else {
             blocked = 1;
+            pretty_logd("mbox %d: buffer full, waiting...", mbox_idx);
             condition_wait(&mbox->full, &mbox->buffer_lock);
         }
     }
-    condition_signal(&mbox->empty);
     return blocked;
 }
 
@@ -167,23 +168,24 @@ int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
     int blocked = 0;
     char* cur = (char*)msg;
 
-    while (true) {
+    int received = 0;
+    while (received < msg_length) {
         with_mutex guard(mbox->buffer_lock);
-        if (mbox->used >= msg_length) {
-            for (int i = 0; i < msg_length; i++) {
-                cur[i] = mbox->buffer[mbox->head];
-                mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
-                mbox->used--;
-            }
-            break;
+        if (mbox->used > 0) {
+            cur[received] = mbox->buffer[mbox->head];
+            mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
+            mbox->used--;
+            received++;
+            condition_signal(&mbox->full);
+            pretty_logd(
+                "mbox %d: received byte %d/%d, used=%d", mbox_idx, received, msg_length,
+                mbox->used);
         } else {
             blocked = 1;
-            pretty_log(
-                LOG_WARN, "blocking on mbox recv: used=%d, needed=%d", mbox->used, msg_length);
             condition_wait(&mbox->empty, &mbox->buffer_lock);
+            pretty_logd("mbox %d: buffer empty, waiting...", mbox_idx);
         }
     }
-    condition_signal(&mbox->full);
     return blocked;
 }
 

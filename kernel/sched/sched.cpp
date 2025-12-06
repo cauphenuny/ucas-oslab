@@ -351,53 +351,58 @@ pid_t do_exec(
 }
 
 int do_process_show() {
-    const char* status_str[TASK_STATUS_SIZE] = {
-        "BLOCKED", "RUNNING", "READY", "EXITED", "KILLED"
-    };
+    const char* status_str[TASK_STATUS_SIZE] = {"BLOCKED", "RUNNING", "READY", "EXITED", "KILLED"};
 
     using T = pcb_t*;
-    return display_table<T>(pcb_all, NUM_MAX_PCB, [](T* proc){return (*proc)->status != TASK_EXITED;},
-        table_entry_t{"PID", 5, [](T* proc){printkf("%d", (*proc)->pid);}},
-        table_entry_t{"PPID", 6, [](T* proc){
-            if ((*proc)->parent) {
-                printkf("%d", (*proc)->parent->pid);
-            } else {
-                printkf("N/A");
-            }
-        }},
-        table_entry_t{"NAME", 16, [](T* proc){printkf("%s", (*proc)->name);}},
-        table_entry_t{"STATUS", 10, [&status_str](T* proc){
-            printkf("%s", status_str[(*proc)->status]);
-        }},
-        table_entry_t{"CHANNEL", 9, [](T* proc){
-            if ((*proc)->sched_node.container) {
-                printkf("%s", (*proc)->sched_node.container->name);
-            } else {
-                if ((*proc)->status == TASK_RUNNING) {
-                    printkf("cpu%d", (*proc)->cpu);
+    return display_table<T>(
+        pcb_all, NUM_MAX_PCB, [](T* proc) { return (*proc)->status != TASK_EXITED; },
+        table_entry_t{"PID", 5, [](T* proc) { printkf("%d", (*proc)->pid); }},
+        table_entry_t{
+            "PPID", 6,
+            [](T* proc) {
+                if ((*proc)->parent) {
+                    printkf("%d", (*proc)->parent->pid);
                 } else {
                     printkf("N/A");
                 }
-            }
-        }},
-        table_entry_t{"CPU", 6, [](T* proc){printkf("%d%%", (*proc)->slice_cnt);}},
-        table_entry_t{"AFF", NR_CPUS + 3, [](T* proc){
-            for (int i = 0; i < NR_CPUS; i++) {
-                printkf("%d", (((*proc)->affinity) & (1 << i)) != 0);
-            }
-        }},
-        table_entry_t{"MEM/K", 7, [](T* proc){
-            printkf("%d", (*proc)->kernel_stack_base - (*proc)->kernel_sp);
-        }},
-        table_entry_t{"MEM/U", 7, [](T* proc){
-            if ((*proc)->pid >= NR_CPUS) {
-                printkf("%d", (*proc)->user_stack_base - (*proc)->user_sp);
-            } else {
-                printkf("N/A");
-            }
-        }},
-        table_entry_t{"NI", 4, [](T* proc){printkf("%d", (*proc)->nice);}}
-    );
+            }},
+        table_entry_t{"COMMAND", 18, [](T* proc) { printkf("%s", (*proc)->cmd); }},
+        table_entry_t{
+            "STATUS", 10, [&status_str](T* proc) { printkf("%s", status_str[(*proc)->status]); }},
+        table_entry_t{
+            "CHANNEL", 9,
+            [](T* proc) {
+                if ((*proc)->sched_node.container) {
+                    printkf("%s", (*proc)->sched_node.container->name);
+                } else {
+                    if ((*proc)->status == TASK_RUNNING) {
+                        printkf("cpu%d", (*proc)->cpu);
+                    } else {
+                        printkf("N/A");
+                    }
+                }
+            }},
+        table_entry_t{"CPU", 6, [](T* proc) { printkf("%d%%", (*proc)->slice_cnt); }},
+        table_entry_t{
+            "AFF", NR_CPUS + 3,
+            [](T* proc) {
+                for (int i = 0; i < NR_CPUS; i++) {
+                    printkf("%d", (((*proc)->affinity) & (1 << i)) != 0);
+                }
+            }},
+        table_entry_t{
+            "MEM/K", 7,
+            [](T* proc) { printkf("%d", (*proc)->kernel_stack_base - (*proc)->kernel_sp); }},
+        table_entry_t{
+            "MEM/U", 7,
+            [](T* proc) {
+                if ((*proc)->pid >= NR_CPUS) {
+                    printkf("%d", (*proc)->user_stack_base - (*proc)->user_sp);
+                } else {
+                    printkf("N/A");
+                }
+            }},
+        table_entry_t{"NI", 4, [](T* proc) { printkf("%d", (*proc)->nice); }});
 }
 
 int have_next[NUM_MAX_TASK];
@@ -416,7 +421,7 @@ void dfs(int depth, pcb_t* pcb) {
     if (depth > 0) {
         printk("|-> ");
     }
-    printk("%s (pid=%d)\n", pcb->name, pcb->pid);
+    printk("%s (pid=%d)\n", pcb->cmd, pcb->pid);
     list_foreach_node(iter, &pcb->child_list.head) {
         pcb_t* child = container_of(iter, pcb_t, relation_node);
         if (iter->next != &pcb->child_list.head) {

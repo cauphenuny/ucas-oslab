@@ -130,7 +130,20 @@ pcb_t* construct_pcb(
     pcb->pid = process_id++;
     list_init(&pcb->wait_list, "proc");
     pcb->status = TASK_READY;
-    strcpy(pcb->name, task->name);
+    strncpy(pcb->name, task->name, sizeof(pcb->name) - 1);
+    char* cmd = pcb->cmd;
+    for (int i = 0, sum = 0; i < argc; i++) {
+        int len = strlen(argv[i]) + 1;
+        if (sum + len > sizeof(pcb->cmd) - 1) {
+            pretty_log(LOG_WARN, "command line too long, truncated");
+            break;
+        }
+        strcpy(cmd, argv[i]);
+        if (i == argc - 1) break;
+        strcat(cmd, " ");
+        cmd += len;
+    }
+
     list_init(&pcb->child_list, "child_list");
     pcb->kernel_stack_base = kernel_stack_base;
     pcb->kernel_stack_bottom = kernel_stack_bottom;
@@ -170,6 +183,7 @@ void init_pcb(void) {
             .affinity = 1 << i,
         };
         strcpy(pcb_kernel[i].name, "init");
+        strcpy(pcb_kernel[i].cmd, "init");
         list_init(&pcb_kernel[i].wait_list, "proc");
         list_init(&pcb_kernel[i].child_list, "child_list");
         pcb_all[cnt++] = &pcb_kernel[i];

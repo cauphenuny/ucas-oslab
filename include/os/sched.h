@@ -110,7 +110,7 @@ typedef enum {
     TASK_RUNNING,
     TASK_READY,
     TASK_EXITED,
-    TASK_KILLED, // killed by other hart while running on some hart, about to exit
+    TASK_KILLED,  // killed by other hart while running on some hart, about to exit
     TASK_STATUS_SIZE,
 } task_status_t;
 
@@ -125,9 +125,9 @@ typedef struct pcb {
     ptr_t pgdir;
 
     /* process memory info */
-    ptr_t kernel_stack_base; // base: highest address
+    ptr_t kernel_stack_base;  // base: highest address
     ptr_t user_stack_base;
-    ptr_t kernel_stack_bottom; // bottom: lowest address
+    ptr_t kernel_stack_bottom;  // bottom: lowest address
     ptr_t user_stack_bottom;
 
     /* previous, next pointer */
@@ -148,13 +148,13 @@ typedef struct pcb {
     uint64_t wakeup_time;
 
     /* process name */
-    char name[16];
+    char name[16], cmd[16];
 
     /* process scheduling weight */
     int task_id;
     int task_workload;
     int slice_cnt;
-    int nice; // weights priority by (10 / (10 + nice))
+    int nice;  // weights priority by (10 / (10 + nice))
 
     /* process cpu affinity */
     unsigned affinity;  // bitmask
@@ -217,8 +217,9 @@ struct task_info;
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
-extern pid_t
-do_exec(const struct task_info* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask);
+extern pid_t do_exec(
+    const struct task_info* task, uint64_t entrance, int argc, char* argv[],
+    unsigned affinity_mask);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

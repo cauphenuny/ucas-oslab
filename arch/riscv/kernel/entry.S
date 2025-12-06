@@ -222,6 +222,10 @@ ENTRY(exception_handler_entry)
 
   SAVE_CONTEXT
 
+  mv    a0, sp
+  csrr  a1, stval
+  csrr  a2, scause
+  csrr  a3, sepc
   jal lock_kernel
 
   /* DONE: [p2-task3] load ret_from_exception into $ra so that we can return to

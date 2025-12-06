@@ -9,8 +9,11 @@
 MSG_IN_MB: message size in megabytes used for the benchmark.
 */
 #define PAGE_SIZE 4096ul
-const long MSG_IN_MB = 8;
-const long MSG_BYTES = MSG_IN_MB * 1024 * 1024;
+const long MSG_IN_KB = 512;
+const long MSG_BYTES = MSG_IN_KB * 1024;
+const long QEMU_SCALE = 32;
+const long BOARD_SCALE = 1;
+long scale;
 const long WARMUP_BYTES = PAGE_SIZE;
 const char MBOX_NAME[] = "ipc-perf-mailbox";
 const char PIPE_NAME[] = "ipc-perf-pipe";
@@ -86,8 +89,8 @@ static int mailbox_sender(void)
 	sys_sleep(1);
 
 	sys_move_cursor(0, MAILBOX_SEND_LINE);
-	printf("[mailbox send] sending to %d         \n", mq);
-	int warmup = sys_mbox_send(mq, buf, WARMUP_BYTES);
+    printf("[mailbox send] warmup...         \n", mq);
+    int warmup = sys_mbox_send(mq, buf, WARMUP_BYTES);
 	if (warmup < 0)
 	{
 		sys_move_cursor(0, MAILBOX_SEND_LINE);
@@ -97,10 +100,10 @@ static int mailbox_sender(void)
 	}
 
 	sys_move_cursor(0, MAILBOX_SEND_LINE);
-	printf("[mailbox send] warmed up         \n");
-	long start = sys_get_tick();
-	int sent = sys_mbox_send(mq, buf, MSG_BYTES);
-	long end = sys_get_tick();
+    printf("[mailbox send] sending %lu bytes...      \n", (MSG_BYTES * scale));
+    long start = sys_get_tick();
+    int sent = sys_mbox_send(mq, buf, (MSG_BYTES * scale));
+    long end = sys_get_tick();
 
 	sys_move_cursor(0, MAILBOX_SEND_LINE);
 	printf("[mailbox send] sent         \n");
@@ -132,8 +135,8 @@ static int mailbox_receiver(void)
 	}
 
 	sys_move_cursor(0, MAILBOX_RECV_LINE);
-	printf("[mailbox recv] receiving from %d\n", mq);
-	int warmup = sys_mbox_recv(mq, buf, WARMUP_BYTES);
+    printf("[mailbox recv] warmup...\n");
+    int warmup = sys_mbox_recv(mq, buf, WARMUP_BYTES);
 	if (warmup < 0)
 	{
 		sys_move_cursor(0, MAILBOX_RECV_LINE);
@@ -142,11 +145,13 @@ static int mailbox_receiver(void)
 		return -1;
 	}
 
-	long start = sys_get_tick();
-	int received = sys_mbox_recv(mq, buf, MSG_BYTES);
-	long end = sys_get_tick();
+    sys_move_cursor(0, MAILBOX_RECV_LINE);
+    printf("[mailbox recv] receiving %lu bytes...\n", (MSG_BYTES * scale));
+    long start = sys_get_tick();
+    int received = sys_mbox_recv(mq, buf, (MSG_BYTES * scale));
+    long end = sys_get_tick();
 
-	sys_mbox_close(mq);
+    sys_mbox_close(mq);
 
 	if (received < 0)
 	{
@@ -155,18 +160,16 @@ static int mailbox_receiver(void)
 		return -1;
 	}
 
-	for (size_t i = 0; i < MSG_BYTES; ++i)
-	{
-		if (buf[i] != (char)(i & 0xff))
-		{
-			sys_move_cursor(0, MAILBOX_RECV_LINE);
+    for (size_t i = 0; i < (MSG_BYTES * scale); ++i) {
+        if (buf[i] != (char)(i & 0xff)) {
+            sys_move_cursor(0, MAILBOX_RECV_LINE);
 			printf("[mailbox recv] data mismatch at %d\n", (int)i);
 			return -1;
-		}
-	}
+        }
+    }
 
-	sys_move_cursor(0, MAILBOX_RECV_LINE);
-	print_timing("mailbox recv", received, start, end);
+    sys_move_cursor(0, MAILBOX_RECV_LINE);
+    print_timing("mailbox recv", received, start, end);
 	return 0;
 }
 
@@ -193,21 +196,20 @@ static int pipe_sender(void)
 	}
 
 	char *src = alloc_payload_buffer();
-	fill_payload(src, MSG_BYTES);
+    fill_payload(src, (MSG_BYTES * scale));
 
-	long start = sys_get_tick();
-	long given = sys_pipe_give_pages(pipe_id, src, MSG_BYTES);
-	long end = sys_get_tick();
+    long start = sys_get_tick();
+    long given = sys_pipe_give_pages(pipe_id, src, (MSG_BYTES * scale));
+    long end = sys_get_tick();
 
-	if (given != MSG_BYTES)
-	{
-		sys_move_cursor(0, PIPE_SEND_LINE);
-		printf("[pipe send] give failed (%ld)\n", given);
+    if (given != (MSG_BYTES * scale)) {
+        sys_move_cursor(0, PIPE_SEND_LINE);
+        printf("[pipe send] give failed (%ld)\n", given);
 		return -1;
-	}
+    }
 
-	sys_move_cursor(0, PIPE_SEND_LINE);
-	print_timing("pipe send", given, start, end);
+    sys_move_cursor(0, PIPE_SEND_LINE);
+    print_timing("pipe send", given, start, end);
 	return 0;
 }
 
@@ -234,28 +236,25 @@ static int pipe_receiver(void)
 	}
 
 	long start = sys_get_tick();
-	long taken = sys_pipe_take_pages(pipe_id, dst, MSG_BYTES);
-	long end = sys_get_tick();
+    long taken = sys_pipe_take_pages(pipe_id, dst, (MSG_BYTES * scale));
+    long end = sys_get_tick();
 
-	if (taken != MSG_BYTES)
-	{
-		sys_move_cursor(0, PIPE_RECV_LINE);
-		printf("[pipe recv] take failed (%ld)\n", taken);
+    if (taken != (MSG_BYTES * scale)) {
+        sys_move_cursor(0, PIPE_RECV_LINE);
+        printf("[pipe recv] take failed (%ld)\n", taken);
 		return -1;
-	}
+    }
 
-	for (size_t i = 0; i < MSG_BYTES; ++i)
-	{
-		if (dst[i] != (char)(i & 0xff))
-		{
-			sys_move_cursor(0, PIPE_RECV_LINE);
+    for (size_t i = 0; i < (MSG_BYTES * scale); ++i) {
+        if (dst[i] != (char)(i & 0xff)) {
+            sys_move_cursor(0, PIPE_RECV_LINE);
 			printf("[pipe recv] data mismatch at %d\n", (int)i);
 			return -1;
-		}
-	}
+        }
+    }
 
-	sys_move_cursor(0, PIPE_RECV_LINE);
-	print_timing("pipe recv", taken, start, end);
+    sys_move_cursor(0, PIPE_RECV_LINE);
+    print_timing("pipe recv", taken, start, end);
 	return 0;
 }
 
@@ -326,15 +325,21 @@ int main(int argc, char *argv[])
 {
 	char *prog_name = argc > 0 ? argv[0] : (char *)"ipc_perf";
 
-	if (argc >= 3 && strcmp(argv[1], "mbox") == 0)
-	{
-		if (strcmp(argv[2], "send") == 0)
+    if (sys_get_timebase() > 1000000) {
+        // NOTE: in qemu
+		scale = QEMU_SCALE;
+    } else {
+        scale = BOARD_SCALE;
+	}
+
+    if (argc >= 3 && strcmp(argv[1], "mbox") == 0) {
+        if (strcmp(argv[2], "send") == 0)
 			return mailbox_sender();
 		if (strcmp(argv[2], "recv") == 0)
 			return mailbox_receiver();
-	}
+    }
 
-	if (argc >= 3 && strcmp(argv[1], "pipe") == 0)
+    if (argc >= 3 && strcmp(argv[1], "pipe") == 0)
 	{
 		if (strcmp(argv[2], "send") == 0)
 			return pipe_sender();
@@ -342,11 +347,12 @@ int main(int argc, char *argv[])
 			return pipe_receiver();
 	}
 
-	sys_set_max_memory(4 * 1024 * 1024);
-	sys_move_cursor(0, ALL_TEST_START);
-	printf("ipc_perf: comparing mailbox vs pipe with %ld byte payloads\n", (long)MSG_BYTES);
-	run_mailbox_test(prog_name);
-	run_pipe_test(prog_name);
+    sys_set_max_memory(MSG_BYTES * scale / 2);
+    sys_move_cursor(0, ALL_TEST_START);
+    printf(
+        "ipc_perf: comparing mailbox vs pipe with %ld byte payloads\n", (long)(MSG_BYTES * scale));
+    run_mailbox_test(prog_name);
+    run_pipe_test(prog_name);
 	sys_move_cursor(0, ALL_TEST_FINISH);
 	printf("ipc_perf: done\n");
 	return 0;

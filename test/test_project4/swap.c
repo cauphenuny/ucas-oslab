@@ -12,16 +12,20 @@ volatile uint32_t touch_page(int page_idx) {
     return *addr;
 }
 
-void delay(int n) { for (volatile int i = 0; i < n * 100000; i++); }
+int delay_base;
+
+void delay(int n) { for (volatile int i = 0; i < n * delay_base; i++); }
 
 int main(int argc, char** argv) {
     if (argc < 2) {
         printf("usage: %s <algo>\n", argv[0]);
         return 1;
     }
+    delay_base = sys_get_timebase() / 100;
     sys_set_max_memory(PAGE_SIZE * 64);
     sys_set_page_repl_algo(argv[1]);
-    // sys_sleep(5);
+    printf("init (algo=%s)...                 \n", argv[1]);
+    sys_sleep(5);
     sys_set_max_memory(PAGE_SIZE * (10 + 4));
     for (int i = 0; i < 4; i++) {
         touch_page(i + 10);
@@ -38,6 +42,7 @@ int main(int argc, char** argv) {
             delay(100);
         }
     }
+
     printf("test...                \n");
     for (int t = 0; t < n_test; t++) {
         for (int i = 0; i < total; i++) {
@@ -45,18 +50,19 @@ int main(int argc, char** argv) {
             uint64_t ticks = sys_get_proc_tick();
             touch_page(test_sequence[i]);
             ticks = sys_get_proc_tick() - ticks;
-            if (ticks > 5000) {
+            if (ticks > 2000) {
                 page_fault++;
                 // printf("miss  ");
-                printf("%ld  ", ticks);
+                printf("%ld! ", ticks);
             } else {
-                printf("hit    ");
+                printf("%ld.   ", ticks);
             }
             sum_ticks += ticks;
             if ((i + 1) % 6 == 0) printf("\n");
             delay(100);
         }
     }
+
     printf("pagefault: %d/%d\n", page_fault, total * n_test);
     // printf("swapped: %d/%d\n", swap, total);
     printf("cputime: %lu ticks\n", sum_ticks);

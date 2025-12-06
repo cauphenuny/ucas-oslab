@@ -146,21 +146,23 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     // uint64_t ticks = get_ticks();
     // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval,
     // scause);
-    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
-    group->maintain(group, get_ticks());
+    pageframe_group_t* group = get_current_pagegroup();
+    group->vtable->on_timer(group, get_ticks());
     reset_timer();
     do_scheduler();
 }
 
 void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
-    pretty_logi("handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause, exception_name(0, scause));
+    pretty_logi(
+        "handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause,
+        exception_name(0, scause));
 
     // check if non-allocated or swapped out
     PTE* pte = find_pte(stval, current_running->pgdir, false);
     if (!pte || !get_attribute(*pte, _PAGE_SOFT)) {
         alloc_page_va(stval, current_running->pgdir);
     } else {
-        kva_t new_page = alloc_pageframe(find_pagegroup(current_running->pgdir), 1);
+        kva_t new_page = alloc_pageframe(get_current_pagegroup(), 1);
         swapin(stval, current_running->pgdir, new_page);
     }
 }
@@ -172,7 +174,8 @@ void init_exception() {
         exc_table[i] = handle_other;
     }
     exc_table[EXCC_SYSCALL] = handle_syscall;
-    exc_table[EXCC_LOAD_PAGE_FAULT] = exc_table[EXCC_STORE_PAGE_FAULT] = exc_table[EXCC_INST_PAGE_FAULT] = handle_page_fault;
+    exc_table[EXCC_LOAD_PAGE_FAULT] = exc_table[EXCC_STORE_PAGE_FAULT] =
+        exc_table[EXCC_INST_PAGE_FAULT] = handle_page_fault;
 
     /* DONE: [p2-task4] initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/

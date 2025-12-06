@@ -308,7 +308,7 @@ long pipe_give_pages(int idx, kva_t src, size_t length) {
 
     size_t processed = 0;
     uva_t cursor = (uva_t)src;
-    pageframe_group_t* owner_group = find_pagegroup(current_running->pgdir);
+    pageframe_group_t* owner_group = get_current_pagegroup();
 
     while (processed < length) {
         pipe_segment_t* seg = pipe_detach_page_from_sender(cursor, owner_group);
@@ -347,7 +347,7 @@ long pipe_take_pages(int idx, kva_t dest, size_t length) {
 
     size_t processed = 0;
     uva_t cursor = (uva_t)dest;
-    pageframe_group_t* dest_group = find_pagegroup(current_running->pgdir);
+    pageframe_group_t* dest_group = get_current_pagegroup();
 
     while (processed < length) {
         PTE* dest_pte = find_pte(cursor, current_running->pgdir, true);

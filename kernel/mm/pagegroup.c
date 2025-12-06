@@ -9,9 +9,7 @@ pageframe_group_t* const PAGE_GROUP_KERNEL = &page_groups[0];
 
 pageframe_group_t* find_pagegroup(kva_t page) {
     if (page == PGDIR_VA) return PAGE_GROUP_KERNEL;
-    asserts(
-        page >= INIT_KERNEL_STACK && page <= ALLMEM_KERNEL,
-        "invalid pageframe address");
+    asserts(page >= INIT_KERNEL_STACK && page <= ALLMEM_KERNEL, "invalid pageframe address");
     pageframe_t* attr = get_page_attr(page);
     asserts(attr->group_node.container, "isolated pageframe");
     return container_of(attr->group_node.container, pageframe_group_t, pages);
@@ -35,7 +33,7 @@ void show_pagegroup_details(int pgid) {
     uint64_t cur = get_ticks();
     list_foreach_node(iter, &group->pages.head) {
         pageframe_t* pf = container_of(iter, pageframe_t, group_node);
-        kva_t page = pageframe_addr(pf - pages);
+        kva_t page = pageframe_attr2addr(pf);
         if (!pf->pte) {
             if (group == PAGE_GROUP_KERNEL)
                 printk("  page 0x%x: pagedir (top) or kernel page\n", kva2pa(page));
@@ -138,8 +136,9 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     group->capacity -= capacity;
     shrink_pagegroup(group, 0);
 
-    pretty_logi("immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
-                group->pages.name, new_group->pages.name);
+    pretty_logi(
+        "immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
+        group->pages.name, new_group->pages.name);
     immigrate(top_pgdir, group, new_group);
 
     pretty_logi(

@@ -118,7 +118,7 @@ long sys_getpid() { return current_running->pid; }
 long sys_get_free_memory() { return get_free_memory(); }
 
 long sys_set_max_memory(size_t max_mem) {
-    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
+    pageframe_group_t* group = get_current_pagegroup();
     if (group == PAGE_GROUP_KERNEL) {
         return fork_pagegroup(current_running->pgdir, max_mem / PAGE_SIZE, current_running->name);
     }
@@ -126,13 +126,15 @@ long sys_set_max_memory(size_t max_mem) {
 }
 
 long sys_set_page_repl_algo(const char* algo) {
-    pageframe_group_t* group = find_pagegroup(current_running->pgdir);
+    pageframe_group_t* group = get_current_pagegroup();
     int ret = 0;
     pretty_logi("try set group '%s' replacement algorithm to %s", group->pages.name, algo);
     if (strcmp(algo, "lru") == 0) {
-        group->maintain = maintain_pagelist_lru;
+        group->vtable = PAGEGROUP_VTABLE_LRU;
+        group->vtable->on_init(group);
     } else if (strcmp(algo, "fifo") == 0) {
-        group->maintain = maintain_pagelist_fifo;
+        group->vtable = PAGEGROUP_VTABLE_FIFO;
+        group->vtable->on_init(group);
     } else {
         ret = 1;
     }
@@ -367,10 +369,10 @@ long sys_get_proc_tick(void) { return get_proc_tick(); }
 /***************** pipe *****************/
 
 long sys_pipe_open(const char* name) { return pipe_open(name); }
-long sys_pipe_give_pages(int idx, void *src, size_t length) {
+long sys_pipe_give_pages(int idx, void* src, size_t length) {
     return pipe_give_pages(idx, (kva_t)src, length);
 }
-long sys_pipe_take_pages(int idx, void *dest, size_t length) {
+long sys_pipe_take_pages(int idx, void* dest, size_t length) {
     return pipe_take_pages(idx, (kva_t)dest, length);
 }
 

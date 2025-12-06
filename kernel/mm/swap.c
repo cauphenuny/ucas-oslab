@@ -5,7 +5,7 @@
 
 int swap_base_location;
 
-#define SWAP_SIZE    (64 * 1024 * 1024)  // 64MB
+#define SWAP_SIZE    (64 * 1024 * 1024)
 #define NUM_MAX_SWAP (SWAP_SIZE / PAGE_SIZE)
 
 #define SWAP_LEN (PAGE_SIZE / SECTOR_SIZE)
@@ -17,8 +17,8 @@ uint64_t swap_counter_in, swap_counter_out;
 
 static uint64_t alloc_swap() {
     if (swap_used >= NUM_MAX_SWAP) {
-    pretty_loge("out of swap space!");
-    asserts(false, "out of swap space");
+        pretty_loge("out of swap space!");
+        asserts(false, "out of swap space");
     }
     while (swap_using[swap_next_idx]) {
         swap_next_idx = (swap_next_idx + 1) % NUM_MAX_SWAP;
@@ -40,7 +40,7 @@ kva_t swapout(pageframe_group_t* group) {
         PTE* pte = pf->pte;
         if (pte && get_attribute(*pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
             // found a leaf page
-            kva_t page = pageframe_addr(pf - pages);
+            kva_t page = pageframe_attr2addr(pf);
             // find a swap location
             uint64_t swap_id = alloc_swap();
             pretty_logn("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
@@ -54,15 +54,18 @@ kva_t swapout(pageframe_group_t* group) {
         }
     }
 
-    pretty_loge("no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
+    pretty_loge(
+        "no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
     bool exit = false;
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* pcb = pcb_all[i];
         if (pcb->status == TASK_EXITED) continue;
         if (find_pagegroup(pcb->pgdir) == group) {
             pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
-            if (pcb->pid == current_running->pid) exit = true;
-            else do_kill(pcb->pid);
+            if (pcb->pid == current_running->pid)
+                exit = true;
+            else
+                do_kill(pcb->pid);
         }
     }
     if (exit) do_exit();

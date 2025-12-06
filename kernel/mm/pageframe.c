@@ -22,7 +22,7 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
     int counter = 0;
     while (counter < MAX_PAGE_NUM) {
         ptr_t ret = ROUND(cur_kernel_mem, PAGE_SIZE);
-        int id = pageframe_id(ret);
+        int id = pageframe_addr2id(ret);
         bool available = true;
         for (int i = 0; i < num_page; i++) {
             if (id + i >= MAX_PAGE_NUM || attrs[id + i].start) {
@@ -50,7 +50,7 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
 }
 
 void free_pageframe(ptr_t base_addr) {
-    int id = pageframe_id(base_addr);
+    int id = pageframe_addr2id(base_addr);
     if (id < 0) {
         pretty_loge("try to free kernel page");
         return;
@@ -58,13 +58,13 @@ void free_pageframe(ptr_t base_addr) {
     asserts(id >= 0 && id < MAX_PAGE_NUM, "invalid addr");
     asserts(attrs[id].start, "double free detected");
     ptr_t entry = attrs[id].start;
-    int entry_id = pageframe_id(attrs[id].start);
+    int entry_id = pageframe_addr2id(attrs[id].start);
     asserts(entry_id <= id, "corrupted start_addr");
     pretty_logd("free page block at addr 0x%x", kva2pa(entry));
     pageframe_group_t* group = find_pagegroup(entry);
     for (int i = entry_id; attrs[i].start == entry; i = (i + 1) % MAX_PAGE_NUM) {
         attrs[i].start = 0;
-        detach_pageframe(pageframe_addr(i), group);
+        detach_pageframe(pageframe_id2addr(i), group);
     }
 }
 
@@ -79,21 +79,21 @@ size_t get_free_memory() {
 }
 
 pageframe_t* get_page_attr(kva_t page) {
-    int id = pageframe_id(page);
+    int id = pageframe_addr2id(page);
     asserts(id >= 0 && id < MAX_PAGE_NUM, "invalid page addr");
     return &pages[id];
 }
 
 void attach_pageframe(kva_t page, pageframe_group_t* group) {
     shrink_pagegroup(group, 1);
-    int id = pageframe_id(page);
+    int id = pageframe_addr2id(page);
     list_prepend(&group->pages, &pages[id].group_node);
     group->used++;
     pretty_logd("attached page 0x%x to group '%s'", kva2pa(page), group->pages.name);
 }
 
 void detach_pageframe(kva_t page, pageframe_group_t* group) {
-    int id = pageframe_id(page);
+    int id = pageframe_addr2id(page);
     list_delete(&pages[id].group_node);
     group->used--;
     pretty_logd("detached page 0x%x from group '%s'", kva2pa(page), group->pages.name);
@@ -134,6 +134,5 @@ void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_tick) {
 
 void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group) {
     pf->pte = NULL;
-    pf->last_accessed = 0;
     free_pageframe(addr);
 }

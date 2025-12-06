@@ -7,7 +7,7 @@
 #include <type.h>
 
 kva_t create_task_pgdir(const task_info_t* task) {
-    kva_t pgdir = new_top_pgdir(find_pagegroup(current_running->pgdir));
+    kva_t pgdir = new_top_pgdir(get_current_pagegroup());
     pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
     for (uva_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
         alloc_page_va(va, pgdir);

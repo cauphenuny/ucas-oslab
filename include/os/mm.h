@@ -102,9 +102,13 @@ extern pageframe_group_t* const PAGE_GROUP_KERNEL;
 extern pageframe_group_t* find_pagegroup(kva_t page);
 extern void attach_pageframe(kva_t frame, pageframe_group_t* group);
 extern void detach_pageframe(kva_t frame, pageframe_group_t* group);
+static inline pageframe_group_t* get_current_pagegroup() {
+    return find_pagegroup(current_running->pgdir);
+}
 
 // NOTE: fork a new pageframe group and move all memory under pgdir to it
-extern int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name); // success: 0, otherwise 1
+extern int
+fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name);  // success: 0, otherwise 1
 extern int resize_pagegroup(pageframe_group_t* group, size_t new_capacity);
 extern void shrink_pagegroup(pageframe_group_t* group, size_t space);
 extern void free_pagegroup(pageframe_group_t* group);
@@ -137,8 +141,12 @@ typedef struct pageframe {
 extern pageframe_t pages[MAX_PAGE_NUM];
 extern pageframe_t* get_page_attr(kva_t page);
 
-static inline int pageframe_id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
-static inline ptr_t pageframe_addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
+static inline int pageframe_addr2id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
+static inline int pageframe_attr2id(pageframe_t* pf) { return pf - pages; }
+static inline ptr_t pageframe_id2addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
+static inline ptr_t pageframe_attr2addr(pageframe_t* pf) {
+    return pageframe_id2addr(pageframe_attr2id(pf));
+}
 
 extern void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group);
 

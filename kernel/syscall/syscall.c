@@ -127,18 +127,18 @@ long sys_set_max_memory(size_t max_mem) {
 
 long sys_set_page_repl_algo(const char* algo) {
     pageframe_group_t* group = get_current_pagegroup();
-    int ret = 0;
     pretty_logi("try set group '%s' replacement algorithm to %s", group->pages.name, algo);
+    pagegroup_vtable_t* new_vtable = NULL;
     if (strcmp(algo, "lru") == 0) {
-        group->vtable = PAGEGROUP_VTABLE_LRU;
-        group->vtable->on_init(group);
+        new_vtable = PAGEGROUP_VTABLE_LRU;
     } else if (strcmp(algo, "fifo") == 0) {
-        group->vtable = PAGEGROUP_VTABLE_FIFO;
-        group->vtable->on_init(group);
-    } else {
-        ret = 1;
+        new_vtable = PAGEGROUP_VTABLE_FIFO;
     }
-    return ret;
+    if (!new_vtable) return 1;
+    if (group->vtable->cleanup) group->vtable->cleanup(group);
+    group->vtable = new_vtable;
+    if (group->vtable->init) group->vtable->init(group);
+    return 0;
 }
 
 long sys_process_show() { return do_process_show(); }

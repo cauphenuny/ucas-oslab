@@ -14,7 +14,7 @@ kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
     set_pfn(pte, kva2pa(page) >> NORMAL_PAGE_SHIFT);
     set_attribute(pte, _PAGE_PRESENT);
     set_attribute(pte, extra_attrs);
-    pageframe_t* attr = get_page_attr(page);
+    pageframe_t* attr = pageframe_kva2attr(page);
     attr->pte = pte;
     pretty_logd("bind page 0x%x to pte 0x%x", kva2pa(page), pte);
     return page;
@@ -86,7 +86,8 @@ PTE* alloc_page_va(uva_t va, kva_t pgdir) {
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(va, &vpn2, &vpn1, &vpn0);
     pretty_logn(
-        "va 0x%lx(%x,%x,%x) in 0x%x mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(pgdir), kva2pa(new_page));
+        "va 0x%lx(%x,%x,%x) in 0x%x mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(pgdir),
+        kva2pa(new_page));
 
     return pte;
 }

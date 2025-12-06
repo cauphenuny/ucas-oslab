@@ -153,9 +153,8 @@ static pipe_segment_t* pipe_detach_page_from_sender(uva_t va, pageframe_group_t*
 
     if (get_attribute(*pte, _PAGE_PRESENT)) {
         kva_t page = pa2kva(get_pa(*pte));
-        pageframe_t* attr = get_page_attr(page);
+        pageframe_t* attr = pageframe_kva2attr(page);
         attr->pte = NULL;
-        attr->last_accessed = 0;
         detach_pageframe(page, owner_group);
         *pte = 0;
         seg->type = PIPE_SEG_PHYS;
@@ -175,9 +174,8 @@ static void pipe_clear_dest_mapping(PTE* pte) {
     }
     if (get_attribute(*pte, _PAGE_PRESENT)) {
         kva_t old_page = pa2kva(get_pa(*pte));
-        pageframe_t* attr = get_page_attr(old_page);
+        pageframe_t* attr = pageframe_kva2attr(old_page);
         attr->pte = NULL;
-        attr->last_accessed = 0;
         free_pageframe(old_page);
     } else if (get_attribute(*pte, _PAGE_SOFT)) {
         uint64_t swap_id = get_pfn(*pte);

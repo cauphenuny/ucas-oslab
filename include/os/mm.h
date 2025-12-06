@@ -88,23 +88,44 @@ extern void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
 extern void cleanup_vm(pcb_t* pcb);
 
+struct pageframe;
+struct pageframe_group;
+
+// NOTE: optional: init, cleanup, on_timer
+struct pagegroup_vtable {
+    void (*init)(struct pageframe_group* group);     // set algo for this group (init algo data)
+    void (*cleanup)(struct pageframe_group* group);  // unset algo (cleanup algo data)
+    void (*attach)(struct pageframe_group* group, int pageframe_id);  // attach pageframe to group
+    void (*detach)(struct pageframe_group* group, int pageframe_id);  // detach pageframe from group
+
+    void (*on_timer)(struct pageframe_group* group, uint64_t current_tick);
+    void (*on_access)(struct pageframe_group* group, kva_t addr, uint64_t current_tick);
+    void (*on_write)(struct pageframe_group* group, kva_t addr, uint64_t current_tick);
+
+    list_node_t* (*evict)(struct pageframe_group* group);  // select a page to swapout
+    void (*show)(struct pageframe_group* group, struct pageframe* pf);
+};
+
+typedef const struct pagegroup_vtable pagegroup_vtable_t;
+
+extern pagegroup_vtable_t *const PAGEGROUP_VTABLE_LRU, *const PAGEGROUP_VTABLE_FIFO;
+
 typedef struct pageframe_group {
     list_t pages;
     size_t capacity;
     size_t used;
-    int refcount;  // one group may be shared by multiple processes
-    void (*maintain)(struct pageframe_group* group, uint64_t current_tick);
+    int refcount;                // one group may be shared by multiple processes
+    pagegroup_vtable_t* vtable;  // page replacement algorithm & other algorithm-specific func
 } pageframe_group_t;
 
 extern pageframe_group_t page_groups[NUM_MAX_PAGEGROUP];
 extern pageframe_group_t* const PAGE_GROUP_KERNEL;
 
 extern pageframe_group_t* find_pagegroup(kva_t page);
-extern void attach_pageframe(kva_t frame, pageframe_group_t* group);
-extern void detach_pageframe(kva_t frame, pageframe_group_t* group);
 static inline pageframe_group_t* get_current_pagegroup() {
     return find_pagegroup(current_running->pgdir);
 }
+static inline int pagegroup_getid(pageframe_group_t* group) { return group - page_groups; }
 
 // NOTE: fork a new pageframe group and move all memory under pgdir to it
 extern int
@@ -127,31 +148,32 @@ extern void swapin(uva_t uva, kva_t pgdir, kva_t page);
 extern void show_swap();
 extern void free_swap(uint64_t swap_id);
 
-extern kva_t alloc_pageframe(pageframe_group_t* group, int num_page);
-extern void free_pageframe(kva_t base_addr);
-
 typedef struct pageframe {
-    uint64_t last_accessed;
     list_node_t group_node;
     PTE* pte;
 } pageframe_t;
 
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)
 
-extern pageframe_t pages[MAX_PAGE_NUM];
-extern pageframe_t* get_page_attr(kva_t page);
+extern void pageframe_destruct(pageframe_t* pf, kva_t addr);
 
-static inline int pageframe_addr2id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
+extern pageframe_t pages[MAX_PAGE_NUM];
+static inline int pageframe_kva2id(ptr_t addr) { return (addr - FREEMEM_KERNEL) / PAGE_SIZE; }
 static inline int pageframe_attr2id(pageframe_t* pf) { return pf - pages; }
 static inline ptr_t pageframe_id2addr(int id) { return FREEMEM_KERNEL + id * PAGE_SIZE; }
-static inline ptr_t pageframe_attr2addr(pageframe_t* pf) {
+static inline ptr_t pageframe_attr2kva(pageframe_t* pf) {
     return pageframe_id2addr(pageframe_attr2id(pf));
 }
+extern pageframe_t* pageframe_kva2attr(kva_t page);
 
-extern void pageframe_destruct(pageframe_t* pf, kva_t addr, pageframe_group_t* group);
-
-extern void maintain_pagelist_lru(pageframe_group_t* group, uint64_t current_tick);
-extern void maintain_pagelist_fifo(pageframe_group_t* group, uint64_t current_tick);
+extern kva_t alloc_pageframe(pageframe_group_t* group, int num_page);
+extern void free_pageframe(kva_t base_addr);
+static inline void attach_pageframe(kva_t addr, pageframe_group_t* group) {
+    group->vtable->attach(group, pageframe_kva2id(addr));
+}
+static inline void detach_pageframe(kva_t addr, pageframe_group_t* group) {
+    group->vtable->detach(group, pageframe_kva2id(addr));
+}
 
 extern int swap_base_location;
 

@@ -10,7 +10,7 @@ pageframe_group_t* const PAGE_GROUP_KERNEL = &page_groups[0];
 pageframe_group_t* find_pagegroup(kva_t page) {
     if (page == PGDIR_VA) return PAGE_GROUP_KERNEL;
     asserts(page >= INIT_KERNEL_STACK && page <= ALLMEM_KERNEL, "invalid pageframe address");
-    pageframe_t* attr = get_page_attr(page);
+    pageframe_t* attr = pageframe_kva2attr(page);
     asserts(attr->group_node.container, "isolated pageframe");
     return container_of(attr->group_node.container, pageframe_group_t, pages);
 }
@@ -20,7 +20,7 @@ void init_pagegroup() {
         .capacity = MAX_PAGE_NUM,
         .used = 0,
         .refcount = 1,
-        .maintain = maintain_pagelist_fifo,
+        .vtable = PAGEGROUP_VTABLE_FIFO,
     };
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }
@@ -33,17 +33,7 @@ void show_pagegroup_details(int pgid) {
     uint64_t cur = get_ticks();
     list_foreach_node(iter, &group->pages.head) {
         pageframe_t* pf = container_of(iter, pageframe_t, group_node);
-        kva_t page = pageframe_attr2addr(pf);
-        if (!pf->pte) {
-            if (group == PAGE_GROUP_KERNEL)
-                printk("  page 0x%x: pagedir (top) or kernel page\n", kva2pa(page));
-            else
-                printk("  page 0x%x: pagedir (top)\n", kva2pa(page));
-        } else if (!get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-            printk("  page 0x%x: pagedir (intermediate)\n", kva2pa(page));
-        } else {
-            printk("  page 0x%x: leaf: delta_t=%lu\n", kva2pa(page), cur - pf->last_accessed);
-        }
+        group->vtable->show(group, pf);
     }
 }
 
@@ -130,7 +120,7 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     new_group->capacity = capacity;
     new_group->refcount = 1;
     list_init(&new_group->pages, name);
-    new_group->maintain = group->maintain;
+    new_group->vtable = group->vtable;
 
     group->refcount--;
     group->capacity -= capacity;
@@ -140,6 +130,9 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
         "immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
         group->pages.name, new_group->pages.name);
     immigrate(top_pgdir, group, new_group);
+    if (new_group->vtable->init) {
+        new_group->vtable->init(new_group);
+    }
 
     pretty_logi(
         "forked new pagegroup '%s' with capacity %lu from group '%s'", name, capacity,

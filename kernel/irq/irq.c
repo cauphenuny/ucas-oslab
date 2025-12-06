@@ -147,7 +147,7 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     // pretty_log(LOG_INFO, "handling irq timer, ticks=%d, stval=%d, scause=%d", ticks, stval,
     // scause);
     pageframe_group_t* group = get_current_pagegroup();
-    group->vtable->on_timer(group, get_ticks());
+    if (group->vtable->on_timer) group->vtable->on_timer(group, get_ticks());
     reset_timer();
     do_scheduler();
 }

@@ -44,7 +44,6 @@ MINICOM         ?= minicom
 COMMON_FLAGS    = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 COMMON_FLAGS    += -g
 COMMON_FLAGS    += -O0
-COMMON_FLAGS    += -DDISABLE_LOG
 
 CFLAGS          = -std=gnu11
 CFLAGS          += $(COMMON_FLAGS)

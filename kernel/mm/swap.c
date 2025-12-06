@@ -35,41 +35,39 @@ void free_swap(uint64_t swap_id) {
 
 // NOTE: do not swapout pagedir in grouop, only swapout leaf nodes
 kva_t swapout(pageframe_group_t* group) {
-    list_foreach_node_reversed(iter, &group->pages.head) {
-        pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+    list_node_t* evict_node = group->vtable->evict(group);
+    if (evict_node) {
+        pageframe_t* pf = container_of(evict_node, pageframe_t, group_node);
         PTE* pte = pf->pte;
-        if (pte && get_attribute(*pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-            // found a leaf page
-            kva_t page = pageframe_attr2addr(pf);
-            // find a swap location
-            uint64_t swap_id = alloc_swap();
-            pretty_logn("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
-            bios_sd_write(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
-            clear_attribute(pte, _PAGE_PRESENT);
-            set_attribute(pte, _PAGE_SOFT);
-            set_pfn(pte, swap_id);
-            pageframe_destruct(pf, page, group);
-            swap_counter_out++;
-            return page;
+        kva_t page = pageframe_attr2kva(pf);
+        // find a swap location
+        uint64_t swap_id = alloc_swap();
+        pretty_logn("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
+        bios_sd_write(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
+        clear_attribute(pte, _PAGE_PRESENT);
+        set_attribute(pte, _PAGE_SOFT);
+        set_pfn(pte, swap_id);
+        pageframe_destruct(pf, page);
+        swap_counter_out++;
+        return page;
+    } else {
+        pretty_logw(
+            "no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
+        bool exit = false;
+        for (int i = 0; i < NUM_MAX_PCB; i++) {
+            pcb_t* pcb = pcb_all[i];
+            if (pcb->status == TASK_EXITED) continue;
+            if (find_pagegroup(pcb->pgdir) == group) {
+                pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
+                if (pcb->pid == current_running->pid)
+                    exit = true;
+                else
+                    do_kill(pcb->pid);
+            }
         }
+        if (exit) do_exit();
+        return 0;
     }
-
-    pretty_loge(
-        "no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
-    bool exit = false;
-    for (int i = 0; i < NUM_MAX_PCB; i++) {
-        pcb_t* pcb = pcb_all[i];
-        if (pcb->status == TASK_EXITED) continue;
-        if (find_pagegroup(pcb->pgdir) == group) {
-            pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
-            if (pcb->pid == current_running->pid)
-                exit = true;
-            else
-                do_kill(pcb->pid);
-        }
-    }
-    if (exit) do_exit();
-    return 0;
 }
 
 void swapin(uva_t uva, kva_t pgdir, kva_t page) {

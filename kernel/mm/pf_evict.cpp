@@ -82,7 +82,7 @@ static pagegroup_vtable_t VTABLE = {
     .evict = evict,
     .show = show,
 
-    .name = "FIFO",
+    .name = "fifo",
 };
 
 }  // namespace fifo
@@ -136,7 +136,7 @@ static pagegroup_vtable_t VTABLE = {
     .evict = evict,
     .show = show,
 
-    .name = "LRU",
+    .name = "sc",
 };
 
 }  // namespace second_chance
@@ -205,7 +205,7 @@ static pagegroup_vtable_t VTABLE = {
     .evict = fifo::evict,
     .show = show,
 
-    .name = "SC",
+    .name = "lru",
 };
 
 }  // namespace lru

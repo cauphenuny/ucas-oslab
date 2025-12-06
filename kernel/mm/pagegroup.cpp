@@ -63,12 +63,12 @@ void show_pagegroups(int argc, char** argv) {
     using T = pageframe_group_t;
     display_table<T>(
         page_groups, NUM_MAX_PAGEGROUP, [](T* group) { return group->refcount > 0; },
-        table_entry_t{"ID", 3, [](T* group) { printk("%d", group - page_groups); }},
-        table_entry_t{"NAME", 8, [](T* group) { printk("%s", group->pages.name); }},
+        table_entry_t{"ID", 4, [](T* group) { printk("%d", group - page_groups); }},
+        table_entry_t{"NAME", 16, [](T* group) { printk("%s", group->pages.name); }},
         table_entry_t{"ALGO", 6, [](T* group) { printk("%s", group->vtable->name); }},
-        table_entry_t{"CAPACITY", 9, [](T* group) { printk("%d", group->capacity); }},
-        table_entry_t{"USED", 5, [](T* group) { printk("%d", group->used); }},
-        table_entry_t{"REF", 4, [](T* group) { printk("%d", group->refcount); }});
+        table_entry_t{"CAPACITY", 10, [](T* group) { printk("%d", group->capacity); }},
+        table_entry_t{"USED", 6, [](T* group) { printk("%d", group->used); }},
+        table_entry_t{"REF", 5, [](T* group) { printk("%d", group->refcount); }});
 }
 
 static pageframe_group_t* alloc_pageframe_group() {

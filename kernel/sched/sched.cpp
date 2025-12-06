@@ -238,7 +238,9 @@ void do_scheduler(void) {
     //     kva2pa(next_running->pgdir));
 
     // DONE: [p2-task1] switch_to current_running
+    unlock_kernel();
     switch_to(current_running, next_running);
+    lock_kernel(NULL, 0, 0, 0);
 
     screen_move_cursor(current_running->cursor_x, current_running->cursor_y);
     current_running->cpu = get_current_cpu_id();

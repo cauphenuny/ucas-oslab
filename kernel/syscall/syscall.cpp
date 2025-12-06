@@ -344,11 +344,13 @@ long sys_mbox_close(int mbox_id) {
 }
 
 long sys_mbox_send(int mbox_idx, void* msg, int msg_length) {
-    return do_mbox_send(mbox_idx, (kva_t)msg, msg_length);
+    do_mbox_send(mbox_idx, (kva_t)msg, msg_length);
+    return msg_length;
 }
 
 long sys_mbox_recv(int mbox_idx, void* msg, int msg_length) {
-    return do_mbox_recv(mbox_idx, (kva_t)msg, msg_length);
+    do_mbox_recv(mbox_idx, (kva_t)msg, msg_length);
+    return msg_length;
 }
 
 /***************** screen *****************/

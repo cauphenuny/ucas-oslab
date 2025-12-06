@@ -20,13 +20,17 @@ public:
         uva_t target = addr + index * sizeof(T);
         PTE* pte = alloc_page(target, current_running->pgdir, true);
         asserts(get_attribute(*pte, _PAGE_PRESENT), "page not present");
-        return *((T*)pa2kva(get_pa(*pte)));
+        kva_t kva = pa2kva(get_pa(*pte));
+        size_t offset = target & (PAGE_SIZE - 1);
+        return *reinterpret_cast<T*>(kva + offset);
     }
     template <typename T> void set(size_t index, T value) {
         uva_t target = addr + index * sizeof(T);
         PTE* pte = alloc_page(target, current_running->pgdir, true);
         asserts(get_attribute(*pte, _PAGE_PRESENT), "page not present");
-        *((T*)pa2kva(get_pa(*pte))) = value;
+        kva_t kva = pa2kva(get_pa(*pte));
+        size_t offset = target & (PAGE_SIZE - 1);
+        *reinterpret_cast<T*>(kva + offset) = value;
     }
     operator void*() {
         alloc_page(addr, current_running->pgdir, true);

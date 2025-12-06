@@ -77,19 +77,23 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
     return &current_pgdir[vpn0];
 }
 
-PTE* alloc_page_va(uva_t va, kva_t pgdir) {
+PTE* alloc_page_va(uva_t va, kva_t pgdir, bool exist_ok) {
     PTE* pte = find_pte(va, pgdir, true);
-    asserts(*pte == 0, "page already allocated");
-    kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
-    bind_page(pte, new_page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+    if (*pte != 0) {
+        asserts(exist_ok, "page already allocated");
+        return pte;
+    } else {
+        kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
+        bind_page(pte, new_page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
 
-    uint64_t vpn2, vpn1, vpn0;
-    get_vpn(va, &vpn2, &vpn1, &vpn0);
-    pretty_logn(
-        "va 0x%lx(%x,%x,%x) in 0x%x mapped to new page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(pgdir),
-        kva2pa(new_page));
+        uint64_t vpn2, vpn1, vpn0;
+        get_vpn(va, &vpn2, &vpn1, &vpn0);
+        pretty_logn(
+            "va 0x%lx(%x,%x,%x) in 0x%x mapped to new page 0x%x", va, vpn2, vpn1, vpn0,
+            kva2pa(pgdir), kva2pa(new_page));
 
-    return pte;
+        return pte;
+    }
 }
 
 PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
@@ -106,21 +110,8 @@ PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
 }
 
 kva_t uva2kva(uva_t uva, kva_t pgdir) {
-    uva &= VA_MASK;
-    uint64_t vpn2 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) & VPN_MASK;
-    uint64_t vpn1 = (uva >> (NORMAL_PAGE_SHIFT + PPN_BITS)) & VPN_MASK;
-    uint64_t vpn0 = (uva >> NORMAL_PAGE_SHIFT) & VPN_MASK;
-    PTE* current_pgdir = (PTE*)pgdir;
-    if (!get_attribute(current_pgdir[vpn2], _PAGE_PRESENT)) goto not_exist;
-    current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn2]));
-    if (!get_attribute(current_pgdir[vpn1], _PAGE_PRESENT)) goto not_exist;
-    current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
-    if (!get_attribute(current_pgdir[vpn0], _PAGE_PRESENT)) goto not_exist;
-    kva_t page_base = pa2kva(get_pa(current_pgdir[vpn0]));
-    return page_base + (uva & (PAGE_SIZE - 1));
-not_exist:
-    alloc_page_va(uva, pgdir);
-    return uva2kva(uva, pgdir);
+    PTE* pte = alloc_page_va(uva, pgdir, true);  // make sure page is allocated
+    return pa2kva(get_pa(*pte)) + (uva & (PAGE_SIZE - 1));
 }
 
 void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest) {

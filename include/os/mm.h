@@ -66,7 +66,7 @@ extern void kfree(void* ptr);
 extern void init_kmalloc(void);
 
 extern void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir);
-extern PTE* alloc_page_va(uva_t va, kva_t pgdir);
+extern PTE* alloc_page_va(uva_t va, kva_t pgdir, bool exist_ok);
 extern PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page);
 
 extern PTE* find_pte(uva_t va, kva_t pgdir, bool create);

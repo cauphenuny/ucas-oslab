@@ -9,10 +9,10 @@
 MSG_IN_MB: message size in megabytes used for the benchmark.
 */
 #define PAGE_SIZE 4096ul
-const long MSG_IN_KB = 512;
-const long MSG_BYTES = MSG_IN_KB * 1024;
 const long QEMU_SCALE = 32;
 const long BOARD_SCALE = 1;
+const long MSG_IN_KB = 256;
+const long MSG_BYTES = MSG_IN_KB * 1024;
 long scale;
 const long WARMUP_BYTES = PAGE_SIZE;
 const char MBOX_NAME[] = "ipc-perf-mailbox";
@@ -72,7 +72,7 @@ static void print_timing(const char *tag, long bytes, long start, long end)
 static int mailbox_sender(void)
 {
 	char *buf = alloc_payload_buffer();
-	fill_payload(buf, MSG_BYTES);
+	fill_payload(buf, MSG_BYTES * scale);
 	sys_move_cursor(0, MAILBOX_SEND_LINE);
 	printf("[mailbox send] payload filled         \n");
 

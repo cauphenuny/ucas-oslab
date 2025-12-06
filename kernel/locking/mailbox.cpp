@@ -177,11 +177,11 @@ int do_mbox_recv(int mbox_idx, suva_t msg, int msg_length) {
             mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
             mbox->used--;
             received++;
-            condition_signal(&mbox->full);
             if (received % 1024 == 0 || received == msg_length)
                 pretty_logd(
                     "mbox %d: received byte %d/%d, used=%d", mbox_idx, received, msg_length,
                     mbox->used);
+            condition_signal(&mbox->full);
         } else {
             blocked = 1;
             pretty_logd("mbox %d: buffer empty, waiting...", mbox_idx);

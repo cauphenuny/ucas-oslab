@@ -58,8 +58,6 @@ static void init_jmptab(void) {
 
 /************************************************************/
 
-int initialized;
-
 static void init_task_info(int argc, char** physical_argv) {
     // INFO:
     // argc: argc
@@ -87,8 +85,8 @@ static void kernel_brake(void) {
     while (1) __asm__ volatile("wfi");
 }
 
-int initialized;      // hart 0 r/w, hart * r
-int booted[NR_CPUS];  // [i]: hart i r/w, hart * r
+volatile int initialized;      // hart 0 r/w, hart * r
+volatile int booted[NR_CPUS];  // [i]: hart i r/w, hart * r
 
 static bool all_booted() {
     for (int i = 0; i < NR_CPUS; i++) {

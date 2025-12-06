@@ -17,7 +17,7 @@
 #define TASKINFO_START_LOC     (BOOT_LOADER_SIG_OFFSET - 6)
 #define TASKINFO_SIZE_LOC      (BOOT_LOADER_SIG_OFFSET - 8)
 #define TASKINFO_TASKNUM_LOC   (BOOT_LOADER_SIG_OFFSET - 10)
-#define SWAP_FILE_LOC         (BOOT_LOADER_SIG_OFFSET - 12)
+#define SWAP_FILE_LOC          (BOOT_LOADER_SIG_OFFSET - 12)
 #define BOOT_LOADER_SIG_1      0x55
 #define BOOT_LOADER_SIG_2      0xaa
 
@@ -53,8 +53,9 @@ static uint32_t get_filesz(Elf64_Phdr phdr);
 static void write_segment(Elf64_Phdr phdr, FILE* fp, FILE* img, int* phyaddr);
 static void write_padding(FILE* img, int* phyaddr, int new_phyaddr);
 static void write_align_padding(FILE* img, int* phyaddr);
-static void
-write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img, int* phyaddr);
+static void write_img_info(
+    int nbytes_kernel, int nbytes_kernel_memsz, task_info_t* taskinfo, short tasknum, FILE* img,
+    int* phyaddr);
 
 int main(int argc, char** argv) {
     char* progname = argv[0];
@@ -90,6 +91,7 @@ int main(int argc, char** argv) {
 static void create_image(int nfiles, char* files[]) {
     int tasknum = nfiles - 2;
     int nbytes_kernel = 0;
+    int nbytes_kernel_memsz = 0;
     int phyaddr = 0;
     FILE *fp = NULL, *img = NULL;
     Elf64_Ehdr ehdr;
@@ -128,6 +130,7 @@ static void create_image(int nfiles, char* files[]) {
             /* update nbytes_kernel */
             if (strcmp(*files, "main") == 0) {
                 nbytes_kernel += get_filesz(phdr);
+                nbytes_kernel_memsz += phdr.p_memsz;
             }
 
             if (taskidx >= 0) {
@@ -153,7 +156,7 @@ static void create_image(int nfiles, char* files[]) {
         fclose(fp);
         files++;
     }
-    write_img_info(nbytes_kernel, taskinfo, tasknum, img, &phyaddr);
+    write_img_info(nbytes_kernel, nbytes_kernel_memsz, taskinfo, tasknum, img, &phyaddr);
 
     fclose(img);
 }
@@ -232,8 +235,9 @@ static void write_align_padding(FILE* img, int* phyaddr) {
     write_padding(img, phyaddr, target);
 }
 
-static void
-write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* img, int* phyaddr) {
+static void write_img_info(
+    int nbytes_kernel, int nbytes_kernel_memsz, task_info_t* taskinfo, short tasknum, FILE* img,
+    int* phyaddr) {
     // DONE: [p1-task3] & [p1-task4] write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
 
@@ -283,8 +287,8 @@ write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* im
     fwrite(&swap_file_sector, sizeof(swap_file_sector), 1, img);
     if (options.extended)
         printf(
-            "swap_file_loc: %d,\t%lu bytes at 0x%08x\n", swap_file_sector,
-            sizeof(swap_file_sector), SWAP_FILE_LOC);
+            "swap_file_loc: %d,\t%lu bytes at 0x%08x\n", swap_file_sector, sizeof(swap_file_sector),
+            SWAP_FILE_LOC);
 
     // write 2-byte size to OS_SIZE_LOC
     fseek(img, OS_SIZE_LOC, SEEK_SET);
@@ -292,6 +296,9 @@ write_img_info(int nbytes_kernel, task_info_t* taskinfo, short tasknum, FILE* im
     fwrite(&os_size, sizeof(os_size), 1, img);
     if (options.extended)
         printf("os_size: \t%d,\t%lu bytes at 0x%08x\n", os_size, sizeof(os_size), OS_SIZE_LOC);
+    if (options.extended) {
+        printf("os_memsz:\t%d\t(0x%x)\n", nbytes_kernel_memsz, nbytes_kernel_memsz);
+    }
 }
 
 /* print an error message and exit */

@@ -160,12 +160,25 @@ void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
 
     // check if non-allocated or swapped out
     PTE* pte = find_pte(stval, current_running->pgdir, false);
-    if (!pte || !get_attribute(*pte, _PAGE_SOFT)) {
+    if (!pte) {
         alloc_page(stval, current_running->pgdir, false);
-    } else {
+        return;
+    }
+    // if (get_attribute(*pte, _PAGE_PRESENT)) {
+    //     pageframe_group_t* group = get_current_pagegroup();
+    //     if (scause == EXCC_LOAD_PAGE_FAULT || scause == EXCC_INST_PAGE_FAULT) {
+    //         group->vtable->on_access(group, stval, get_ticks());
+    //     } else {
+    //         group->vtable->on_write(group, stval, get_ticks());
+    //     }
+    //     return;
+    // }
+    if (get_attribute(*pte, _PAGE_SOFT)) {
         kva_t new_page = alloc_pageframe(get_current_pagegroup(), 1);
         swapin(stval, current_running->pgdir, new_page);
+        return;
     }
+    alloc_page(stval, current_running->pgdir, false);
 }
 
 void init_exception() {

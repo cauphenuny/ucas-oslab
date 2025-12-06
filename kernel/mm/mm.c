@@ -77,10 +77,15 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
     return &current_pgdir[vpn0];
 }
 
-PTE* alloc_page_va(uva_t va, kva_t pgdir, bool exist_ok) {
+PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok) {
     PTE* pte = find_pte(va, pgdir, true);
     if (*pte != 0) {
         asserts(exist_ok, "page already allocated");
+        if (!get_attribute(*pte, _PAGE_PRESENT)) {
+            asserts(get_attribute(*pte, _PAGE_SOFT), "invalid pte state");
+            kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
+            swapin(va, pgdir, new_page);
+        }
         return pte;
     } else {
         kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
@@ -96,21 +101,8 @@ PTE* alloc_page_va(uva_t va, kva_t pgdir, bool exist_ok) {
     }
 }
 
-PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page) {
-    PTE* pte = find_pte(va, pgdir, false);
-    asserts(pte, "pte not found");
-    asserts(!get_attribute(*pte, _PAGE_PRESENT), "pte already occupied");
-    bind_page(pte, page, _PAGE_USER | _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE);
-
-    uint64_t vpn2, vpn1, vpn0;
-    get_vpn(va, &vpn2, &vpn1, &vpn0);
-    pretty_logd("va 0x%lx(%x,%x,%x) bound to page 0x%x", va, vpn2, vpn1, vpn0, kva2pa(page));
-
-    return pte;
-}
-
 kva_t uva2kva(uva_t uva, kva_t pgdir) {
-    PTE* pte = alloc_page_va(uva, pgdir, true);  // make sure page is allocated
+    PTE* pte = alloc_page(uva, pgdir, true);  // make sure page is allocated
     return pa2kva(get_pa(*pte)) + (uva & (PAGE_SIZE - 1));
 }
 

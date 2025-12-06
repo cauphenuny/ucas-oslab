@@ -59,17 +59,15 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
-kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs);
-
 extern void* kmalloc(size_t size);
 extern void kfree(void* ptr);
 extern void init_kmalloc(void);
 
 extern void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir);
-extern PTE* alloc_page_va(uva_t va, kva_t pgdir, bool exist_ok);
-extern PTE* bind_page_va(uva_t va, kva_t pgdir, kva_t page);
+extern PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok);
 
 extern PTE* find_pte(uva_t va, kva_t pgdir, bool create);
+extern kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs);
 
 // NOTE: the address must be aligned to PAGE_SIZE
 extern int pipe_open(const char* name);

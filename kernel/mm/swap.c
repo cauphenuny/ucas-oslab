@@ -86,6 +86,7 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     uint64_t swap_id = get_pfn(*entry_level0);
     pretty_logn("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
     bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
+    pretty_logi("uva 0x%lx swapped in, first bytes: %lx", uva, *(uint64_t*)page);
     clear_attribute(entry_level0, _PAGE_SOFT);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
     free_swap(swap_id);

@@ -137,7 +137,7 @@ void cleanup_semaphores(pid_t pid);
 void show_semaphores();
 
 #define MAX_MBOX_NAME   32
-#define MAX_MBOX_LENGTH (64)
+#define MAX_MBOX_LENGTH (4096)
 
 typedef struct mailbox {
     char name[MAX_MBOX_NAME];
@@ -148,19 +148,13 @@ typedef struct mailbox {
     condition_t empty, full;
 } mailbox_t;
 
-#define MBOX_NUM 16
-void init_mbox();
+#define MBOX_NUM 4
+
 int do_mbox_open(char* name);
 void do_mbox_close(int mbox_idx);
 void cleanup_mailboxes(pid_t pid);
-
-/// @return 1: blocked, 0: immediately sent
-int do_mbox_send(int mbox_idx, void* msg, int msg_length);
-
-/// @return 1: blocked, 0: immediately received
-int do_mbox_recv(int mbox_idx, void* msg, int msg_length);
-
 void show_mailboxes();
+void init_mbox();
 
 /************************************************************/
 

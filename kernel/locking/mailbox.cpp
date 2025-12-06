@@ -1,3 +1,4 @@
+#include <os/mbox.hpp>
 extern "C" {
 
 #include <assert.h>
@@ -120,7 +121,7 @@ void do_mbox_close(int mbox_idx) {
     mailbox_destruct(mbox);
 }
 
-int do_mbox_send(int mbox_idx, void* msg, int msg_length) {
+int do_mbox_send(int mbox_idx, suva_t msg, int msg_length) {
     if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
         pretty_loge("mailbox index %d out of range!", mbox_idx);
         return 0;
@@ -137,23 +138,25 @@ int do_mbox_send(int mbox_idx, void* msg, int msg_length) {
     while (sent < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used < MAX_MBOX_LENGTH) {
-            mbox->buffer[mbox->tail] = ((char*)msg)[sent];
+            mbox->buffer[mbox->tail] = msg.get<char>(sent);
             mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
             mbox->used++;
             sent++;
-            pretty_logd(
-                "mbox %d: sent byte %d/%d, used=%d", mbox_idx, sent, msg_length, mbox->used);
+            if (sent % 1024 == 0 || sent == msg_length)
+                pretty_logd(
+                    "mbox %d: sent byte %d/%d, used=%d", mbox_idx, sent, msg_length, mbox->used);
             condition_signal(&mbox->empty);
         } else {
             blocked = 1;
             pretty_logd("mbox %d: buffer full, waiting...", mbox_idx);
             condition_wait(&mbox->full, &mbox->buffer_lock);
+            pretty_logd("mbox %d: woke up from wait", mbox_idx);
         }
     }
     return blocked;
 }
 
-int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
+int do_mbox_recv(int mbox_idx, suva_t msg, int msg_length) {
     if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
         pretty_loge("mailbox index %d out of range!", mbox_idx);
         return 0;
@@ -166,24 +169,24 @@ int do_mbox_recv(int mbox_idx, void* msg, int msg_length) {
     }
 
     int blocked = 0;
-    char* cur = (char*)msg;
-
     int received = 0;
     while (received < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used > 0) {
-            cur[received] = mbox->buffer[mbox->head];
+            msg.set<char>(received, mbox->buffer[mbox->head]);
             mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
             mbox->used--;
             received++;
             condition_signal(&mbox->full);
-            pretty_logd(
-                "mbox %d: received byte %d/%d, used=%d", mbox_idx, received, msg_length,
-                mbox->used);
+            if (received % 1024 == 0 || received == msg_length)
+                pretty_logd(
+                    "mbox %d: received byte %d/%d, used=%d", mbox_idx, received, msg_length,
+                    mbox->used);
         } else {
             blocked = 1;
-            condition_wait(&mbox->empty, &mbox->buffer_lock);
             pretty_logd("mbox %d: buffer empty, waiting...", mbox_idx);
+            condition_wait(&mbox->empty, &mbox->buffer_lock);
+            pretty_logd("mbox %d: woke up from wait", mbox_idx);
         }
     }
     return blocked;

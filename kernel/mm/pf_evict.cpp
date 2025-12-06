@@ -30,17 +30,29 @@ static void on_write(pageframe_group_t* group, kva_t pageframe, uint64_t current
 }
 
 static list_node_t* evict(pageframe_group_t* group) {
-    // find page in reverse order
+    // NOTE: find a leaf page in reverse order
+    list_node_t* node = NULL;
     list_foreach_node_reversed(iter, &group->pages.head) {
         pageframe_t* pf = container_of(iter, pageframe_t, group_node);
         PTE* pte = pf->pte;
         if (pte && get_attribute(*pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
-            // found a leaf page
-            return iter;
+            node = iter;
+            break;
         }
     }
-    pretty_loge("no leaf page to evict in group '%s'", group->pages.name);
-    return NULL;
+    if (!node) {
+        pretty_loge("no leaf page to evict in group '%s'", group->pages.name);
+        return NULL;
+    }
+    // NOTE: move trailing pgdir pages to the front
+    list_foreach_node_reversed(iter, &group->pages.head) {
+        if (iter == node) {
+            break;
+        }
+        list_delete(iter);
+        list_prepend(&group->pages, iter);
+    }
+    return node;
 }
 
 static void show(pageframe_group_t* group, pageframe_t* pf) {

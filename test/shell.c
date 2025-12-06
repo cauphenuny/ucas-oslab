@@ -597,7 +597,7 @@ int time(int argc, char** argv) {
 
 int watch(int argc, char** argv) {
     if (argc < 2) goto usage;
-    shift(&argc, &argv); // shift 'watch'
+    shift(&argc, &argv);  // shift 'watch'
     unsigned interval = 1;
     if (strcmp(argv[0], "-n") == 0) {
         shift(&argc, &argv);
@@ -618,7 +618,7 @@ int watch(int argc, char** argv) {
         task->handler(argc, argv);
         int ch = sys_getchar();
         if (ch != -1) break;
-        sys_sleep(interval);
+        if (interval) sys_sleep(interval);
     }
     return 0;
 usage:

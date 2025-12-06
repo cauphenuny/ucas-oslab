@@ -9,7 +9,7 @@
 MSG_IN_MB: message size in megabytes used for the benchmark.
 */
 #define PAGE_SIZE 4096ul
-const long MSG_IN_MB = 64;
+const long MSG_IN_MB = 8;
 const long MSG_BYTES = MSG_IN_MB * 1024 * 1024;
 const long WARMUP_BYTES = PAGE_SIZE;
 const char MBOX_NAME[] = "ipc-perf-mailbox";
@@ -70,36 +70,46 @@ static int mailbox_sender(void)
 {
 	char *buf = alloc_payload_buffer();
 	fill_payload(buf, MSG_BYTES);
+	sys_move_cursor(0, MAILBOX_SEND_LINE);
+	printf("[mailbox send] payload filled         \n");
 
 	int mq = sys_mbox_open((char *)MBOX_NAME);
 	if (mq < 0)
 	{
 		sys_move_cursor(0, MAILBOX_SEND_LINE);
-		printf("[mailbox send] open failed\n");
+		printf("[mailbox send] open failed         \n");
 		return -1;
 	}
 
+	sys_move_cursor(0, MAILBOX_SEND_LINE);
+	printf("[mailbox send] opened mailbox         \n");
 	sys_sleep(1);
 
+	sys_move_cursor(0, MAILBOX_SEND_LINE);
+	printf("[mailbox send] sending to %d         \n", mq);
 	int warmup = sys_mbox_send(mq, buf, WARMUP_BYTES);
 	if (warmup < 0)
 	{
 		sys_move_cursor(0, MAILBOX_SEND_LINE);
-		printf("[mailbox send] warmup failed (%d)\n", warmup);
+		printf("[mailbox send] warmup failed (%d)         \n", warmup);
 		sys_mbox_close(mq);
 		return -1;
 	}
 
+	sys_move_cursor(0, MAILBOX_SEND_LINE);
+	printf("[mailbox send] warmed up         \n");
 	long start = sys_get_tick();
 	int sent = sys_mbox_send(mq, buf, MSG_BYTES);
 	long end = sys_get_tick();
 
+	sys_move_cursor(0, MAILBOX_SEND_LINE);
+	printf("[mailbox send] sent         \n");
 	sys_mbox_close(mq);
 
 	if (sent < 0)
 	{
 		sys_move_cursor(0, MAILBOX_SEND_LINE);
-		printf("[mailbox send] send failed (%d)\n", sent);
+		printf("[mailbox send] send failed (%d)         \n", sent);
 		return -1;
 	}
 
@@ -121,6 +131,8 @@ static int mailbox_receiver(void)
 		return -1;
 	}
 
+	sys_move_cursor(0, MAILBOX_RECV_LINE);
+	printf("[mailbox recv] receiving from %d\n", mq);
 	int warmup = sys_mbox_recv(mq, buf, WARMUP_BYTES);
 	if (warmup < 0)
 	{
@@ -330,7 +342,7 @@ int main(int argc, char *argv[])
 			return pipe_receiver();
 	}
 
-	sys_set_max_memory(32 * 1024 * 1024);
+	sys_set_max_memory(4 * 1024 * 1024);
 	sys_move_cursor(0, ALL_TEST_START);
 	printf("ipc_perf: comparing mailbox vs pipe with %ld byte payloads\n", (long)MSG_BYTES);
 	run_mailbox_test(prog_name);

@@ -17,6 +17,7 @@ kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
     pageframe_t* attr = pageframe_kva2attr(page);
     attr->pte = pte;
     pretty_logd("bind page 0x%x to pte 0x%x", kva2pa(page), pte);
+    local_flush_tlb_all();
     return page;
 }
 
@@ -48,6 +49,7 @@ void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir) {
                 // non-leaf entry
                 // pretty_logd("mapping non-leaf entry va idx %x", i);
                 kva_t new_page = add_page(i, (kva_t)dest, 0);
+                clear_pgdir(new_page);
                 share_pgtable(new_page, pa2kva(get_pa(src_entry)));
             }
         }

@@ -48,6 +48,7 @@ kva_t swapout(pageframe_group_t* group) {
         set_attribute(pte, _PAGE_SOFT);
         set_pfn(pte, swap_id);
         pageframe_destruct(pf, page);
+        local_flush_tlb_all();
         swap_counter_out++;
         return page;
     } else {

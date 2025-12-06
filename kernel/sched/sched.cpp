@@ -1,3 +1,7 @@
+#include "tui.hpp"
+
+extern "C" {
+
 #include <asm/regs.h>
 #include <assert.h>
 #include <breakpoint.h>
@@ -230,7 +234,8 @@ void do_scheduler(void) {
     set_satp(SATP_MODE_SV39, next_running->pid, kva2pa(next_running->pgdir) >> NORMAL_PAGE_SHIFT);
     local_flush_tlb_all();
     // pretty_log(
-    //     LOG_INFO, "satp set to pid %d pgdir 0x%x", next_running->pid, kva2pa(next_running->pgdir));
+    //     LOG_INFO, "satp set to pid %d pgdir 0x%x", next_running->pid,
+    //     kva2pa(next_running->pgdir));
 
     // DONE: [p2-task1] switch_to current_running
     switch_to(current_running, next_running);
@@ -346,93 +351,53 @@ pid_t do_exec(
 }
 
 int do_process_show() {
-    const int PID_LEN = 5, PID_SUM = PID_LEN;
-    const int PPID_LEN = 6, PPID_SUM = PID_SUM + PPID_LEN;
-    const int NAME_LEN = 16, NAME_SUM = PPID_SUM + NAME_LEN;
-    const int STAT_LEN = 10, STAT_SUM = NAME_SUM + STAT_LEN;
-    const int CHAN_LEN = 9, CHAN_SUM = STAT_SUM + CHAN_LEN;
-    const int TIME_LEN = 6, TIME_SUM = CHAN_SUM + TIME_LEN;
-    const int AFF_LEN = NR_CPUS + 3, AFF_SUM = TIME_SUM + AFF_LEN;
-    const int MEM_LEN = 7, MEM_SUM = AFF_SUM + MEM_LEN;
-    const int UMEM_LEN = 7, UMEM_SUM = MEM_SUM + UMEM_LEN;
-    const int NICE_LEN = 4, NICE_SUM = UMEM_SUM + NICE_LEN;
-
-    const char* status_str[] = {
-        [TASK_BLOCKED] = "BLOCKED",
-        [TASK_READY] = "READY",
-        [TASK_RUNNING] = "RUNNING",
-        [TASK_EXITED] = "EXITED",
+    const char* status_str[TASK_STATUS_SIZE] = {
+        "BLOCKED", "RUNNING", "READY", "EXITED", "KILLED"
     };
 
-    printkf("PID"), screen_move_cursor_col(PID_SUM);
-    printkf("PPID"), screen_move_cursor_col(PPID_SUM);
-    printkf("NAME"), screen_move_cursor_col(NAME_SUM);
-    printkf("STATUS"), screen_move_cursor_col(STAT_SUM);
-    printkf("CHANNEL"), screen_move_cursor_col(CHAN_SUM);
-    printkf("CPU"), screen_move_cursor_col(TIME_SUM);
-    printkf("AFF"), screen_move_cursor_col(AFF_SUM);
-    printkf("MEM/K"), screen_move_cursor_col(MEM_SUM);
-    printkf("MEM/U"), screen_move_cursor_col(UMEM_SUM);
-    printkf("NI"), screen_move_cursor_col(NICE_SUM);
-    printkf("\n");
-
-    int count = 0;
-    for (int i = 0; i < NUM_MAX_PCB; i++) {
-        pcb_t* proc = pcb_all[i];
-        if (proc->status == TASK_EXITED) continue;
-        printkf("%d", proc->pid);
-        screen_move_cursor_col(PID_SUM);
-
-        if (proc->parent) {
-            printkf("%d", proc->parent->pid);
-        } else {
-            printkf("N/A");
-        }
-        screen_move_cursor_col(PPID_SUM);
-
-        printkf("%s", proc->name);
-        screen_move_cursor_col(NAME_SUM);
-
-        printkf("%s", status_str[proc->status]);
-        screen_move_cursor_col(STAT_SUM);
-
-        if (proc->sched_node.container) {
-            printkf("%s", proc->sched_node.container->name);
-        } else {
-            if (proc->status == TASK_RUNNING) {
-                printkf("cpu%d", proc->cpu);
+    using T = pcb_t*;
+    return display_table<T>(pcb_all, NUM_MAX_PCB, [](T* proc){return (*proc)->status != TASK_EXITED;},
+        table_entry_t{"PID", 5, [](T* proc){printkf("%d", (*proc)->pid);}},
+        table_entry_t{"PPID", 6, [](T* proc){
+            if ((*proc)->parent) {
+                printkf("%d", (*proc)->parent->pid);
             } else {
                 printkf("N/A");
             }
-        }
-        screen_move_cursor_col(CHAN_SUM);
-
-        printkf("%d%%", proc->slice_cnt);
-        screen_move_cursor_col(TIME_SUM);
-
-        for (int i = 0; i < NR_CPUS; i++) {
-            printkf("%d", (proc->affinity & (1 << i)) != 0);
-        }
-        screen_move_cursor_col(AFF_SUM);
-
-        printkf("%d", proc->kernel_stack_base - proc->kernel_sp);
-        screen_move_cursor_col(MEM_SUM);
-
-        if (proc->pid >= NR_CPUS) {
-            printkf("%d", proc->user_stack_base - proc->user_sp);
-        } else {
-            printkf("N/A");
-        }
-        screen_move_cursor_col(UMEM_SUM);
-
-        printkf("%d", proc->nice);
-        screen_move_cursor_col(NICE_SUM);
-
-        printkf("\n");
-        count++;
-    }
-    screen_reflush();
-    return count;
+        }},
+        table_entry_t{"NAME", 16, [](T* proc){printkf("%s", (*proc)->name);}},
+        table_entry_t{"STATUS", 10, [&status_str](T* proc){
+            printkf("%s", status_str[(*proc)->status]);
+        }},
+        table_entry_t{"CHANNEL", 9, [](T* proc){
+            if ((*proc)->sched_node.container) {
+                printkf("%s", (*proc)->sched_node.container->name);
+            } else {
+                if ((*proc)->status == TASK_RUNNING) {
+                    printkf("cpu%d", (*proc)->cpu);
+                } else {
+                    printkf("N/A");
+                }
+            }
+        }},
+        table_entry_t{"CPU", 6, [](T* proc){printkf("%d%%", (*proc)->slice_cnt);}},
+        table_entry_t{"AFF", NR_CPUS + 3, [](T* proc){
+            for (int i = 0; i < NR_CPUS; i++) {
+                printkf("%d", (((*proc)->affinity) & (1 << i)) != 0);
+            }
+        }},
+        table_entry_t{"MEM/K", 7, [](T* proc){
+            printkf("%d", (*proc)->kernel_stack_base - (*proc)->kernel_sp);
+        }},
+        table_entry_t{"MEM/U", 7, [](T* proc){
+            if ((*proc)->pid >= NR_CPUS) {
+                printkf("%d", (*proc)->user_stack_base - (*proc)->user_sp);
+            } else {
+                printkf("N/A");
+            }
+        }},
+        table_entry_t{"NI", 4, [](T* proc){printkf("%d", (*proc)->nice);}}
+    );
 }
 
 int have_next[NUM_MAX_TASK];
@@ -492,8 +457,9 @@ static void kill_subprocess(pcb_t* pcb) {
 void do_exit() {
     kill_subprocess(current_running);
 
-    use_kernel_satp(); // use kernel satp before cleaning up
-    current_running->status = TASK_KILLED; // set status to non-running so cleanup will clean vm and free pcb
+    use_kernel_satp();  // use kernel satp before cleaning up
+    current_running->status =
+        TASK_KILLED;  // set status to non-running so cleanup will clean vm and free pcb
     cleanup_proc(current_running);
     do_scheduler();
 }
@@ -556,4 +522,5 @@ int set_process_nice(int nice, int pid) {
     }
     pcb->nice = nice;
     return 0;
+}
 }

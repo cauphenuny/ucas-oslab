@@ -1,3 +1,6 @@
+#include "tui.hpp"
+
+extern "C" {
 #include <logger.h>
 #include <os/mm.h>
 #include <os/task.h>
@@ -57,13 +60,15 @@ void show_pagegroups(int argc, char** argv) {
         }
         return;
     }
-    for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
-        if (!page_groups[i].refcount) continue;
-        printk(
-            "group #%d '%s': algo=%s, capacity=%d, used=%d, ref=%d\n", i, page_groups[i].pages.name,
-            page_groups[i].vtable->name, page_groups[i].capacity, page_groups[i].used,
-            page_groups[i].refcount);
-    }
+    using T = pageframe_group_t;
+    display_table<T>(
+        page_groups, NUM_MAX_PAGEGROUP, [](T* group) { return group->refcount > 0; },
+        table_entry_t{"ID", 3, [](T* group) { printk("%d", group - page_groups); }},
+        table_entry_t{"NAME", 8, [](T* group) { printk("%s", group->pages.name); }},
+        table_entry_t{"ALGO", 6, [](T* group) { printk("%s", group->vtable->name); }},
+        table_entry_t{"CAPACITY", 9, [](T* group) { printk("%d", group->capacity); }},
+        table_entry_t{"USED", 5, [](T* group) { printk("%d", group->used); }},
+        table_entry_t{"REF", 4, [](T* group) { printk("%d", group->refcount); }});
 }
 
 static pageframe_group_t* alloc_pageframe_group() {
@@ -80,7 +85,7 @@ static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* 
     shrink_pagegroup(new_group, 1);
     detach_pageframe(pgdir, group);
     attach_pageframe(pgdir, new_group);
-    for (int i = 0; i < PTE_ENTRY_NUM; i++) {
+    for (int i = 0; i < (int)PTE_ENTRY_NUM; i++) {
         PTE pte = ((PTE*)pgdir)[i];
         // NOTE: only consider acvitve pages (ignore swapped-out pages)
         if (get_attribute(pte, _PAGE_PRESENT)) {
@@ -169,4 +174,5 @@ void free_pagegroup(pageframe_group_t* group) {
     asserts(group->used == 0, "group is not empty");
     PAGE_GROUP_KERNEL->capacity += group->capacity;
     pretty_logi("freed pagegroup '%s'", group->pages.name);
+}
 }

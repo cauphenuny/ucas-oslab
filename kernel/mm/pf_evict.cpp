@@ -85,6 +85,58 @@ static pagegroup_vtable_t VTABLE = {
 
 }  // namespace fifo
 
+namespace second_chance {
+
+static list_node_t* evict(pageframe_group_t* group) {
+    list_node_t* victim = fifo::evict(group);
+    if (!victim) return NULL;  // no leaf page found
+    while (true) {
+        list_node_t* iter = group->pages.head.prev;  // NOTE: in reverse order
+        pageframe_t* pf = container_of(iter, pageframe_t, group_node);
+        PTE* pte = pf->pte;
+        if (pte && get_attribute(*pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+            if (get_attribute(*pte, _PAGE_ACCESSED)) {
+                clear_attribute(pte, _PAGE_ACCESSED);
+                list_delete(iter);
+                list_prepend(&group->pages, iter);
+            } else {
+                // found victim
+                return iter;
+            }
+        } else {
+            // non-leaf page, move to the back directly
+            list_delete(iter);
+            list_prepend(&group->pages, iter);
+        }
+    }
+}
+
+static void show(pageframe_group_t* group, pageframe_t* pf) {
+    if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
+        printk(
+            "  page 0x%x: leaf, accessed=%lu\n", kva2pa(pageframe_attr2kva(pf)),
+            get_attribute(*pf->pte, _PAGE_ACCESSED));
+    } else {
+        fifo::show(group, pf);
+    }
+}
+
+static pagegroup_vtable_t VTABLE = {
+    .init = nullptr,
+    .cleanup = nullptr,
+    .attach = fifo::attach,
+    .detach = fifo::detach,
+
+    .on_timer = nullptr,
+    .on_access = fifo::on_access,
+    .on_write = fifo::on_write,
+
+    .evict = evict,
+    .show = show,
+};
+
+}  // namespace second_chance
+
 namespace lru {
 
 uint64_t last_accessed[MAX_PAGE_NUM];
@@ -155,4 +207,5 @@ static pagegroup_vtable_t VTABLE = {
 extern "C" {
 pagegroup_vtable_t* const PAGEGROUP_VTABLE_FIFO = &fifo::VTABLE;
 pagegroup_vtable_t* const PAGEGROUP_VTABLE_LRU = &lru::VTABLE;
+pagegroup_vtable_t* const PAGEGROUP_VTABLE_SC = &second_chance::VTABLE;
 }

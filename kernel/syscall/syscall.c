@@ -133,6 +133,8 @@ long sys_set_page_repl_algo(const char* algo) {
         new_vtable = PAGEGROUP_VTABLE_LRU;
     } else if (strcmp(algo, "fifo") == 0) {
         new_vtable = PAGEGROUP_VTABLE_FIFO;
+    } else if (strcmp(algo, "sc") == 0) {
+        new_vtable = PAGEGROUP_VTABLE_SC;
     }
     if (!new_vtable) return 1;
     if (group->vtable->cleanup) group->vtable->cleanup(group);

@@ -20,7 +20,7 @@ void init_pagegroup() {
         .capacity = MAX_PAGE_NUM,
         .used = 0,
         .refcount = 1,
-        .vtable = PAGEGROUP_VTABLE_FIFO,
+        .vtable = PAGEGROUP_VTABLE_SC,
     };
     list_init(&PAGE_GROUP_KERNEL->pages, "init");
 }

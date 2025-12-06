@@ -108,7 +108,9 @@ struct pagegroup_vtable {
 
 typedef const struct pagegroup_vtable pagegroup_vtable_t;
 
-extern pagegroup_vtable_t *const PAGEGROUP_VTABLE_LRU, *const PAGEGROUP_VTABLE_FIFO;
+extern pagegroup_vtable_t* const PAGEGROUP_VTABLE_LRU;
+extern pagegroup_vtable_t* const PAGEGROUP_VTABLE_FIFO;
+extern pagegroup_vtable_t* const PAGEGROUP_VTABLE_SC;
 
 typedef struct pageframe_group {
     list_t pages;

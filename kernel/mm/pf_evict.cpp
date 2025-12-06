@@ -116,8 +116,8 @@ static list_node_t* evict(pageframe_group_t* group) {
 static void show(pageframe_group_t* group, pageframe_t* pf) {
     if (pf->pte && get_attribute(*pf->pte, _PAGE_EXEC | _PAGE_READ | _PAGE_WRITE)) {
         printk(
-            "  page 0x%x: leaf, accessed=%lu\n", kva2pa(pageframe_attr2kva(pf)),
-            get_attribute(*pf->pte, _PAGE_ACCESSED));
+            "  page 0x%x: leaf, accessed=%s\n", kva2pa(pageframe_attr2kva(pf)),
+            get_attribute(*pf->pte, _PAGE_ACCESSED) ? "true" : "false");
     } else {
         fifo::show(group, pf);
     }

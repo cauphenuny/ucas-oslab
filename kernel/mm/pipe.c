@@ -50,8 +50,8 @@ static inline bool pipe_name_equals(const char* lhs, const char* rhs) {
 }
 
 static void pipe_entry_clear(pipe_entry_t* pipe) {
-    list_init(&pipe->segments, "pipe_segments");
-    list_init(&pipe->reader_wait_list, "pipe_reader_wait");
+    list_init(&pipe->segments, "pipe-seg");
+    list_init(&pipe->reader_wait_list, "pipe-read");
     pipe->buffered_bytes = 0;
     pipe->refcnt = 0;
     pipe->ref_bitmap = 0;

@@ -137,7 +137,7 @@ void cleanup_semaphores(pid_t pid);
 void show_semaphores();
 
 #define MAX_MBOX_NAME   32
-#define MAX_MBOX_LENGTH (1024)
+#define MAX_MBOX_LENGTH (256)
 
 typedef struct mailbox {
     char name[MAX_MBOX_NAME];

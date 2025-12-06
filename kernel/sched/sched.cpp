@@ -372,7 +372,7 @@ int do_process_show() {
         table_entry_t{
             "STATUS", 10, [&status_str](T* proc) { printkf("%s", status_str[(*proc)->status]); }},
         table_entry_t{
-            "CHANNEL", 9,
+            "CHANNEL", 10,
             [](T* proc) {
                 if ((*proc)->sched_node.container) {
                     printkf("%s", (*proc)->sched_node.container->name);

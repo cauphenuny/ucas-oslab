@@ -90,8 +90,8 @@ void mutex_acquire(mutex_lock_t* mutex) {
             if (!mutex->acquired) {
                 mutex->acquired = 1;
                 mutex->pid = current_running->pid;
-                pretty_log(
-                    LOG_INFO, "mutex lock 0x%x acquired by pid %d", mutex, current_running->pid);
+                // pretty_log(
+                //     LOG_INFO, "mutex lock 0x%x acquired by pid %d", mutex, current_running->pid);
                 break;
             } else {
                 pretty_log(
@@ -145,5 +145,4 @@ void show_mutexes() {
         }
     }
 }
-
 }

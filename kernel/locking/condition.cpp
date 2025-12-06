@@ -80,17 +80,17 @@ void condition_wait(condition_t* cond, mutex_lock_t* mutex) {
 
 void condition_broadcast(condition_t* cond) {
     with_spin guard(cond->lock);
-    pretty_log(LOG_INFO, "broadcasting condition 0x%x", cond);
+    // pretty_log(LOG_INFO, "broadcasting condition 0x%x", cond);
     unblock_list(&cond->wait_list, "condition wait_list");
 }
 
 void condition_signal(condition_t* cond) {
     with_spin guard(cond->lock);
-    pretty_log(LOG_INFO, "signaling condition 0x%x", cond);
+    // pretty_log(LOG_INFO, "signaling condition 0x%x", cond);
     list_node_t* node = list_shift(&cond->wait_list);
     if (node) {
         pcb_t* pcb = container_of(node, pcb_t, sched_node);
-        pretty_log(LOG_INFO, "signaling pid %d on condition 0x%x", pcb->pid, cond);
+        // pretty_log(LOG_INFO, "signaling pid %d on condition 0x%x", pcb->pid, cond);
         do_unblock(&pcb->sched_node);
     }
 }

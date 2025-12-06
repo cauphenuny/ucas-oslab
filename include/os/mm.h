@@ -104,6 +104,8 @@ struct pagegroup_vtable {
 
     list_node_t* (*evict)(struct pageframe_group* group);  // select a page to swapout
     void (*show)(struct pageframe_group* group, struct pageframe* pf);
+
+    const char* name;
 };
 
 typedef const struct pagegroup_vtable pagegroup_vtable_t;

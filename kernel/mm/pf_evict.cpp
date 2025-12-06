@@ -81,6 +81,8 @@ static pagegroup_vtable_t VTABLE = {
 
     .evict = evict,
     .show = show,
+
+    .name = "FIFO",
 };
 
 }  // namespace fifo
@@ -133,6 +135,8 @@ static pagegroup_vtable_t VTABLE = {
 
     .evict = evict,
     .show = show,
+
+    .name = "LRU",
 };
 
 }  // namespace second_chance
@@ -200,6 +204,8 @@ static pagegroup_vtable_t VTABLE = {
 
     .evict = fifo::evict,
     .show = show,
+
+    .name = "SC",
 };
 
 }  // namespace lru

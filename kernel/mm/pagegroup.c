@@ -28,9 +28,8 @@ void init_pagegroup() {
 void show_pagegroup_details(int pgid) {
     pageframe_group_t* group = &page_groups[pgid];
     printk(
-        "group #%d '%s': capacity=%d, used=%d, refcount=%d\n", pgid, group->pages.name,
-        group->capacity, group->used, group->refcount);
-    uint64_t cur = get_ticks();
+        "group #%d '%s': algo=%s, capacity=%d, used=%d, refcount=%d\n", pgid, group->pages.name,
+        group->vtable->name, group->capacity, group->used, group->refcount);
     list_foreach_node(iter, &group->pages.head) {
         pageframe_t* pf = container_of(iter, pageframe_t, group_node);
         group->vtable->show(group, pf);
@@ -61,8 +60,9 @@ void show_pagegroups(int argc, char** argv) {
     for (int i = 0; i < NUM_MAX_PAGEGROUP; i++) {
         if (!page_groups[i].refcount) continue;
         printk(
-            "group #%d '%s': capacity=%d, used=%d, refcount=%d\n", i, page_groups[i].pages.name,
-            page_groups[i].capacity, page_groups[i].used, page_groups[i].refcount);
+            "group #%d '%s': algo=%s, capacity=%d, used=%d, ref=%d\n", i, page_groups[i].pages.name,
+            page_groups[i].vtable->name, page_groups[i].capacity, page_groups[i].used,
+            page_groups[i].refcount);
     }
 }
 

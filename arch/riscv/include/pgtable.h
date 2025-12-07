@@ -91,7 +91,11 @@ static inline void use_kernel_satp() {
 
 typedef uint64_t PTE;
 
+// address in kernel virtual address space, never traps
 typedef uintptr_t kva_t;
+// address in user virtual address
+// use uva2kva for safe access (will handle no-present or swapped page dynamically)
+// for automatically call uva2kva, use uva_object_t in mm.hpp
 typedef uintptr_t uva_t;
 typedef uintptr_t pa_t;
 

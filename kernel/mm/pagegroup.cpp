@@ -81,7 +81,7 @@ static pageframe_group_t* alloc_pageframe_group() {
     return NULL;
 }
 
-static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* new_group) {
+static void migrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* new_group) {
     shrink_pagegroup(new_group, 1);
     detach_pageframe(pgdir, group);
     attach_pageframe(pgdir, new_group);
@@ -97,7 +97,7 @@ static void immigrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* 
                     attach_pageframe(page, new_group);
                 }
             } else {
-                immigrate(page, group, new_group);
+                migrate(page, group, new_group);
             }
         }
     }
@@ -134,7 +134,7 @@ int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {
     pretty_logi(
         "immigrating pgdir 0x%x from group '%s' to group '%s'", kva2pa(top_pgdir),
         group->pages.name, new_group->pages.name);
-    immigrate(top_pgdir, group, new_group);
+    migrate(top_pgdir, group, new_group);
 
     pretty_logi(
         "forked new pagegroup '%s' with capacity %lu from group '%s'", name, capacity,

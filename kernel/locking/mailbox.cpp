@@ -1,4 +1,4 @@
-#include <os/mbox.hpp>
+#include <os/mm.hpp>
 extern "C" {
 
 #include <assert.h>
@@ -121,7 +121,7 @@ void do_mbox_close(int mbox_idx) {
     mailbox_destruct(mbox);
 }
 
-int do_mbox_send(int mbox_idx, suva_t msg, int msg_length) {
+int do_mbox_send(int mbox_idx, uva_t msg, int msg_length) {
     if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
         pretty_loge("mailbox index %d out of range!", mbox_idx);
         return 0;
@@ -133,12 +133,14 @@ int do_mbox_send(int mbox_idx, suva_t msg, int msg_length) {
         return 0;
     }
 
+    auto message = uva_object_t{msg};
+
     int blocked = 0;
     int sent = 0;
     while (sent < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used < MAX_MBOX_LENGTH) {
-            mbox->buffer[mbox->tail] = msg.get<char>(sent);
+            mbox->buffer[mbox->tail] = message.get<char>(sent);
             mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
             mbox->used++;
             sent++;
@@ -156,7 +158,7 @@ int do_mbox_send(int mbox_idx, suva_t msg, int msg_length) {
     return blocked;
 }
 
-int do_mbox_recv(int mbox_idx, suva_t msg, int msg_length) {
+int do_mbox_recv(int mbox_idx, uva_t msg, int msg_length) {
     if (mbox_idx < 0 || mbox_idx >= MBOX_NUM) {
         pretty_loge("mailbox index %d out of range!", mbox_idx);
         return 0;
@@ -167,13 +169,14 @@ int do_mbox_recv(int mbox_idx, suva_t msg, int msg_length) {
         pretty_loge("mailbox %d is not initialized!", mbox_idx);
         return 0;
     }
+    auto message = uva_object_t{msg};
 
     int blocked = 0;
     int received = 0;
     while (received < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used > 0) {
-            msg.set<char>(received, mbox->buffer[mbox->head]);
+            message.set<char>(received, mbox->buffer[mbox->head]);
             mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
             mbox->used--;
             received++;

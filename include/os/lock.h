@@ -32,6 +32,7 @@
 
 #include <os/list.h>
 #include <os/sched.h>
+#include <os/mm.h>
 
 #define LOCK_NUM 16
 
@@ -155,6 +156,8 @@ void do_mbox_close(int mbox_idx);
 void cleanup_mailboxes(pid_t pid);
 void show_mailboxes();
 void init_mbox();
+int do_mbox_send(int mbox_idx, uva_t msg, int msg_length);
+int do_mbox_recv(int mbox_idx, uva_t msg, int msg_length);
 
 /************************************************************/
 

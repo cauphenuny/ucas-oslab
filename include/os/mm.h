@@ -72,9 +72,9 @@ extern kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs);
 // NOTE: the address must be aligned to PAGE_SIZE
 extern int pipe_open(const char* name);
 // send length bytes data from src to pipe[idx]
-extern long pipe_give_pages(int idx, kva_t src, size_t length);
+extern long pipe_give_pages(int idx, uva_t src, size_t length);
 // receive length(aligned) bytes data from pipe[idx] to dest
-extern long pipe_take_pages(int idx, kva_t dest, size_t length);
+extern long pipe_take_pages(int idx, uva_t dest, size_t length);
 extern void init_pipe();
 extern void cleanup_pipe(pid_t pid);
 

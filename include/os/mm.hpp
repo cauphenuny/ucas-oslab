@@ -4,31 +4,29 @@ extern "C" {
 #include <pgtable.h>
 }
 
-// NOTE: suva_t: a wrapper for address that may be swapped out
-class suva_t {
+static inline uint64_t pageid(uva_t uva) { return uva >> NORMAL_PAGE_SHIFT; }
+
+// NOTE: uva_object_t: a wrapper for address that may be swapped out
+class uva_object_t {
     uva_t addr;
 
 public:
-    suva_t(uva_t address) : addr(address) {}
+    uva_object_t(uva_t address) : addr(address) {}
     template <typename T> operator T&() {
-        asserts((addr >> NORMAL_PAGE_SHIFT) == (addr + sizeof(T) - 1) >> NORMAL_PAGE_SHIFT, "cross-page access");
+        asserts(pageid(addr) == pageid(addr + sizeof(T) - 1), "cross-page access");
         alloc_page(addr, current_running->pgdir, true);
         return *reinterpret_cast<T*>(uva2kva(addr, current_running->pgdir));
     }
     template <typename T> T get(size_t index) {
-        uva_t target = addr + index * sizeof(T);
-        PTE* pte = alloc_page(target, current_running->pgdir, true);
-        asserts(get_attribute(*pte, _PAGE_PRESENT), "page not present");
-        kva_t kva = pa2kva(get_pa(*pte));
-        size_t offset = target & (PAGE_SIZE - 1);
-        return *reinterpret_cast<T*>(kva + offset);
+        asserts(
+            pageid(addr + index * sizeof(T)) == pageid(addr + (index + 1) * sizeof(T) - 1),
+            "cross-page access");
+        return *reinterpret_cast<T*>(uva2kva(addr + index * sizeof(T), current_running->pgdir));
     }
     template <typename T> void set(size_t index, T value) {
-        uva_t target = addr + index * sizeof(T);
-        PTE* pte = alloc_page(target, current_running->pgdir, true);
-        asserts(get_attribute(*pte, _PAGE_PRESENT), "page not present");
-        kva_t kva = pa2kva(get_pa(*pte));
-        size_t offset = target & (PAGE_SIZE - 1);
-        *reinterpret_cast<T*>(kva + offset) = value;
+        asserts(
+            pageid(addr + index * sizeof(T)) == pageid(addr + (index + 1) * sizeof(T) - 1),
+            "cross-page access");
+        *reinterpret_cast<T*>(uva2kva(addr + index * sizeof(T), current_running->pgdir)) = value;
     }
 };

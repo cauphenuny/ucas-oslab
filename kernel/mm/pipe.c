@@ -289,7 +289,7 @@ int pipe_open(const char* name) {
 }
 
 // send length bytes data from src to pipe[idx]
-long pipe_give_pages(int idx, kva_t src, size_t length) {
+long pipe_give_pages(int idx, uva_t src, size_t length) {
     pipe_system_init();
     pipe_entry_t* pipe = pipe_lookup_by_index(idx);
     if (!pipe) {
@@ -305,7 +305,7 @@ long pipe_give_pages(int idx, kva_t src, size_t length) {
     }
 
     size_t processed = 0;
-    uva_t cursor = (uva_t)src;
+    uva_t cursor = src;
     pageframe_group_t* owner_group = get_current_pagegroup();
 
     while (processed < length) {
@@ -328,7 +328,7 @@ long pipe_give_pages(int idx, kva_t src, size_t length) {
 }
 
 // receive length(aligned) bytes data from pipe[idx] to dest
-long pipe_take_pages(int idx, kva_t dest, size_t length) {
+long pipe_take_pages(int idx, uva_t dest, size_t length) {
     pipe_system_init();
     pipe_entry_t* pipe = pipe_lookup_by_index(idx);
     if (!pipe) {
@@ -344,7 +344,7 @@ long pipe_take_pages(int idx, kva_t dest, size_t length) {
     }
 
     size_t processed = 0;
-    uva_t cursor = (uva_t)dest;
+    uva_t cursor = dest;
     pageframe_group_t* dest_group = get_current_pagegroup();
 
     while (processed < length) {

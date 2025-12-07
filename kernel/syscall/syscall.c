@@ -1,6 +1,3 @@
-#include <os/mbox.hpp>
-
-extern "C" {
 #include <asm/unistd.h>
 #include <assert.h>
 #include <csr.h>
@@ -15,6 +12,7 @@ extern "C" {
 #include <os/time.h>
 #include <screen.h>
 #include <sys/syscall.h>
+#include <type.h>
 
 typedef long (*syscall_t)(reg_t, reg_t, reg_t, reg_t, reg_t, reg_t);
 
@@ -344,12 +342,12 @@ long sys_mbox_close(int mbox_id) {
 }
 
 long sys_mbox_send(int mbox_idx, void* msg, int msg_length) {
-    do_mbox_send(mbox_idx, suva_t{(uva_t)msg}, msg_length);
+    do_mbox_send(mbox_idx, (uva_t)msg, msg_length);
     return msg_length;
 }
 
 long sys_mbox_recv(int mbox_idx, void* msg, int msg_length) {
-    do_mbox_recv(mbox_idx, suva_t{(uva_t)msg}, msg_length);
+    do_mbox_recv(mbox_idx, (uva_t)msg, msg_length);
     return msg_length;
 }
 
@@ -409,11 +407,11 @@ long sys_pipe_open(const char* name) {
 }
 long sys_pipe_give_pages(int idx, void* src, size_t length) {
     ensure_mem_allocated(src, length);
-    return pipe_give_pages(idx, (kva_t)src, length);
+    return pipe_give_pages(idx, (uva_t)src, length);
 }
 long sys_pipe_take_pages(int idx, void* dest, size_t length) {
     ensure_mem_allocated(dest, length);
-    return pipe_take_pages(idx, (kva_t)dest, length);
+    return pipe_take_pages(idx, (uva_t)dest, length);
 }
 
 /***************** set handler *****************/
@@ -488,5 +486,4 @@ void init_syscall(void) {
     syscall[SYSCALL_CLEAR_COLOR] = (syscall_t)sys_screen_clear_color;
     syscall[SYSCALL_DELETE_LINE] = (syscall_t)sys_screen_delete_line;
     syscall[SYSCALL_CLEAR_LINE] = (syscall_t)sys_screen_clear_lines;
-}
 }

@@ -76,7 +76,9 @@ const char* exc_name[EXCC_COUNT] = {
     [EXCC_STORE_PAGE_FAULT] = "Store/AMO page fault",
 };
 
-const char* exception_name(int is_irq, uint64_t code) {
+const char* exception_name(uint64_t scause) {
+    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
+    uint64_t code = scause & (~SCAUSE_IRQ_FLAG);
     if (is_irq) {
         if (code < IRQC_COUNT && irq_name[code]) {
             return irq_name[code];
@@ -156,7 +158,7 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
 void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     pretty_logi(
         "handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause,
-        exception_name(0, scause));
+        exception_name(scause));
 
     // check if non-allocated or swapped out
     PTE* pte = find_pte(stval, current_running->pgdir, false);
@@ -207,11 +209,9 @@ void handle_other(regs_context_t* regs, uint64_t stval, uint64_t scause) {
                         "s0/fp", " s1  ", " a0  ", " a1  ", " a2  ", " a3  ", " a4  ", " a5  ",
                         " a6  ", " a7  ", " s2  ", " s3  ", " s4  ", " s5  ", " s6  ", " s7  ",
                         " s8  ", " s9  ", " s10 ", " s11 ", " t3  ", " t4  ", " t5  ", " t6  "};
-    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
-    uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
     pretty_loge(
         "pid: %d, scause: %lu, name: %s, stval: %lx", current_running->pid, scause,
-        exception_name(is_irq, exception_code), stval);
+        exception_name(scause), stval);
     for (int i = 0; i < 32; i += 3) {
         for (int j = 0; j < 3 && i + j < 32; ++j) {
             printk("%s : %016lx ", reg_name[i + j], regs->regs[i + j]);
@@ -223,5 +223,6 @@ void handle_other(regs_context_t* regs, uint64_t stval, uint64_t scause) {
         regs->scause);
     printk("sepc: 0x%lx\n\r", regs->sepc);
     printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);
+    printk("name: %s", exception_name(scause));
     assert(0);
 }

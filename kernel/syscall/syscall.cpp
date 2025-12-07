@@ -93,7 +93,7 @@ long exec_dispatch(char* name, int argc, char* argv[], uint64_t entrance, int af
         pretty_log(LOG_WARN, "exec %s failed: task not found!", name);
         return 0;
     }
-    if (entrance == -1) {
+    if (entrance == (uint64_t)-1) {
         entrance = task->entrance;
     }
     return do_exec(task, entrance, argc, argv, affinity);

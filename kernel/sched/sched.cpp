@@ -88,8 +88,7 @@ void log_pcb_array(const pcb_t pcb[], int n) {
 }
 
 void log_pcb_list(const list_t* list) {
-    size_t size = list_size(list);
-    pretty_log(LOG_INFO, "there are %d tasks in the %s/%x channel.", size, list->name, list);
+    pretty_log(LOG_INFO, "there are %d tasks in the %s/%x channel.", list_size(list), list->name, list);
     list_node_t* current = list->head.next;
     while (current != &list->head) {
         pcb_t* pcb = container_of(current, pcb_t, sched_node);

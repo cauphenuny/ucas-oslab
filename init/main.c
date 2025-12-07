@@ -79,7 +79,7 @@ static void init_task_info(int argc, char** physical_argv) {
  * Once a CPU core calls this function,
  * it will stop executing!
  */
-static void kernel_brake(void) {
+void kernel_brake(void) {
     pretty_log(LOG_INFO, "brake hart #%d", get_current_cpu_id());
     disable_interrupt();
     while (1) __asm__ volatile("wfi");

@@ -55,9 +55,15 @@ static void stack_sanity_check() {
 }
 
 const char* irq_name[IRQC_COUNT] = {
+    [IRQC_U_SOFT] = "User software interrupt",
     [IRQC_S_SOFT] = "Supervisor software interrupt",
+    [IRQC_M_SOFT] = "Machine software interrupt",
+    [IRQC_U_TIMER] = "User timer interrupt",
     [IRQC_S_TIMER] = "Supervisor timer interrupt",
+    [IRQC_M_TIMER] = "Machine timer interrupt",
+    [IRQC_U_EXT] = "User external interrupt",
     [IRQC_S_EXT] = "Supervisor external interrupt",
+    [IRQC_M_EXT] = "Machine external interrupt",
 };
 
 const char* exc_name[EXCC_COUNT] = {
@@ -222,7 +228,7 @@ void handle_other(regs_context_t* regs, uint64_t stval, uint64_t scause) {
         "sstatus: 0x%lx sbadaddr: 0x%lx scause: %lu\n\r", regs->sstatus, regs->sbadaddr,
         regs->scause);
     printk("sepc: 0x%lx\n\r", regs->sepc);
-    printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);
-    printk("name: %s", exception_name(scause));
+    printk("tval: 0x%lx cause: 0x%lx\n\r", stval, scause);
+    printk("name: %s\n\r", exception_name(scause));
     assert(0);
 }

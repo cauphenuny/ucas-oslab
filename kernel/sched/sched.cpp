@@ -318,15 +318,9 @@ void cleanup_proc(pcb_t* pcb) {
     cleanup_pipe(pid);
     list_node_destruct(&pcb->sched_node);
     list_node_destruct(&pcb->relation_node);
-    if (pcb->status != TASK_RUNNING) {
-        cleanup_vm(pcb);
-    }
+    cleanup_vm(pcb);
     exit_wakeup(pcb);
-    if (pcb->status != TASK_RUNNING) {
-        free_pcb(pcb);
-    } else {
-        pcb->status = TASK_KILLED;
-    }
+    free_pcb(pcb);
     pretty_logi("pid %d cleaned", pid);
 }
 

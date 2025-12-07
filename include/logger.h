@@ -30,7 +30,7 @@ extern spin_lock_t logger_lock;
 
 #define DISPLAY_HARTID 0
 
-#ifdef DISABLE_LOG
+#ifdef NOLOG
 #define pretty_log(...)
 #else
 #if DISPLAY_HARTID

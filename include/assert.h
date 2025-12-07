@@ -26,12 +26,15 @@ static inline void _panics(const char* file_name, int lineno, const char* func_n
             _panic(__FILE__, __LINE__,__FUNCTION__); \
         }                                            \
     }
-
+#ifdef NOASSERTS
+#define asserts(cond, msg) ;
+#else
 #define asserts(cond, msg)                                 \
     {                                                      \
         if (!(cond)) {                                     \
             _panics(__FILE__, __LINE__,__FUNCTION__, msg); \
         }                                                  \
     }
+#endif
 
 #endif /* ASSERT_H */

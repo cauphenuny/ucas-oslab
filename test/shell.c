@@ -295,6 +295,8 @@ void preamble() {
     printf("------------------- COMMAND -------------------\n");
 }
 
+int help(int argc, char** argv);
+
 int main(int argc, char** argv) {
     sys_screen_set_scroll(shell_begin + 1, shell_end);
     prompt_len = strlen(prompt);
@@ -313,6 +315,7 @@ int main(int argc, char** argv) {
         if (!cmd.task) {
             if (cmd.args.argc) {
                 printf("%s: no such command: %s\n", argv[0], cmd.args.argv[0]);
+                help(1, (char*[]){"help"});
             }
             continue;
         }

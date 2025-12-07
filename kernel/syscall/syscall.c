@@ -230,12 +230,14 @@ long sys_display_info(int argc, char** argv) {
         ensure_str_allocated(argv[i]);
     }
     int hit = 0;
-    char* subcmd = argv[1];
-    for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
-        if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
-            INFO_COMMANDS[j].handler(argc - 1, argv + 1);
-            hit = 1;
-            break;
+    if (argc > 1) {
+        char* subcmd = argv[1];
+        for (int j = 0; j < NUM_INFO_COMMANDS; j++) {
+            if (strcmp(subcmd, INFO_COMMANDS[j].name) == 0) {
+                INFO_COMMANDS[j].handler(argc - 1, argv + 1);
+                hit = 1;
+                break;
+            }
         }
     }
     if (!hit) {

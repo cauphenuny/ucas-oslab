@@ -11,3 +11,4 @@ build
 *.txtt4
 createimage
 .gdbinit
+patch/

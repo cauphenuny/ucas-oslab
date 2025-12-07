@@ -10,11 +10,10 @@ class suva_t {
 
 public:
     suva_t(uva_t address) : addr(address) {}
-    void reserve(size_t nbytes) {
-        size_t npages = (nbytes + PAGE_SIZE - 1) / PAGE_SIZE;
-        for (size_t i = 0; i < npages; i++) {
-            alloc_page(addr + i * PAGE_SIZE, current_running->pgdir, true);
-        }
+    template <typename T> operator T&() {
+        asserts((addr >> NORMAL_PAGE_SHIFT) == (addr + sizeof(T) - 1) >> NORMAL_PAGE_SHIFT, "cross-page access");
+        alloc_page(addr, current_running->pgdir, true);
+        return *reinterpret_cast<T*>(uva2kva(addr, current_running->pgdir));
     }
     template <typename T> T get(size_t index) {
         uva_t target = addr + index * sizeof(T);
@@ -31,13 +30,5 @@ public:
         kva_t kva = pa2kva(get_pa(*pte));
         size_t offset = target & (PAGE_SIZE - 1);
         *reinterpret_cast<T*>(kva + offset) = value;
-    }
-    operator void*() {
-        alloc_page(addr, current_running->pgdir, true);
-        return (void*)addr;
-    }
-    operator kva_t() {
-        alloc_page(addr, current_running->pgdir, true);
-        return addr;
     }
 };

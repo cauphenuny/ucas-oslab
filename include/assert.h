@@ -4,37 +4,36 @@
 #include <breakpoint.h>
 #include <printk.h>
 
-static inline void _panic(const char* file_name,int lineno, const char* func_name)
-{
-    printk("Assertion failed at %s in %s:%d\n\r",
-           func_name,file_name,lineno);
+static inline void _panic(const char* file_name, int lineno, const char* func_name) {
+    printk("Assertion failed at %s in %s:%d\n\r", func_name, file_name, lineno);
     breakpoint();
-    for(;;);
+    for (;;);
 }
 
-static inline void _panics(const char* file_name, int lineno, const char* func_name, const char* msg)
-{
-    printk("Assertion failed at %s due to %s in %s:%d\n\r",
-           func_name,msg,file_name,lineno);
+static inline void _panics(
+    const char* prompt, const char* file_name, int lineno, const char* func_name, const char* msg) {
+    printk("%s at %s due to %s in %s:%d\n\r", func_name, msg, file_name, lineno);
     breakpoint();
-    for(;;);
+    for (;;);
 }
 
-#define assert(cond)                                 \
-    {                                                \
-        if (!(cond)) {                               \
-            _panic(__FILE__, __LINE__,__FUNCTION__); \
-        }                                            \
+#define assert(cond)                                  \
+    {                                                 \
+        if (!(cond)) {                                \
+            _panic(__FILE__, __LINE__, __FUNCTION__); \
+        }                                             \
     }
 #ifdef NOASSERTS
 #define asserts(cond, msg) ;
 #else
-#define asserts(cond, msg)                                 \
-    {                                                      \
-        if (!(cond)) {                                     \
-            _panics(__FILE__, __LINE__,__FUNCTION__, msg); \
-        }                                                  \
+#define asserts(cond, msg)                                                      \
+    {                                                                           \
+        if (!(cond)) {                                                          \
+            _panics("Assertion failed", __FILE__, __LINE__, __FUNCTION__, msg); \
+        }                                                                       \
     }
 #endif
+
+#define halt(msg) _panics("Halted", __FILE__, __LINE__, __FUNCTION__, msg)
 
 #endif /* ASSERT_H */

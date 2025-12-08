@@ -31,6 +31,10 @@ void lock_kernel(regs_context_t* regs, uint64_t stval, uint64_t scause, uint64_t
         return;
     }
     spin_lock_acquire(&kernel_lock);
+    if (current_running->status == TASK_KILLED) {
+        pretty_log(LOG_WARN, "current running process is killed, pid=%d", current_running->pid);
+        do_exit();
+    }
 }
 
 void unlock_kernel() {

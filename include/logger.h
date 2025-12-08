@@ -28,7 +28,7 @@ extern const char* log_level_str_color[];
 
 extern spin_lock_t logger_lock;
 
-#define DISPLAY_HARTID 0
+#define DISPLAY_HARTID 1
 
 #ifdef NOLOG
 #define pretty_log(...)

@@ -103,10 +103,13 @@ static void migrate(kva_t pgdir, pageframe_group_t* group, pageframe_group_t* ne
     }
 }
 
-void shrink_pagegroup(pageframe_group_t* group, size_t space) {
+int shrink_pagegroup(pageframe_group_t* group, size_t space) {
     while (group->used + space > group->capacity) {
-        swapout(group);
+        if (swapout(group) == (kva_t)-1) {
+            return -1;
+        }
     }
+    return 0;
 }
 
 int fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name) {

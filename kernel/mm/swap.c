@@ -1,6 +1,7 @@
 #include <logger.h>
 #include <os/kernel.h>
 #include <os/mm.h>
+#include <os/smp.h>
 #include <os/task.h>
 
 int swap_base_location;
@@ -18,7 +19,7 @@ uint64_t swap_counter_in, swap_counter_out;
 static uint64_t alloc_swap() {
     if (swap_used >= NUM_MAX_SWAP) {
         pretty_loge("out of swap space!");
-        asserts(false, "out of swap space");
+        halt("out of swap space");
     }
     while (swap_using[swap_next_idx]) {
         swap_next_idx = (swap_next_idx + 1) % NUM_MAX_SWAP;
@@ -55,18 +56,33 @@ kva_t swapout(pageframe_group_t* group) {
         pretty_logw(
             "no leaf page to swap out in group '%s', killing related proc...", group->pages.name);
         bool exit = false;
+        bool reclaimed = false;
         for (int i = 0; i < NUM_MAX_PCB; i++) {
             pcb_t* pcb = pcb_all[i];
             if (pcb->status == TASK_EXITED) continue;
-            if (find_pagegroup(pcb->pgdir) == group) {
-                pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
-                if (pcb->pid == current_running->pid)
-                    exit = true;
-                else
-                    do_kill(pcb->pid);
+            if (find_pagegroup(pcb->pgdir) != group) continue;
+            if (pcb->pid < NR_CPUS) {
+                pretty_logw(
+                    "skip killing kernel process(pid=%d, name=%s) while shrinking group '%s'",
+                    pcb->pid, pcb->name, group->pages.name);
+                continue;
             }
+            pretty_logi("kill proc %d '%s'", pcb->pid, pcb->name);
+            if (pcb->pid == current_running->pid)
+                exit = true;
+            else
+                reclaimed |= (do_kill(pcb->pid) != 0);
         }
-        if (exit) do_exit();
+        if (exit) {
+            do_exit();
+            reclaimed = true;  // do_exit() never returns
+        }
+        if (!reclaimed) {
+            pretty_loge(
+                "failed to reclaim any process for pagegroup '%s', system out of options",
+                group->pages.name);
+            halt("pagegroup reclaim failed");
+        }
         return 0;
     }
 }

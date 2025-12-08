@@ -133,7 +133,7 @@ static inline int pagegroup_getid(pageframe_group_t* group) { return group - pag
 extern int
 fork_pagegroup(kva_t top_pgdir, size_t capacity, const char* name);  // success: 0, otherwise 1
 extern int resize_pagegroup(pageframe_group_t* group, size_t new_capacity);
-extern void shrink_pagegroup(pageframe_group_t* group, size_t space);
+extern int shrink_pagegroup(pageframe_group_t* group, size_t space);
 extern void free_pagegroup(pageframe_group_t* group);
 
 extern void show_pagegroups(int argc, char** argv);

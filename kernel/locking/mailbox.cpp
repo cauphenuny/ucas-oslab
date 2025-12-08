@@ -150,9 +150,9 @@ int do_mbox_send(int mbox_idx, uva_t msg, int msg_length) {
             condition_signal(&mbox->empty);
         } else {
             blocked = 1;
-            pretty_logd("mbox %d: buffer full, waiting...", mbox_idx);
+            pretty_logd("mbox %d: buffer full, pid %d waiting...", mbox_idx, current_running->pid);
             condition_wait(&mbox->full, &mbox->buffer_lock);
-            pretty_logd("mbox %d: woke up from wait", mbox_idx);
+            pretty_logd("mbox %d: pid %d woke up from wait", mbox_idx, current_running->pid);
         }
     }
     return blocked;
@@ -187,9 +187,9 @@ int do_mbox_recv(int mbox_idx, uva_t msg, int msg_length) {
             condition_signal(&mbox->full);
         } else {
             blocked = 1;
-            pretty_logd("mbox %d: buffer empty, waiting...", mbox_idx);
+            pretty_logd("mbox %d: buffer empty, pid %d waiting...", mbox_idx, current_running->pid);
             condition_wait(&mbox->empty, &mbox->buffer_lock);
-            pretty_logd("mbox %d: woke up from wait", mbox_idx);
+            pretty_logd("mbox %d: pid %d woke up from wait", mbox_idx, current_running->pid);
         }
     }
     return blocked;

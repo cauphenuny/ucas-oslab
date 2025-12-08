@@ -65,6 +65,7 @@ int get_pcb_index(pid_t pid) {
 
 void free_pcb(pcb_t* pcb) {
     if (!pcb) return;
+    asserts(pcb->pid >= NR_CPUS, "cannot free kernel pcb");
     pcb->status = TASK_EXITED;
 }
 
@@ -112,7 +113,7 @@ void show_pcb() {
     for (int i = 0; i < NUM_MAX_PCB; i++) {
         pcb_t* pcb = pcb_all[i];
         if (pcb->status == TASK_EXITED) continue;
-        printk("pcb %d: pid=%d, name=%s\n", i, pcb->pid, pcb->name);
+        printk("pcb %d: pid=%d, name=%s, status=%d\n", i, pcb->pid, pcb->name, pcb->status);
     }
 }
 
@@ -189,6 +190,7 @@ pcb_t* pick_process() {
     }
     if (!proc) {
         do_process_show();
+        show_pcb();
         asserts(false, "no process to run");
     }
 
@@ -455,11 +457,11 @@ static void kill_subprocess(pcb_t* pcb) {
 }
 
 void do_exit() {
+    asserts(current_running->pid >= NR_CPUS, "kernel process cannot exit");
+
     kill_subprocess(current_running);
 
     use_kernel_satp();  // use kernel satp before cleaning up
-    current_running->status =
-        TASK_KILLED;  // set status to non-running so cleanup will clean vm and free pcb
     cleanup_proc(current_running);
     do_scheduler();
 }
@@ -483,6 +485,7 @@ int do_kill(pid_t pid) {
         return 0;
     }
     if (pcb->status == TASK_RUNNING) {
+        pretty_log(LOG_INFO, "process(pid=%d) is running, mark as killed", pid);
         pcb->status = TASK_KILLED;
         return 1;
     }

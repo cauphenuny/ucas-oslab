@@ -366,6 +366,18 @@ void subcmd_lint_free(int dest[], int argc, char** argv) {
     }
 }
 
+void subcmd_lint_time(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
+    if (argc >= 1 && strcmp("-g", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+        if (argc > 1) {
+            lint(dest + 1, argc - 1, argv + 1);
+        }
+    } else {
+        lint(dest, argc, argv);
+    }
+}
+
 void subcmd_lint_watch(int dest[], int argc, char** argv) {
     subcmd_lint(dest, argc, argv);
     if (argc >= 1 && strcmp("-n", argv[0]) == 0) {
@@ -373,6 +385,8 @@ void subcmd_lint_watch(int dest[], int argc, char** argv) {
         if (argc > 2) {
             lint(dest + 2, argc - 2, argv + 2);
         }
+    } else {
+        lint(dest, argc, argv);
     }
 }
 
@@ -582,19 +596,38 @@ int free(int argc, char** argv) {
 
 int time(int argc, char** argv) {
     if (argc <= 1) {
-        log_info("usage: time cmd ...");
+        log_info("usage: time [-g/-l] cmd ...");
         return 1;
     }
     shift(&argc, &argv);
+    int global = 1, local = 1;
+    if (strcmp(argv[0], "-g") == 0) {
+        local = 0;
+        shift(&argc, &argv);
+        if (argc <= 0) {
+            log_info("usage: time -g cmd ...");
+            return 1;
+        }
+    } else if (strcmp(argv[0], "-l") == 0) {
+        global = 0;
+        shift(&argc, &argv);
+        if (argc <= 0) {
+            log_info("usage: time -l cmd ...");
+            return 1;
+        }
+    }
     const task_t* task = find(argv[0]);
     if (!task) {
         log_info("no such command: %s", argv[0]);
         return 1;
     }
-    uint64_t start = sys_get_tick();
+    uint64_t gstart = global ? sys_get_tick() : 0;
+    uint64_t start = local ? sys_get_proc_tick() : 0;
     task->handler(argc, argv);
-    uint64_t end = sys_get_tick();
-    log_info("%d ticks", end - start);
+    uint64_t end = local ? sys_get_proc_tick() : 0;
+    uint64_t gend = global ? sys_get_tick() : 0;
+    if (local) log_info("%d ticks (process)", end - start);
+    if (global) log_info("%d ticks (global)", gend - gstart);
     return 0;
 }
 
@@ -644,7 +677,7 @@ const task_t COMMAND_TABLE[] = {
     {"exit", "exit shell", subcmd_lint, exit},
     {"nice", "set scheduling nice value", subcmd_lint, nice},
     {"free", "show free memory", subcmd_lint_free, free},
-    {"time", "measure command execution time", lint, time},
+    {"time", "measure command execution time", subcmd_lint_time, time},
     {"watch", "execute a program periodically", subcmd_lint_watch, watch},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };

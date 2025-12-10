@@ -186,8 +186,11 @@ void screen_write(char *buff)
  * the fact that in order to speed up printing, we only refresh
  * the characters that have been modified since this time.
  */
+spin_lock_t screen_lock = (spin_lock_t){UNLOCKED};
+
 void screen_reflush(void)
 {
+    spin_lock_acquire(&screen_lock);
     int i, j;
 
     int color = 0;
@@ -224,6 +227,7 @@ void screen_reflush(void)
 
     /* recover cursor position */
     vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
+    spin_lock_release(&screen_lock);
 }
 
 void screen_set_scroll(int start_row, int end_row)

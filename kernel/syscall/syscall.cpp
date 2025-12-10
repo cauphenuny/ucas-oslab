@@ -1,5 +1,6 @@
+#include "os/mm.hpp"
+extern "C" {
 #include <asm/unistd.h>
-#include <assert.h>
 #include <csr.h>
 #include <logger.h>
 #include <os/irq.h>
@@ -24,16 +25,6 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
      * HINT: call syscall function like syscall[fn](arg0, arg1, arg2),
      * and pay attention to the return value and sepc
      */
-    int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
-    assert(!is_irq);
-    uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
-    if (exception_code == 8) {
-        // pretty_log(LOG_INFO, "handling ecall from U-mode");
-    } else if (exception_code == 9) {
-        // pretty_log(LOG_INFO, "handling ecall from S-mode");
-    } else {
-        assert(false);
-    }
     reg_t sysno = regs->regs[REG_A7];
     reg_t arg0 = regs->regs[REG_A0];
     reg_t arg1 = regs->regs[REG_A1];
@@ -47,23 +38,6 @@ void handle_syscall(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     regs->sepc += 4;
     reg_t ret = syscall[sysno](arg0, arg1, arg2, arg3, arg4, arg5);
     regs->regs[REG_A0] = ret;
-}
-
-void ensure_mem_allocated(const void* addr, size_t size) {
-    uva_t start = (uva_t)addr / PAGE_SIZE * PAGE_SIZE;
-    uva_t end = ((uva_t)addr + size + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
-    for (uva_t page = start; page < end; page += PAGE_SIZE) {
-        alloc_page(page, current_running->pgdir, true);
-    }
-}
-
-void ensure_str_allocated(const char* str) {
-    ensure_mem_allocated(str, 1);
-    while (*str) {
-        uint64_t page_id = (uva_t)str >> NORMAL_PAGE_SHIFT;
-        ensure_mem_allocated(str, 1);
-        while (*str && (((uva_t)str >> NORMAL_PAGE_SHIFT) == page_id)) str++;
-    }
 }
 
 /***************** proc *****************/
@@ -84,8 +58,9 @@ long sys_yield(void) {
     return 0;
 }
 
-long exec_dispatch(char* name, int argc, char* argv[], uint64_t entrance, int affinity) {
-    ensure_str_allocated(name);
+long exec_dispatch(char* uname, int argc, char* uargv[], uint64_t entrance, int affinity) {
+    char* name = uva_object_t((uva_t)uname).str();
+    char** argv = uva_object_t((uva_t)uargv).argv(argc);
     task_info_t* task = find_task(name);
     if (!task) {
         pretty_log(LOG_WARN, "exec %s failed: task not found!", name);
@@ -146,8 +121,8 @@ long sys_set_max_memory(size_t max_mem) {
     return resize_pagegroup(group, max_mem / PAGE_SIZE);
 }
 
-long sys_set_page_repl_algo(const char* algo) {
-    ensure_str_allocated(algo);
+long sys_set_page_repl_algo(const char* ualgo) {
+    const char* algo = uva_object_t((uva_t)ualgo).str();
     pageframe_group_t* group = get_current_pagegroup();
     pretty_logi("try set group '%s' replacement algorithm to %s", group->pages.name, algo);
     pagegroup_vtable_t* new_vtable = NULL;
@@ -224,11 +199,8 @@ void show_help(int argc, char** argv) {
     }
 }
 
-long sys_display_info(int argc, char** argv) {
-    ensure_mem_allocated((void*)argv, 1);
-    for (int i = 0; i < argc; i++) {
-        ensure_str_allocated(argv[i]);
-    }
+long sys_display_info(int argc, char** uargv) {
+    char** argv = uva_object_t((uva_t)uargv).argv(argc);
     int hit = 0;
     if (argc > 1) {
         char* subcmd = argv[1];
@@ -336,7 +308,10 @@ long sys_semaphore_destroy(int sema_idx) {
     return 0;
 }
 
-long sys_mbox_open(char* name) { return do_mbox_open(name); }
+long sys_mbox_open(char* uname) {
+    char* name = uva_object_t((uva_t)uname).str();
+    return do_mbox_open(name);
+}
 
 long sys_mbox_close(int mbox_id) {
     do_mbox_close(mbox_id);
@@ -355,8 +330,8 @@ long sys_mbox_recv(int mbox_idx, void* msg, int msg_length) {
 
 /***************** screen *****************/
 
-long sys_write(char* buff) {
-    ensure_str_allocated(buff);
+long sys_write(char* ubuff) {
+    char* buff = uva_object_t((uva_t)ubuff).str();
     screen_write(buff);
     return 0;
 }
@@ -403,16 +378,14 @@ long sys_get_proc_tick(void) { return get_proc_tick(); }
 
 /***************** pipe *****************/
 
-long sys_pipe_open(const char* name) {
-    ensure_str_allocated(name);
+long sys_pipe_open(const char* uname) {
+    char* name = uva_object_t((uva_t)uname).str();
     return pipe_open(name);
 }
 long sys_pipe_give_pages(int idx, void* src, size_t length) {
-    ensure_mem_allocated(src, length);
     return pipe_give_pages(idx, (uva_t)src, length);
 }
 long sys_pipe_take_pages(int idx, void* dest, size_t length) {
-    ensure_mem_allocated(dest, length);
     return pipe_take_pages(idx, (uva_t)dest, length);
 }
 
@@ -488,4 +461,5 @@ void init_syscall(void) {
     syscall[SYSCALL_CLEAR_COLOR] = (syscall_t)sys_screen_clear_color;
     syscall[SYSCALL_DELETE_LINE] = (syscall_t)sys_screen_delete_line;
     syscall[SYSCALL_CLEAR_LINE] = (syscall_t)sys_screen_clear_lines;
+}
 }

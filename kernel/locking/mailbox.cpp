@@ -140,7 +140,7 @@ int do_mbox_send(int mbox_idx, uva_t msg, int msg_length) {
     while (sent < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used < MAX_MBOX_LENGTH) {
-            mbox->buffer[mbox->tail] = message.get<char>(sent);
+            mbox->buffer[mbox->tail] = message.at<char>(sent);
             mbox->tail = (mbox->tail + 1) % MAX_MBOX_LENGTH;
             mbox->used++;
             sent++;
@@ -176,7 +176,7 @@ int do_mbox_recv(int mbox_idx, uva_t msg, int msg_length) {
     while (received < msg_length) {
         with_mutex guard(mbox->buffer_lock);
         if (mbox->used > 0) {
-            message.set<char>(received, mbox->buffer[mbox->head]);
+            message.at<char>(received) = mbox->buffer[mbox->head];
             mbox->head = (mbox->head + 1) % MAX_MBOX_LENGTH;
             mbox->used--;
             received++;

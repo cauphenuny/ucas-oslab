@@ -23,7 +23,7 @@ void wakeup_other_hart() {
 }
 
 void lock_kernel(regs_context_t* regs, uint64_t stval, uint64_t scause, uint64_t sepc) {
-    if (regs && (sepc & (1ul << 63)) && scause != (IRQC_S_TIMER | SCAUSE_IRQ_FLAG)) {
+    if (regs && (sepc & (1ul << 63)) && !(scause == (IRQC_S_TIMER | SCAUSE_IRQ_FLAG) && current_running->pid < NR_CPUS)) {
         // NOTE: exception occured in kernel code
         pretty_loge(
             "exception in kernel mode! sepc=0x%lx, scause=%lu, stval=0x%lx", sepc, scause, stval);

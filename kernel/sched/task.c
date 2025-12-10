@@ -62,7 +62,7 @@ void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
 }
 
 void init_pcb_stack(
-    pcb_t* pcb, ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, int argc, char** argv) {
+    pcb_t* pcb, kva_t kernel_stack, uva_t user_stack, uva_t entry_point, int argc, char** argv) {
     /* DONE: [p2-task3] initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
      * NOTE: To run the task in user mode, you should set corresponding bits
@@ -122,9 +122,9 @@ pcb_t* construct_pcb(
     load_task_img(task, pcb->pgdir);
     pretty_logi("loaded task image for task %s", task->name);
 
-    ptr_t kernel_stack_bottom = alloc_pageframe(PAGE_GROUP_KERNEL, kernel_mem),
+    kva_t kernel_stack_bottom = alloc_pageframe(PAGE_GROUP_KERNEL, kernel_mem),
           kernel_stack_base = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
-    ptr_t user_stack_base = USER_STACK_ADDR,
+    uva_t user_stack_base = USER_STACK_ADDR,
           user_stack_bottom = user_stack_base - user_mem * PAGE_SIZE;
 
     pcb->pid = process_id++;

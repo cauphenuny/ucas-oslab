@@ -1,12 +1,12 @@
+#include <assert.h>
 #include <e1000.h>
-#include <type.h>
 #include <os/string.h>
 #include <os/time.h>
-#include <assert.h>
 #include <pgtable.h>
+#include <type.h>
 
 // E1000 Registers Base Pointer
-volatile uint8_t *e1000;  // use virtual memory address
+volatile uint8_t* e1000;  // use virtual memory address
 
 // E1000 Tx & Rx Descriptors
 static struct e1000_tx_desc tx_desc_array[TXDESCS] __attribute__((aligned(16)));
@@ -22,43 +22,41 @@ static const uint8_t enetaddr[6] = {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53};
 /**
  * e1000_reset - Reset Tx and Rx Units; mask and clear all interrupts.
  **/
-static void e1000_reset(void)
-{
-	/* Turn off the ethernet interface */
+static void e1000_reset(void) {
+    /* Turn off the ethernet interface */
     e1000_write_reg(e1000, E1000_RCTL, 0);
     e1000_write_reg(e1000, E1000_TCTL, 0);
 
-	/* Clear the transmit ring */
+    /* Clear the transmit ring */
     e1000_write_reg(e1000, E1000_TDH, 0);
     e1000_write_reg(e1000, E1000_TDT, 0);
 
-	/* Clear the receive ring */
+    /* Clear the receive ring */
     e1000_write_reg(e1000, E1000_RDH, 0);
     e1000_write_reg(e1000, E1000_RDT, 0);
 
-	/**
+    /**
      * Delay to allow any outstanding PCI transactions to complete before
-	 * resetting the device
-	 */
+     * resetting the device
+     */
     latency(1);
 
-	/* Clear interrupt mask to stop board from generating interrupts */
+    /* Clear interrupt mask to stop board from generating interrupts */
     e1000_write_reg(e1000, E1000_IMC, 0xffffffff);
 
     /* Clear any pending interrupt events. */
-    while (0 != e1000_read_reg(e1000, E1000_ICR)) ;
+    while (0 != e1000_read_reg(e1000, E1000_ICR));
 }
 
 /**
  * e1000_configure_tx - Configure 8254x Transmit Unit after Reset
  **/
-static void e1000_configure_tx(void)
-{
+static void e1000_configure_tx(void) {
     /* TODO: [p5-task1] Initialize tx descriptors */
 
     /* TODO: [p5-task1] Set up the Tx descriptor base address and length */
 
-	/* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
+    /* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
 
     /* TODO: [p5-task1] Program the Transmit Control Register */
 }
@@ -66,8 +64,7 @@ static void e1000_configure_tx(void)
 /**
  * e1000_configure_rx - Configure 8254x Receive Unit after Reset
  **/
-static void e1000_configure_rx(void)
-{
+static void e1000_configure_rx(void) {
     /* TODO: [p5-task2] Set e1000 MAC Address to RAR[0] */
 
     /* TODO: [p5-task2] Initialize rx descriptors */
@@ -84,8 +81,7 @@ static void e1000_configure_rx(void)
 /**
  * e1000_init - Initialize e1000 device and descriptors
  **/
-void e1000_init(void)
-{
+void e1000_init(void) {
     /* Reset E1000 Tx & Rx Units; mask & clear all interrupts */
     e1000_reset();
 
@@ -102,8 +98,7 @@ void e1000_init(void)
  * @param length - Length of this packet
  * @return - Number of bytes that are transmitted successfully
  **/
-int e1000_transmit(void *txpacket, int length)
-{
+int e1000_transmit(void* txpacket, int length) {
     /* TODO: [p5-task1] Transmit one packet from txpacket */
 
     return 0;
@@ -114,8 +109,7 @@ int e1000_transmit(void *txpacket, int length)
  * @param rxbuffer - The address of buffer to store received packet
  * @return - Length of received packet
  **/
-int e1000_poll(void *rxbuffer)
-{
+int e1000_poll(void* rxbuffer) {
     /* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
 
     return 0;

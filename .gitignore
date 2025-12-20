@@ -12,3 +12,4 @@ build
 createimage
 .gdbinit
 patch/
+*.txt

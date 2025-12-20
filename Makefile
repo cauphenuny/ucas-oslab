@@ -2,7 +2,7 @@
 # Project Information
 # -----------------------------------------------------------------------
 
-PROJECT_IDX	= 4
+PROJECT_IDX	= 5
 
 # -----------------------------------------------------------------------
 # Include Platform-specific Configuration
@@ -72,6 +72,8 @@ QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -D $(QEMU_LOG_FILE) -d oslab
 QEMU_DEBUG_OPT  = -s -S
 QEMU_SMP_OPT	= -smp 2
+QEMU_NET_OPT    = -netdev tap,id=mytap,ifname=tap0,script=${DIR_QEMU}/etc/qemu-ifup,downscript=${DIR_QEMU}/etc/qemu-ifdown \
+                    -device e1000,netdev=mytap
 
 QEMU_RECORD     = -icount shift=0,rr=record,rrfile=.qemu-replay.bin
 QEMU_REPLAY     = -icount shift=0,rr=replay,rrfile=.qemu-replay.bin
@@ -179,6 +181,10 @@ run-smp:
 run-record:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_RECORD)
 
+run-net:
+	-@sudo kill `sudo lsof | grep tun | awk '{print $$2}'`
+	sudo $(QEMU) $(QEMU_OPTS) $(QEMU_NET_OPT) $(QEMU_SMP_OPT)
+
 debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
 
@@ -191,10 +197,22 @@ debug-record:
 debug-replay:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_REPLAY)
 
+debug-net:
+	-@sudo kill `sudo lsof | grep tun | awk '{print $$2}'`
+	sudo $(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT) $(QEMU_NET_OPT) $(QEMU_SMP_OPT)
+
+viewlog:
+	@if [ ! -e $(QEMU_LOG_FILE) ]; then touch $(QEMU_LOG_FILE); fi;
+	@tail -f $(QEMU_LOG_FILE)
+
 minicom:
 	sudo $(MINICOM) -D $(TTYUSB1)
 
-.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom host-gdb lldb debug-record debug-replay run-smp debug-smp
+.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom
+.PHONY: host-gdb lldb
+.PHONY: debug-record debug-replay
+.PHONY: run-smp debug-smp
+.PHONY: run-net debug-net
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 typedef int32_t pid_t;
+typedef uint64_t size_t;
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
@@ -84,10 +85,16 @@ void sys_semaphore_destroy(int sema_idx);
 void sys_semaphore_up(int sema_idx);
 void sys_semaphore_down(int sema_idx);
 
-/************************************************************/
+/* TODO: [P4 task4] free memory*/
+size_t sys_free_mem(void);
+/* TODO: [P4 task5] pipe*/
+int sys_pipe_open(const char *name);
+long sys_pipe_give_pages(int pipe_idx, void *src, size_t length);
+long sys_pipe_take_pages(int pipe_idx, void *dst, size_t length);
 
-int sys_pipe_open(const char* name);
-long sys_pipe_give_pages(int idx, void* src, size_t length);
-long sys_pipe_take_pages(int idx, void* dest, size_t length);
+/* TODO: [P5-task5] net send and recv */
+int sys_net_send(void *txpacket, int length);
+int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
+/************************************************************/
 
 #endif

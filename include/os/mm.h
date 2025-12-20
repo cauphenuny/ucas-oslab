@@ -30,6 +30,7 @@
 #include <os/smp.h>
 #include <pgtable.h>
 #include <type.h>
+#include <pgtable.h>
 
 #define NUM_MAX_PAGEGROUP 64
 

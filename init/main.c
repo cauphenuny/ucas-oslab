@@ -85,8 +85,8 @@ void kernel_brake(void) {
     while (1) __asm__ volatile("wfi");
 }
 
-volatile int initialized;      // hart 0 r/w, hart * r
-volatile int booted[NR_CPUS];  // [i]: hart i r/w, hart * r
+_Atomic int initialized;      // hart 0 r/w, hart * r
+_Atomic int booted[NR_CPUS];  // [i]: hart i r/w, hart * r
 
 static bool all_booted() {
     for (int i = 0; i < NR_CPUS; i++) {

@@ -112,6 +112,10 @@ int main(int argc, char** argv) {
         init_jmptab();
         init_logger();
 
+        // Check whether .bss section is set to zero
+        int check = bss_check();
+        asserts(check, ".bss check failed");
+
         // Boot all hart (setup VM) (•̀ᴗ•́)و
         pretty_logi("[INIT] hart #%d booted", hartid);
         booted[hartid] = 1;
@@ -123,9 +127,9 @@ int main(int argc, char** argv) {
         reset_boot_vm();
         pretty_logi("[INIT] Boot memory unmapped");
 
-        // Check whether .bss section is set to zero
-        int check = bss_check();
-        asserts(check, ".bss check failed");
+        // Init task info (˘ω˘)
+        init_task_info(argc, argv);  // consume argc/argv as soon as possible
+        pretty_logi("[INIT] Task info initialized");
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
@@ -183,8 +187,6 @@ int main(int argc, char** argv) {
         e1000_init();
         pretty_logi("[INIT] E1000 device initialized successfully.");
 
-        // Init task info (˘ω˘)
-        init_task_info(argc, argv);
         task_info_t* shell_task = find_task("shell");
         asserts(shell_task, "no shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);

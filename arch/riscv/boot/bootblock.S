@@ -10,7 +10,7 @@
 
 // kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50202000
-.equ kernel_args, 0x50700000
+.equ kernel_args, 0x56000000
 
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
@@ -19,7 +19,7 @@
 .equ bios_sdread, 11
 
 .equ temp, 0x50500000
-.equ taskinfo, 0x50500000
+.equ taskinfo, 0x55000000
 .extern tasks
 
 .text

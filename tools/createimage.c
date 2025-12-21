@@ -299,6 +299,10 @@ static void write_img_info(
     if (options.extended) {
         printf("os_memsz:\t%d\t(0x%x)\n", nbytes_kernel_memsz, nbytes_kernel_memsz);
     }
+    size_t limit = 0x51000000 - 0x50200000;
+    if (nbytes_kernel_memsz > limit * 0.9) {
+        error("os too large: os_memsz: %lx, limit: %lx\n", nbytes_kernel_memsz, limit);
+    }
 }
 
 /* print an error message and exit */

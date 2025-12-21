@@ -290,7 +290,7 @@ long sys_pipe_take_pages(int idx, void* dest, size_t length)
 int sys_net_send(void *txpacket, int length)
 {
     /* TODO: [p5-task1] call invoke_syscall to implement sys_net_send */
-    return 0;
+    return invoke_syscall(SYSCALL_NET_SEND, (long)txpacket, (long)length, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)

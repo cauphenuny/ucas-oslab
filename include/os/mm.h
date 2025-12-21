@@ -30,7 +30,6 @@
 #include <os/smp.h>
 #include <pgtable.h>
 #include <type.h>
-#include <pgtable.h>
 
 #define NUM_MAX_PAGEGROUP 64
 
@@ -68,6 +67,12 @@ extern void share_pgtable(kva_t dest_pgdir, kva_t src_pgdir);
 extern PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok);
 
 extern PTE* find_pte(uva_t va, kva_t pgdir, bool create);
+extern PTE* find_kernel_pte(uva_t va, bool create, int num_pgdirs);
+
+// NOTE: bind a physical addr to given pte
+extern void bind_addr(PTE* pte, pa_t addr, uint64_t extra_attrs);
+
+// NOTE: bind a pageframe to given pte, will invoke bind_addr() and then maintain pageframe metadata
 extern kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs);
 
 // NOTE: the address must be aligned to PAGE_SIZE

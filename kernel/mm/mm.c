@@ -10,14 +10,18 @@ kva_t new_top_pgdir(pageframe_group_t* group) {
     return pgdir;
 }
 
-kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
-    set_pfn(pte, kva2pa(page) >> NORMAL_PAGE_SHIFT);
+void bind_addr(PTE* pte, pa_t addr, uint64_t extra_attrs) {
+    set_pfn(pte, addr >> NORMAL_PAGE_SHIFT);
     set_attribute(pte, _PAGE_PRESENT);
     set_attribute(pte, extra_attrs);
+    local_flush_tlb_all();
+}
+
+kva_t bind_page(PTE* pte, kva_t page, uint64_t extra_attrs) {
+    bind_addr(pte, kva2pa(page), extra_attrs);
     pageframe_t* attr = pageframe_kva2attr(page);
     attr->pte = pte;
-    pretty_logd("bind page 0x%x to pte 0x%x", kva2pa(page), pte);
-    local_flush_tlb_all();
+    pretty_logd("bind addr 0x%x to pte 0x%x", kva2pa(page), pte);
     return page;
 }
 
@@ -77,6 +81,23 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
     }
     current_pgdir = (PTE*)pa2kva(get_pa(current_pgdir[vpn1]));
     return &current_pgdir[vpn0];
+}
+
+PTE* find_kernel_pte(uva_t va, bool create, int num_pgdirs) {
+    uint64_t vpn[3];
+    get_vpn(va, &vpn[0], &vpn[1], &vpn[2]);
+    PTE* current = (PTE*)PGDIR_VA;
+    for (int i = 0; i < num_pgdirs - 1; i++) {
+        if (!get_attribute(current[vpn[i]], _PAGE_PRESENT)) {
+            if (create) {
+                clear_pgdir(add_page(vpn[i], (kva_t)current, 0));
+            } else {
+                return NULL;
+            }
+        }
+        current = (PTE*)pa2kva(get_pa(current[vpn[i]]));
+    }
+    return &current[vpn[num_pgdirs - 1]];
 }
 
 PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok) {

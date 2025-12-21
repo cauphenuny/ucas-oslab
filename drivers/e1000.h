@@ -68,11 +68,11 @@ e1000_read_reg_array(volatile void *addr, uint32_t reg, uint32_t offset)
 /* Receive Descriptor */
 struct e1000_rx_desc {
 	uint64_t addr;	    /* Address of the descriptor's data buffer */
-	uint16_t length;	/* Length of data DMAed into data buffer */
-	uint16_t csum;		/* Packet checksum */
-	uint8_t  status;	/* Descriptor status */
-	uint8_t  errors;	/* Descriptor Errors */
-	uint16_t special;
+	volatile uint16_t length;	/* Length of data DMAed into data buffer */
+	volatile uint16_t csum;		/* Packet checksum */
+	volatile uint8_t  status;	/* Descriptor status */
+	volatile uint8_t  errors;	/* Descriptor Errors */
+	volatile uint16_t special;
 }__attribute__((packed));
 
 /* Receive Decriptor bit definitions */
@@ -98,11 +98,11 @@ struct e1000_rx_desc {
 
 /* Transmit Descriptor */
 struct e1000_tx_desc {
-	uint64_t addr;	    /* Address of the descriptor's data buffer */
+    uint64_t addr;	    /* Address of the descriptor's data buffer */
     uint16_t length;	/* Data buffer length */
     uint8_t cso;	    /* Checksum offset */
     uint8_t cmd;	    /* Descriptor control */
-    uint8_t status;	    /* Descriptor status */
+    volatile uint8_t status;	    /* Descriptor status */
     uint8_t css;	    /* Checksum start */
     uint16_t special;
 }__attribute__((packed));
@@ -295,6 +295,15 @@ struct e1000_tx_desc {
 
 /* Receive Address */
 #define E1000_RAH_AV            0x80000000	/* Receive descriptor valid */
+
+/*
+ * 将数值 val 移动到 mask 指定的位置，并确保不溢出 mask
+ * 参数：
+ *   mask: 寄存器的位掩码 (如 E1000_TCTL_CT)
+ *   val:  要写入的值 (如 0x10)
+ */
+#define FIELD_PREP(mask, val) \
+    (((val) << __builtin_ctzll(mask)) & (mask))
 
 /* Interrupt Cause Read */
 #define E1000_ICR_TXDW	  0x00000001	/* Transmit desc written back */

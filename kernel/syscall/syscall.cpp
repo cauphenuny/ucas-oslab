@@ -7,6 +7,7 @@ extern "C" {
 #include <os/kernel.h>
 #include <os/lock.h>
 #include <os/mm.h>
+#include <os/net.h>
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
@@ -389,6 +390,10 @@ long sys_pipe_take_pages(int idx, void* dest, size_t length) {
     return pipe_take_pages(idx, (uva_t)dest, length);
 }
 
+/***************** net *****************/
+
+long sys_net_send(void* txpacket, int length) { return do_net_send(txpacket, length); }
+
 /***************** set handler *****************/
 
 void init_syscall(void) {
@@ -461,5 +466,7 @@ void init_syscall(void) {
     syscall[SYSCALL_CLEAR_COLOR] = (syscall_t)sys_screen_clear_color;
     syscall[SYSCALL_DELETE_LINE] = (syscall_t)sys_screen_delete_line;
     syscall[SYSCALL_CLEAR_LINE] = (syscall_t)sys_screen_clear_lines;
+
+    syscall[SYSCALL_NET_SEND] = (syscall_t)sys_net_send;
 }
 }

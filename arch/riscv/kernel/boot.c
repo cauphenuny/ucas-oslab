@@ -99,6 +99,8 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid, int argc, ptr_t argv
         enable_vm();
     }
 
+    // NOTE: _start uses relative addressing, so we need to convert its from pa (current PC is pa) to kva
+
     /* enter kernel */
     ((kernel_entry_t)pa2kva((pa_t)&_start))(argc, argv);
 

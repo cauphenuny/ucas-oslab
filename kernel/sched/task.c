@@ -199,4 +199,5 @@ void init_pcb(void) {
     current_running = &pcb_kernel[0];
     current_running->status = TASK_RUNNING;
     current_running->cpu = 0;
+    asm volatile("csrw sscratch, tp");  // commit to sscratch, simulate `switch_to` func
 }

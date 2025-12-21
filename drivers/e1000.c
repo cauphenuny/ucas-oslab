@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <e1000.h>
+#include <logger.h>
 #include <os/string.h>
 #include <os/time.h>
 #include <pgtable.h>
@@ -52,13 +53,29 @@ static void e1000_reset(void) {
  * e1000_configure_tx - Configure 8254x Transmit Unit after Reset
  **/
 static void e1000_configure_tx(void) {
-    /* TODO: [p5-task1] Initialize tx descriptors */
+    /* DONE: [p5-task1] Initialize tx descriptors */
+    for (int i = 0; i < TXDESCS; i++) {
+        tx_desc_array[i].addr = kva2pa((uintptr_t)tx_pkt_buffer[i]);
+        tx_desc_array[i].length = TX_PKT_SIZE;
+        tx_desc_array[i].status = 0;
+    }
 
-    /* TODO: [p5-task1] Set up the Tx descriptor base address and length */
+    /* DONE: [p5-task1] Set up the Tx descriptor base address and length */
+    uintptr_t mask = (1ul << 32) - 1;
+    uintptr_t physaddr = kva2pa((kva_t)tx_desc_array);
+    e1000_write_reg(e1000, E1000_TDBAL, physaddr & mask);
+    e1000_write_reg(e1000, E1000_TDBAH, (physaddr >> 32) & mask);
+    e1000_write_reg(e1000, E1000_TDLEN, sizeof(tx_desc_array));
 
-    /* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
+    /* DONE: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
+    e1000_write_reg(e1000, E1000_TDH, 0);
+    e1000_write_reg(e1000, E1000_TDT, 0);
 
-    /* TODO: [p5-task1] Program the Transmit Control Register */
+    /* DONE: [p5-task1] Program the Transmit Control Register */
+    uint64_t tctl = E1000_TCTL_EN | E1000_TCTL_PSP;
+    tctl |= FIELD_PREP(E1000_TCTL_CT, 0x10);    // collision threshold
+    tctl |= FIELD_PREP(E1000_TCTL_COLD, 0x40);  // collision distance
+    e1000_write_reg(e1000, E1000_TCTL, tctl);
 }
 
 /**
@@ -99,9 +116,38 @@ void e1000_init(void) {
  * @return - Number of bytes that are transmitted successfully
  **/
 int e1000_transmit(void* txpacket, int length) {
-    /* TODO: [p5-task1] Transmit one packet from txpacket */
+    /* DONE: [p5-task1] Transmit one packet from txpacket */
+    asserts(length <= TX_PKT_SIZE, "e1000_transmit: length exceeds maximum");
+    int head = e1000_read_reg(e1000, E1000_TDH);
+    int tail = e1000_read_reg(e1000, E1000_TDT), next = (tail + 1) % TXDESCS;
+    if (next == head) {
+        breakpoint();
+        return 0;
+    }
 
-    return 0;
+    /* Copy the packet data into the transmit buffer */
+    memcpy((void*)tx_pkt_buffer[tail], txpacket, length);
+    tx_desc_array[tail].length = length;
+    tx_desc_array[tail].status = 0;
+    tx_desc_array[tail].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS;
+    wmb();
+    e1000_write_reg(e1000, E1000_TDT, next);
+    pretty_logd("moved tail to %d, head: %d", next, head);
+
+    uint64_t ticks = get_ticks();
+    while (!tx_desc_array[tail].status) {
+        local_flush_dcache();
+        if (get_ticks() - ticks > TIMEBASE / 1000 * 10) {  // 10ms
+            pretty_logw("transmission timeout");
+            return 0;
+        }
+    }
+    if (tx_desc_array[tail].status != E1000_TXD_STAT_DD) {
+        pretty_loge("transmission error, status = 0x%x", tx_desc_array[tail].status);
+        return 0;
+    }
+    pretty_logd("packet transmitted, length=%d, ticks=%lu", length, get_ticks() - ticks);
+    return length;
 }
 
 /**

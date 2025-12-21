@@ -17,9 +17,7 @@ void condition_init(condition_t* cond) {
     list_init(&cond->wait_list, "cond");
 }
 
-void condition_destruct(condition_t* cond) {
-    unblock_list(&cond->wait_list, "condition wait_list (destroyed)");
-}
+void condition_destruct(condition_t* cond) { unblock_list(&cond->wait_list); }
 
 void init_conditions() {
     for (int i = 0; i < CONDITION_NUM; i++) {
@@ -81,7 +79,7 @@ void condition_wait(condition_t* cond, mutex_lock_t* mutex) {
 void condition_broadcast(condition_t* cond) {
     with_spin guard(cond->lock);
     // pretty_log(LOG_INFO, "broadcasting condition 0x%x", cond);
-    unblock_list(&cond->wait_list, "condition wait_list");
+    unblock_list(&cond->wait_list);
 }
 
 void condition_signal(condition_t* cond) {

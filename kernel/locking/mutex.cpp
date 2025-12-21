@@ -22,12 +22,12 @@ void mutex_init(mutex_lock_t* mlock) {
 
 void mutex_release(mutex_lock_t* mutex) {
     mutex->acquired = 0;
-    unblock_list(&mutex->block_list, "mutex block_list");
+    unblock_list(&mutex->block_list);
 }
 
 void mutex_destruct(mutex_lock_t* mutex) {
     mutex->acquired = 0;
-    unblock_list(&mutex->block_list, "mutex block_list (destroyed)");
+    unblock_list(&mutex->block_list);
     if (mutex - mlocks >= 0 && mutex - mlocks < LOCK_NUM) {
         int idx = mutex - mlocks;
         mlock_ref[idx] = 0;

@@ -97,12 +97,10 @@ void list_traverse(list_t* head, void (*func)(list_node_t* node));
          iter = iter->member->next == head ? NULL                                               \
                                            : container_of(iter->member->next, type, member))
 
-#define list_foreach_node(iter, head)                                          \
-    for (list_node_t* iter = (head)->next, *iter_next= iter->next; iter != (head); \
+#define list_foreach_node(iter, head)                                               \
+    for (list_node_t* iter = (head)->next, *iter_next = iter->next; iter != (head); \
          iter = iter_next, iter_next = iter->next)
 
-#define list_foreach_node_reversed(iter, head)                     \
-    for (list_node_t* iter = (head)->prev, *iter_prev= iter->prev; iter != (head); \
-         iter = iter_prev, iter_prev = iter->prev)
+#define list_foreach_node_reversed(iter, head)
 
 #endif

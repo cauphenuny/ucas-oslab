@@ -22,7 +22,7 @@ void semaphore_init(semaphore_t* sema) {
 void semaphore_destruct(semaphore_t* sema) {
     sema->key = -1;
     sema->count = 0;
-    unblock_list(&sema->wait_list, "semaphore wait_list (destroyed)");
+    unblock_list(&sema->wait_list);
 }
 
 void init_semaphores() {

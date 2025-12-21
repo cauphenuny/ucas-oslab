@@ -95,7 +95,7 @@ static void pipe_destroy_locked(pipe_entry_t* pipe) {
     pipe_release_segments_locked(pipe);
     spin_lock_release(&pipe->lock);
 
-    unblock_list(&pipe->reader_wait_list, pipe->name);
+    unblock_list(&pipe->reader_wait_list);
 
     spin_lock_acquire(&pipe->lock);
     pipe_entry_clear(pipe);
@@ -231,7 +231,7 @@ static bool pipe_push_segment(pipe_entry_t* pipe, pipe_segment_t* seg) {
     }
     spin_lock_release(&pipe->lock);
     if (pushed) {
-        unblock_list(&pipe->reader_wait_list, pipe->name);
+        unblock_list(&pipe->reader_wait_list);
     }
     return pushed;
 }

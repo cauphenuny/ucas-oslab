@@ -202,7 +202,7 @@ void do_sleep(uint32_t);
 void do_block(list_node_t*, list_t* queue);
 void do_unblock(list_node_t*);
 
-void unblock_list(list_t* list, const char* name);
+void unblock_list(list_t* list);
 
 void set_process_workload(int workload);
 int set_process_nice(int nice, int pid);

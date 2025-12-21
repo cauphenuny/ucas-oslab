@@ -19,9 +19,7 @@ void barrier_init(barrier_t* barrier) {
     list_init(&barrier->block_list, "barrier");
 }
 
-void barrier_destruct(barrier_t* barrier) {
-    unblock_list(&barrier->block_list, "barrier block_list (destroyed)");
-}
+void barrier_destruct(barrier_t* barrier) { unblock_list(&barrier->block_list); }
 
 void init_barriers(void) {
     for (int i = 0; i < BARRIER_NUM; i++) {
@@ -105,7 +103,7 @@ void do_barrier_wait(int bar_idx) {
         pretty_log(
             LOG_INFO, "proc %d caused barrier %d to be released", current_running->pid, bar_idx);
         bar->current = 0;
-        unblock_list(&bar->block_list, "barrier block_list");
+        unblock_list(&bar->block_list);
     }
 }
 
@@ -137,5 +135,4 @@ void show_barriers() {
         }
     }
 }
-
 }

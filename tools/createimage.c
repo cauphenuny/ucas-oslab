@@ -287,8 +287,8 @@ static void write_img_info(
     fwrite(&swap_file_sector, sizeof(swap_file_sector), 1, img);
     if (options.extended)
         printf(
-            "swap_file_loc: %d,\t%lu bytes at 0x%08x\n", swap_file_sector, sizeof(swap_file_sector),
-            SWAP_FILE_LOC);
+            "swap_file_loc:\t%d,\t%lu bytes at 0x%08x\n", swap_file_sector,
+            sizeof(swap_file_sector), SWAP_FILE_LOC);
 
     // write 2-byte size to OS_SIZE_LOC
     fseek(img, OS_SIZE_LOC, SEEK_SET);

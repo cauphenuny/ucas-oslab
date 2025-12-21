@@ -9,6 +9,7 @@ extern "C" {
 #include <os/list.h>
 #include <os/lock.h>
 #include <os/mm.h>
+#include <os/net.h>
 #include <os/sched.h>
 #include <os/smp.h>
 #include <os/string.h>
@@ -216,6 +217,8 @@ void do_scheduler(void) {
 
     /************************************************************/
     // TODO: [p5-task3] Check send/recv queue to unblock PCBs
+    net_recv_wakeup();
+    net_send_wakeup();
     /************************************************************/
 
     // DONE: [p2-task1] Modify the current_running pointer.
@@ -308,7 +311,7 @@ void unblock_list(list_t* queue) {
     }
 }
 
-void exit_wakeup(pcb_t* pcb) { unblock_list(&pcb->wait_list, "pcb wait_list"); }
+void exit_wakeup(pcb_t* pcb) { unblock_list(&pcb->wait_list); }
 
 void cleanup_proc(pcb_t* pcb) {
     pid_t pid = pcb->pid;

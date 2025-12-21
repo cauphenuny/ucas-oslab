@@ -72,9 +72,15 @@ static void init_task_info(int argc, char** physical_argv) {
     pa_t physical_task_info = argv[1];
     memcpy((void*)tasks, (void*)pa2kva(physical_task_info), sizeof(task_info_t) * task_num);
     swap_base_location = argv[2];
-    pretty_log(LOG_INFO, "[META] OS kernel arguments: ");
-    pretty_log(LOG_INFO, "[META]   task_num: %d", task_num);
-    pretty_log(LOG_INFO, "[META]   swap_location: %d", swap_base_location);
+    pretty_log(LOG_INFO, "[META]  OS kernel arguments: ");
+    pretty_log(LOG_INFO, "[META]    task_num: %d", task_num);
+    pretty_log(LOG_INFO, "[META]    task_info: %x", physical_task_info);
+    for (int i = 0; i < task_num; i++) {
+        pretty_log(
+            LOG_INFO, "[META]      task %d: name: %s, entrance: 0x%x", i, tasks[i].name,
+            tasks[i].entrance);
+    }
+    pretty_log(LOG_INFO, "[META]    swap_location: %d", swap_base_location);
 }
 
 /*
@@ -180,6 +186,7 @@ int main(int argc, char** argv) {
         // Init task info (˘ω˘)
         init_task_info(argc, argv);
         task_info_t* shell_task = find_task("shell");
+        asserts(shell_task, "no shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
         pretty_logi("[INIT] Created shell process.");
 

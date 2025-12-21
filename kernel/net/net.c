@@ -8,6 +8,10 @@
 static LIST(send_block_queue, "send");
 static LIST(recv_block_queue, "recv");
 
+void net_send_wakeup() { unblock_list(&send_block_queue); }
+
+void net_recv_wakeup() { unblock_list(&recv_block_queue); }
+
 int do_net_send(void* txpacket, int length) {
     // TODO: [p5-task1] Transmit one network packet via e1000 device
     while (true) {

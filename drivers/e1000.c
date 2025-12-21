@@ -84,13 +84,32 @@ static void e1000_configure_tx(void) {
 static void e1000_configure_rx(void) {
     /* TODO: [p5-task2] Set e1000 MAC Address to RAR[0] */
 
+    uint32_t ral0 = E1000_RA;
+    uint32_t rah0 = E1000_RA + 4;
+    e1000_write_reg(
+        e1000, ral0, enetaddr[0] | (enetaddr[1] << 8) | (enetaddr[2] << 16) | (enetaddr[3] << 24));
+    e1000_write_reg(e1000, rah0, enetaddr[4] | (enetaddr[5] << 8) | E1000_RAH_AV);
+
     /* TODO: [p5-task2] Initialize rx descriptors */
+    for (int i = 0; i < TXDESCS; i++) {
+        rx_desc_array[i].addr = kva2pa((uintptr_t)rx_pkt_buffer[i]);
+        rx_desc_array[i].status = 0;
+    }
 
     /* TODO: [p5-task2] Set up the Rx descriptor base address and length */
+    uintptr_t mask = (1ul << 32) - 1;
+    pa_t addr = kva2pa((kva_t)rx_desc_array);
+    e1000_write_reg(e1000, E1000_RDBAL, addr & mask);
+    e1000_write_reg(e1000, E1000_RDBAH, (addr >> 32) & mask);
+    e1000_write_reg(e1000, E1000_RDLEN, sizeof(rx_desc_array));
 
     /* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
+    e1000_write_reg(e1000, E1000_RDH, 0);
+    e1000_write_reg(e1000, E1000_RDT, 0);
 
     /* TODO: [p5-task2] Program the Receive Control Register */
+    uint32_t rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048 | (E1000_RCTL_BSEX & 0);
+    e1000_write_reg(e1000, E1000_RCTL, rctl);
 
     /* TODO: [p5-task4] Enable RXDMT0 Interrupt */
 }
@@ -117,11 +136,14 @@ void e1000_init(void) {
  **/
 int e1000_transmit(void* txpacket, int length) {
     /* DONE: [p5-task1] Transmit one packet from txpacket */
-    asserts(length <= TX_PKT_SIZE, "e1000_transmit: length exceeds maximum");
+    asserts(length <= TX_PKT_SIZE, "length exceeds maximum");
+    uint64_t ticks = get_ticks();
+    static int tail = 0;
+
     int head = e1000_read_reg(e1000, E1000_TDH);
-    int tail = e1000_read_reg(e1000, E1000_TDT), next = (tail + 1) % TXDESCS;
-    if (next == head) {
-        breakpoint();
+    int next = (tail + 1) % TXDESCS;
+    if (head == next) {
+        pretty_logw("transmit queue full, head: %d, tail: %d", head, tail);
         return 0;
     }
 
@@ -131,12 +153,11 @@ int e1000_transmit(void* txpacket, int length) {
     tx_desc_array[tail].status = 0;
     tx_desc_array[tail].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS;
     wmb();
-    e1000_write_reg(e1000, E1000_TDT, next);
-    pretty_logd("moved tail to %d, head: %d", next, head);
-
-    uint64_t ticks = get_ticks();
+    tail = next;
+    e1000_write_reg(e1000, E1000_TDT, tail);
+    local_flush_dcache();
+    pretty_logd("moved tail to %d, head: %d", tail, head);
     while (!tx_desc_array[tail].status) {
-        local_flush_dcache();
         if (get_ticks() - ticks > TIMEBASE / 1000 * 10) {  // 10ms
             pretty_logw("transmission timeout");
             return 0;
@@ -158,5 +179,20 @@ int e1000_transmit(void* txpacket, int length) {
 int e1000_poll(void* rxbuffer) {
     /* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
 
-    return 0;
+    static int head = 0;
+    local_flush_dcache();
+    if (!rx_desc_array[head].status) {
+        return 0;
+    }
+
+    rmb();
+    size_t length = rx_desc_array[head].length;
+
+    /* Copy the packet data from the receive buffer */
+    memcpy(rxbuffer, (void*)rx_pkt_buffer[head], length);
+    rx_desc_array[head].status = 0;
+    head = (head + 1) % RXDESCS;
+    e1000_write_reg(e1000, E1000_RDH, head);
+
+    return length;
 }

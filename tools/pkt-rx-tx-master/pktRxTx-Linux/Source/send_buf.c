@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 
@@ -94,7 +95,7 @@ static void fill_send_buf()
             send_buf->valid_len += len;
 
             this_info = next_info;
-        }
+        }../..
     }
 }
 

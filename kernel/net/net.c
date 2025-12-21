@@ -30,6 +30,15 @@ int do_net_send(void* txpacket, int length) {
 
 int do_net_recv(void* rxbuffer, int pkt_num, int* pkt_lens) {
     // TODO: [p5-task2] Receive one network packet via e1000 device
+    while (true) {
+        int received = e1000_poll(rxbuffer);
+        if (received > 0) {
+            *pkt_lens = received;
+            break;
+        }
+        do_block(&current_running->sched_node, &recv_block_queue);
+        do_scheduler();
+    }
     // TODO: [p5-task3] Call do_block when there is no packet on the way
 
     return 0;  // Bytes it has received

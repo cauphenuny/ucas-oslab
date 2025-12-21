@@ -393,6 +393,9 @@ long sys_pipe_take_pages(int idx, void* dest, size_t length) {
 /***************** net *****************/
 
 long sys_net_send(void* txpacket, int length) { return do_net_send(txpacket, length); }
+long sys_net_recv(void* rxbuffer, int pkt_num, int* pkt_lens) {
+    return do_net_recv(rxbuffer, pkt_num, pkt_lens);
+}
 
 /***************** set handler *****************/
 
@@ -468,5 +471,6 @@ void init_syscall(void) {
     syscall[SYSCALL_CLEAR_LINE] = (syscall_t)sys_screen_clear_lines;
 
     syscall[SYSCALL_NET_SEND] = (syscall_t)sys_net_send;
+    syscall[SYSCALL_NET_RECV] = (syscall_t)sys_net_recv;
 }
 }

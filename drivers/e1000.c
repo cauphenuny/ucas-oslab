@@ -105,7 +105,7 @@ static void e1000_configure_rx(void) {
 
     /* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
     e1000_write_reg(e1000, E1000_RDH, 0);
-    e1000_write_reg(e1000, E1000_RDT, 0);
+    e1000_write_reg(e1000, E1000_RDT, RXDESCS - 1);
 
     /* TODO: [p5-task2] Program the Receive Control Register */
     uint32_t rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048 | (E1000_RCTL_BSEX & 0);
@@ -137,7 +137,7 @@ void e1000_init(void) {
 int e1000_transmit(void* txpacket, int length) {
     /* DONE: [p5-task1] Transmit one packet from txpacket */
     asserts(length <= TX_PKT_SIZE, "length exceeds maximum");
-    uint64_t ticks = get_ticks();
+
     static int tail = 0;
 
     int head = e1000_read_reg(e1000, E1000_TDH);
@@ -147,27 +147,16 @@ int e1000_transmit(void* txpacket, int length) {
         return 0;
     }
 
-    /* Copy the packet data into the transmit buffer */
     memcpy((void*)tx_pkt_buffer[tail], txpacket, length);
     tx_desc_array[tail].length = length;
     tx_desc_array[tail].status = 0;
     tx_desc_array[tail].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS;
-    wmb();
+    local_flush_dcache();
+
     tail = next;
     e1000_write_reg(e1000, E1000_TDT, tail);
-    local_flush_dcache();
-    pretty_logd("moved tail to %d, head: %d", tail, head);
-    while (!tx_desc_array[tail].status) {
-        if (get_ticks() - ticks > TIMEBASE / 1000 * 10) {  // 10ms
-            pretty_logw("transmission timeout");
-            return 0;
-        }
-    }
-    if (tx_desc_array[tail].status != E1000_TXD_STAT_DD) {
-        pretty_loge("transmission error, status = 0x%x", tx_desc_array[tail].status);
-        return 0;
-    }
-    pretty_logd("packet transmitted, length=%d, ticks=%lu", length, get_ticks() - ticks);
+
+    pretty_logd("packet transmitted, length=%d", length);
     return length;
 }
 
@@ -180,19 +169,24 @@ int e1000_poll(void* rxbuffer) {
     /* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
 
     static int head = 0;
+
     local_flush_dcache();
     if (!rx_desc_array[head].status) {
+        // pretty_logw("no packet received, head: %d", head);
         return 0;
     }
-
     rmb();
     size_t length = rx_desc_array[head].length;
 
-    /* Copy the packet data from the receive buffer */
     memcpy(rxbuffer, (void*)rx_pkt_buffer[head], length);
     rx_desc_array[head].status = 0;
+
+    pretty_logd("packet received, length=%d", length);
+
+    // free head descriptor
+    wmb();
+    e1000_write_reg(e1000, E1000_RDT, head);
     head = (head + 1) % RXDESCS;
-    e1000_write_reg(e1000, E1000_RDH, head);
 
     return length;
 }

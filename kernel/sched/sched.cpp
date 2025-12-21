@@ -273,7 +273,7 @@ void do_sleep(uint32_t sleep_time) {
 void do_block(list_node_t* pcb_node, list_t* queue) {
     // DONE: [p2-task2] block the pcb task into the block queue
     pcb_t* pcb = container_of(pcb_node, pcb_t, sched_node);
-    pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
+    // pretty_log(LOG_INFO, "blocking pid %d(status=%d)", pcb->pid, pcb->status);
     if (pcb->status == TASK_BLOCKED) {
         pretty_loge("double blocking a task(name=%s, pid=%d)", pcb->name, pcb->pid);
         return;
@@ -302,9 +302,9 @@ void unblock_list(list_t* queue) {
     list_node_t* node = queue->head.next;
     while (node != &queue->head) {
         list_node_t* next = node->next;
-        pretty_log(
-            LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, sched_node)->pid,
-            queue->name);
+        // pretty_log(
+        //     LOG_INFO, "unblocking pid %d from %s", container_of(node, pcb_t, sched_node)->pid,
+        //     queue->name);
         list_delete(node);
         do_unblock(node);
         node = next;

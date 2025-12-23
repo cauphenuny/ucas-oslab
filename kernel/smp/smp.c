@@ -22,12 +22,20 @@ void wakeup_other_hart() {
     send_ipi(&mask);
 }
 
+extern void ret_from_exception();
+
 void lock_kernel(regs_context_t* regs, uint64_t stval, uint64_t scause, uint64_t sepc) {
-    if (regs && (sepc & (1ul << 63)) && !(scause == (IRQC_S_TIMER | SCAUSE_IRQ_FLAG) && current_running->pid < NR_CPUS)) {
-        // NOTE: exception occured in kernel code
-        pretty_loge(
-            "exception in kernel mode! sepc=0x%lx, scause=%lu, stval=0x%lx", sepc, scause, stval);
+    if (regs && (sepc & (1ul << 63)) && !(scause & SCAUSE_IRQ_FLAG) &&
+        current_running->pid < NR_CPUS) {
+// NOTE: exception occured in kernel code
+#ifdef NOLOG
         handle_other(regs, stval, scause);
+#else
+        pretty_loge(
+            "exception in kernel mode! sepc=0x%lx, scause=%s, stval=0x%lx", sepc,
+            exception_name(scause), stval);
+        ret_from_exception();
+#endif
         return;
     }
     spin_lock_acquire(&kernel_lock);

@@ -216,9 +216,9 @@ void do_scheduler(void) {
     check_sleeping();
 
     /************************************************************/
-    // TODO: [p5-task3] Check send/recv queue to unblock PCBs
-    net_recv_wakeup();
-    net_send_wakeup();
+
+    // DONE: [p5-task3] Check send/recv queue to unblock PCBs (by interrupt)
+
     /************************************************************/
 
     // DONE: [p2-task1] Modify the current_running pointer.

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <csr.h>
+#include <e1000.h>
 #include <logger.h>
 #include <os/irq.h>
 #include <os/kernel.h>
@@ -8,6 +9,7 @@
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/time.h>
+#include <plic.h>
 #include <printk.h>
 #include <screen.h>
 
@@ -55,14 +57,10 @@ static void stack_sanity_check() {
 }
 
 const char* irq_name[IRQC_COUNT] = {
-    [IRQC_U_SOFT] = "User software interrupt",
-    [IRQC_S_SOFT] = "Supervisor software interrupt",
-    [IRQC_M_SOFT] = "Machine software interrupt",
-    [IRQC_U_TIMER] = "User timer interrupt",
-    [IRQC_S_TIMER] = "Supervisor timer interrupt",
-    [IRQC_M_TIMER] = "Machine timer interrupt",
-    [IRQC_U_EXT] = "User external interrupt",
-    [IRQC_S_EXT] = "Supervisor external interrupt",
+    [IRQC_U_SOFT] = "User software interrupt",     [IRQC_S_SOFT] = "Supervisor software interrupt",
+    [IRQC_M_SOFT] = "Machine software interrupt",  [IRQC_U_TIMER] = "User timer interrupt",
+    [IRQC_S_TIMER] = "Supervisor timer interrupt", [IRQC_M_TIMER] = "Machine timer interrupt",
+    [IRQC_U_EXT] = "User external interrupt",      [IRQC_S_EXT] = "Supervisor external interrupt",
     [IRQC_M_EXT] = "Machine external interrupt",
 };
 
@@ -157,7 +155,7 @@ void handle_irq_timer(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     do_scheduler();
 }
 
-void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+void handle_exc_pagefault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     pretty_logi(
         "handling page fault, stval=%lx, scause=%lu, name=%s", stval, scause,
         exception_name(scause));
@@ -185,6 +183,13 @@ void handle_page_fault(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     alloc_page(stval, current_running->pgdir, false);
 }
 
+void handle_irq_ext(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+    uint32_t device = plic_claim();
+    asserts(device == PLIC_E1000_QEMU_IRQ || device == PLIC_E1000_PYNQ_IRQ, "unknown external irq");
+    e1000_handle_interrupt();
+    plic_complete(device);
+}
+
 void init_exception() {
     /* DONE: [p2-task3] initialize exc_table */
     /* NOTE: handle_syscall, handle_other, etc.*/
@@ -193,14 +198,15 @@ void init_exception() {
     }
     exc_table[EXCC_SYSCALL] = handle_syscall;
     exc_table[EXCC_LOAD_PAGE_FAULT] = exc_table[EXCC_STORE_PAGE_FAULT] =
-        exc_table[EXCC_INST_PAGE_FAULT] = handle_page_fault;
+        exc_table[EXCC_INST_PAGE_FAULT] = handle_exc_pagefault;
 
     /* DONE: [p2-task4] initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/
     for (int i = 0; i < IRQC_COUNT; i++) {
         irq_table[i] = handle_other;
     }
-    irq_table[IRQC_M_TIMER] = irq_table[IRQC_U_TIMER] = irq_table[IRQC_S_TIMER] = handle_irq_timer;
+    irq_table[IRQC_S_TIMER] = handle_irq_timer;
+    irq_table[IRQC_S_EXT] = handle_irq_ext;
 
     /* DONE: [p2-task3] set up the entrypoint of exceptions */
     setup_exception();

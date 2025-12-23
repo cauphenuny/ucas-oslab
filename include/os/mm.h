@@ -87,7 +87,8 @@ extern void cleanup_pipe(pid_t pid);
 // NOTE: assume use 3-level page table
 extern kva_t uva2kva(uva_t uva, kva_t pgdir);
 
-extern void memcpy_kva2uva(kva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest);
+extern void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest);
+extern void memcpy_uva2kva(kva_t dest, uva_t src_va, size_t size, kva_t pgdir_dest);
 extern void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
 extern void cleanup_vm(pcb_t* pcb);

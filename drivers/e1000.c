@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <e1000.h>
 #include <logger.h>
+#include <os/net.h>
 #include <os/string.h>
 #include <os/time.h>
 #include <pgtable.h>
@@ -108,10 +109,13 @@ static void e1000_configure_rx(void) {
     e1000_write_reg(e1000, E1000_RDT, RXDESCS - 1);
 
     /* DONE: [p5-task2] Program the Receive Control Register */
-    uint32_t rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048 | (E1000_RCTL_BSEX & 0);
+    uint32_t rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048 | (E1000_RCTL_BSEX & 0) |
+                    E1000_RCTL_RDMTS_HALF;
     e1000_write_reg(e1000, E1000_RCTL, rctl);
 
-    /* TODO: [p5-task4] Enable RXDMT0 Interrupt */
+    /* DONE: [p5-task4] Enable TXQE / RXDMT0 Interrupt */
+    e1000_write_reg(e1000, E1000_IMS, E1000_IMS_RXDMT0 | E1000_IMS_TXQE);
+    e1000_write_reg(e1000, E1000_IMC, ~(E1000_IMC_TXQE | E1000_IMC_RXDMT0));
 }
 
 /**
@@ -189,4 +193,44 @@ int e1000_poll(void* rxbuffer) {
     head = (head + 1) % RXDESCS;
 
     return length;
+}
+
+void e1000_enable_txqe() {
+    uint32_t imc = e1000_read_reg(e1000, E1000_IMC);
+    imc = imc & (~E1000_IMC_TXQE);
+    e1000_write_reg(e1000, E1000_IMC, imc);
+}
+
+void e1000_disable_txqe() {
+    uint32_t imc = e1000_read_reg(e1000, E1000_IMC);
+    imc = imc | E1000_IMC_TXQE;
+    e1000_write_reg(e1000, E1000_IMC, imc);
+}
+
+/**
+ * e1000_handle_txqe - Handle TX Queue Empty Interrupt
+ **/
+void e1000_handle_txqe() { net_send_wakeup(); }
+
+/**
+ * e1000_handle_rxdmt0 - Handle RX Desc Min. Threshold Interrupt
+ **/
+void e1000_handle_rxdmt0() { net_recv_wakeup(); }
+
+/**
+ * e1000_handle_interrupt - Handle e1000 interrupt
+ **/
+void e1000_handle_interrupt(void) {
+    uint32_t icr = e1000_read_reg(e1000, E1000_ICR);
+    if (icr & E1000_ICR_RXDMT0) {
+        e1000_handle_rxdmt0();
+        icr &= ~E1000_ICR_RXDMT0;
+    }
+    if (icr & E1000_ICR_TXQE) {
+        e1000_handle_txqe();
+        icr &= ~E1000_ICR_TXQE;
+    }
+    if (icr) {
+        pretty_logw("unknown e1000 interrupt, icr=%x", icr);
+    }
 }

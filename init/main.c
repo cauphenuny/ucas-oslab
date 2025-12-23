@@ -19,6 +19,7 @@
 #include <os/string.h>
 #include <os/task.h>
 #include <os/time.h>
+#include <plic.h>
 #include <printk.h>
 #include <screen.h>
 #include <sys/syscall.h>
@@ -179,9 +180,10 @@ int main(int argc, char** argv) {
         pretty_logi("[INIT] IOremap initialization succeeded.");
 
         // TODO: [p5-task4] Init plic
-        // plic_init(plic_addr, nr_irqs);
-        // printk("> [INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr,
-        // nr_irqs);
+        plic_init(plic_addr, nr_irqs);
+        pretty_logi(
+            "[INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr,
+            nr_irqs);
 
         // Init network device (⊙_⊙;)
         e1000_init();

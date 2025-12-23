@@ -2,6 +2,7 @@
 extern "C" {
 #include <asm/unistd.h>
 #include <csr.h>
+#include <e1000.h>
 #include <logger.h>
 #include <os/irq.h>
 #include <os/kernel.h>
@@ -392,9 +393,22 @@ long sys_pipe_take_pages(int idx, void* dest, size_t length) {
 
 /***************** net *****************/
 
-long sys_net_send(void* txpacket, int length) { return do_net_send(txpacket, length); }
+long sys_net_send(void* txpacket, int length) {
+    if (length > TX_PKT_SIZE) return 0;
+    static char buffer[TX_PKT_SIZE];
+    memcpy_uva2kva((kva_t)buffer, (uva_t)txpacket, length, current_running->pgdir);
+    return do_net_send(txpacket, length);
+}
 long sys_net_recv(void* rxbuffer, int pkt_num, int* pkt_lens) {
-    return do_net_recv(rxbuffer, pkt_num, pkt_lens);
+    char* buffer = (char*)kmalloc(pkt_num * RX_PKT_SIZE);
+    int* buffer_lens = (int*)kmalloc(sizeof(int) * pkt_num);
+    long ret = do_net_recv(buffer, pkt_num, buffer_lens);
+    memcpy_kva2uva((uva_t)rxbuffer, (kva_t)buffer, ret, current_running->pgdir);
+    memcpy_kva2uva(
+        (uva_t)pkt_lens, (kva_t)buffer_lens, sizeof(int) * pkt_num, current_running->pgdir);
+    kfree(buffer);
+    kfree(buffer_lens);
+    return ret;
 }
 
 /***************** set handler *****************/

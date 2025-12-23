@@ -145,6 +145,22 @@ void memcpy_kva2uva(uva_t dest_va, kva_t src, size_t size, kva_t pgdir_dest) {
     }
 }
 
+void memcpy_uva2kva(kva_t dest, uva_t src_va, size_t size, kva_t pgdir_src) {
+    while (size) {
+        kva_t src_kva = uva2kva(src_va, pgdir_src);
+        kva_t src_page_end = ((src_kva >> NORMAL_PAGE_SHIFT) + 1) << NORMAL_PAGE_SHIFT;
+        size_t capacity = src_page_end - src_kva;
+        size_t active = min(size, capacity);
+        // pretty_logd(
+        //     "copying %d bytes from uva %lx (pa %x) to %lx", active, src_va,
+        //     kva2pa(src_kva), dest);
+        memcpy((void*)dest, (void*)src_kva, active);
+        size -= active;
+        src_va += active;
+        dest += active;
+    }
+}
+
 void strcpy_kva2uva(uva_t dest_va, const char* src, kva_t pgdir_dest) {
     // pretty_logd("strcpy to uva %lx from src %lx", dest_va, (kva_t)src);
     size_t len = strlen(src) + 1;

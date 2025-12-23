@@ -82,7 +82,7 @@ static void e1000_configure_tx(void) {
  * e1000_configure_rx - Configure 8254x Receive Unit after Reset
  **/
 static void e1000_configure_rx(void) {
-    /* TODO: [p5-task2] Set e1000 MAC Address to RAR[0] */
+    /* DONE: [p5-task2] Set e1000 MAC Address to RAR[0] */
 
     uint32_t ral0 = E1000_RA;
     uint32_t rah0 = E1000_RA + 4;
@@ -90,24 +90,24 @@ static void e1000_configure_rx(void) {
         e1000, ral0, enetaddr[0] | (enetaddr[1] << 8) | (enetaddr[2] << 16) | (enetaddr[3] << 24));
     e1000_write_reg(e1000, rah0, enetaddr[4] | (enetaddr[5] << 8) | E1000_RAH_AV);
 
-    /* TODO: [p5-task2] Initialize rx descriptors */
+    /* DONE: [p5-task2] Initialize rx descriptors */
     for (int i = 0; i < TXDESCS; i++) {
         rx_desc_array[i].addr = kva2pa((uintptr_t)rx_pkt_buffer[i]);
         rx_desc_array[i].status = 0;
     }
 
-    /* TODO: [p5-task2] Set up the Rx descriptor base address and length */
+    /* DONE: [p5-task2] Set up the Rx descriptor base address and length */
     uintptr_t mask = (1ul << 32) - 1;
     pa_t addr = kva2pa((kva_t)rx_desc_array);
     e1000_write_reg(e1000, E1000_RDBAL, addr & mask);
     e1000_write_reg(e1000, E1000_RDBAH, (addr >> 32) & mask);
     e1000_write_reg(e1000, E1000_RDLEN, sizeof(rx_desc_array));
 
-    /* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
+    /* DONE: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
     e1000_write_reg(e1000, E1000_RDH, 0);
     e1000_write_reg(e1000, E1000_RDT, RXDESCS - 1);
 
-    /* TODO: [p5-task2] Program the Receive Control Register */
+    /* DONE: [p5-task2] Program the Receive Control Register */
     uint32_t rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048 | (E1000_RCTL_BSEX & 0);
     e1000_write_reg(e1000, E1000_RCTL, rctl);
 
@@ -166,7 +166,7 @@ int e1000_transmit(void* txpacket, int length) {
  * @return - Length of received packet
  **/
 int e1000_poll(void* rxbuffer) {
-    /* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
+    /* DONE: [p5-task2] Receive one packet and put it into rxbuffer */
 
     static int head = 0;
 

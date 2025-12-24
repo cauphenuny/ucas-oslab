@@ -411,6 +411,18 @@ long sys_net_recv(void* rxbuffer, int pkt_num, int* pkt_lens) {
     return ret;
 }
 
+long sys_net_recv_stream(void* buffer, int* nbytes) {
+    char* buffer_kernel = (char*)kmalloc(*nbytes);
+    int nbytes_kernel = *nbytes;
+    do_net_recv_stream(buffer_kernel, &nbytes_kernel);
+    memcpy_kva2uva(
+        (uva_t)buffer, (kva_t)(buffer_kernel + 4), nbytes_kernel - 4, current_running->pgdir);
+    kfree(buffer_kernel);
+    nbytes_kernel -= 4;
+    memcpy_kva2uva((uva_t)nbytes, (kva_t)&nbytes_kernel, sizeof(int), current_running->pgdir);
+    return nbytes_kernel;
+}
+
 /***************** set handler *****************/
 
 void init_syscall(void) {
@@ -486,5 +498,6 @@ void init_syscall(void) {
 
     syscall[SYSCALL_NET_SEND] = (syscall_t)sys_net_send;
     syscall[SYSCALL_NET_RECV] = (syscall_t)sys_net_recv;
+    syscall[SYSCALL_NET_RECV_STREAM] = (syscall_t)sys_net_recv_stream;
 }
 }

@@ -98,6 +98,27 @@ const char* exception_name(uint64_t scause) {
     }
 }
 
+void print_backtrace(regs_context_t* regs) {
+    uint64_t fp = regs->regs[8];  // s0/fp
+    uint64_t ra = regs->regs[1];  // ra
+    int depth = 0;
+    printk("Backtrace (using sepc and stack):\n");
+    printk("  [0] 0x%lx\n", regs->sepc);
+    while (fp && depth < 20) {
+        if (ra) {
+            depth++;
+            printk("  [%d] 0x%lx\n", depth, ra);
+        }
+        if (fp < current_running->kernel_stack_bottom || fp > current_running->kernel_stack_base) {
+            break;
+        }
+        uint64_t prev_ra = *(uint64_t*)(fp - 8);
+        uint64_t prev_fp = *(uint64_t*)(fp - 16);
+        ra = prev_ra;
+        fp = prev_fp;
+    }
+}
+
 void interrupt_helper(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     int is_irq = (scause & SCAUSE_IRQ_FLAG) != 0;
     uint64_t exception_code = scause & (~SCAUSE_IRQ_FLAG);
@@ -213,6 +234,8 @@ void init_exception() {
 }
 
 void handle_other(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+    print_backtrace(regs);
+
     char* reg_name[] = {"zero ", " ra  ", " sp  ", " gp  ", " tp  ", " t0  ", " t1  ", " t2  ",
                         "s0/fp", " s1  ", " a0  ", " a1  ", " a2  ", " a3  ", " a4  ", " a5  ",
                         " a6  ", " a7  ", " s2  ", " s3  ", " s4  ", " s5  ", " s6  ", " s7  ",

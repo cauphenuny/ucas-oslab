@@ -137,8 +137,9 @@ void interrupt_helper(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     }
     tim->last = new_tick;
 
-    // pretty_log(LOG_DEBUG, "cur_pid: %d, is_irq: %d, exception_code: %lu", current_running->pid,
-    // is_irq, exception_code);
+    // pretty_log(
+    //     LOG_DEBUG, "proc: %d/%s, stval: %lu, name: %s, handler: %x", current_running->pid, current_running->name,
+    //     stval, exception_name(scause), irq_name[exception_code]);
     if (!((is_irq && exception_code < IRQC_COUNT) || (~is_irq && exception_code < EXCC_COUNT))) {
         pretty_log(
             LOG_ERROR, "invalid interrupt: is_irq=%d, exception_code=%lu", is_irq, exception_code);
@@ -206,6 +207,11 @@ void handle_exc_pagefault(regs_context_t* regs, uint64_t stval, uint64_t scause)
 
 void handle_irq_ext(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     uint32_t device = plic_claim();
+    pretty_logd("external irq device id=%d", device);
+    if (device == 0) {
+        pretty_logw("no external irq to handle");
+        return;
+    }
     asserts(device == PLIC_E1000_QEMU_IRQ || device == PLIC_E1000_PYNQ_IRQ, "unknown external irq");
     e1000_handle_interrupt();
     plic_complete(device);

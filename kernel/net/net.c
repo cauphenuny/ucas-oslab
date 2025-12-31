@@ -155,11 +155,11 @@ int do_net_send(void* txpacket, int length) {
         // DONE: [p5-task3] Call do_block when e1000 transmit queue is full
         do_block(&current_running->sched_node, &send_block_queue);
         // TODO: [p5-task4] Enable TXQE interrupt if transmit queue is full
-        // e1000_enable_txqe();
+        e1000_enable_txqe();
         pretty_logd("no space in transmit queue, blocking pid %d", current_running->pid);
         do_scheduler();
         pretty_logd("pid %d woke up for sending packet", current_running->pid);
-        // e1000_disable_txqe();
+        e1000_disable_txqe();
     }
 
     return length;  // Bytes it has transmitted

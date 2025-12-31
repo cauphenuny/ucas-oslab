@@ -38,7 +38,7 @@ extern spin_lock_t logger_lock;
     do {                                                                                           \
         spin_lock_acquire(&logger_lock);                                                           \
         printl(                                                                                    \
-            "%s " COLOR_BLACK "%d|%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
+            "%s " COLOR_DIM "%d|%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
             get_current_cpu_id(), __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
         spin_lock_release(&logger_lock);                                                           \
     } while (0)
@@ -47,7 +47,7 @@ extern spin_lock_t logger_lock;
     do {                                                                                        \
         spin_lock_acquire(&logger_lock);                                                        \
         printl(                                                                                 \
-            "%s " COLOR_BLACK "%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
+            "%s " COLOR_DIM "%s:%d (%s) \t" COLOR_RESET fmt "\n", log_level_str_color[level], \
             __FILE__, __LINE__, __func__, ##__VA_ARGS__);                                       \
         spin_lock_release(&logger_lock);                                                        \
     } while (0)

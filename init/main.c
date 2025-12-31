@@ -182,8 +182,7 @@ int main(int argc, char** argv) {
         // TODO: [p5-task4] Init plic
         plic_init(plic_addr, nr_irqs);
         pretty_logi(
-            "[INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr,
-            nr_irqs);
+            "[INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x", plic_addr, nr_irqs);
 
         // Init network device (⊙_⊙;)
         e1000_init();
@@ -214,6 +213,8 @@ int main(int argc, char** argv) {
 
     enable_interrupt();
     reset_timer();
+
+    pretty_logi("start main loop");
 
     while (true) {
         enable_preempt();

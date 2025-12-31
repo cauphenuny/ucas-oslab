@@ -206,7 +206,7 @@ viewlog:
 	@tail -f $(QEMU_LOG_FILE)
 
 minicom:
-	sudo $(MINICOM) -D $(TTYUSB1)
+	sudo $(MINICOM) -D $(TTYUSB1) -C minicom.txt
 
 .PHONY: all dirs clean floppy asm gdb run debug viewlog minicom
 .PHONY: host-gdb lldb

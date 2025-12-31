@@ -113,9 +113,8 @@ static void e1000_configure_rx(void) {
                     E1000_RCTL_RDMTS_HALF;
     e1000_write_reg(e1000, E1000_RCTL, rctl);
 
-    /* DONE: [p5-task4] Enable TXQE / RXDMT0 Interrupt */
-    e1000_write_reg(e1000, E1000_IMS, E1000_IMS_RXDMT0 | E1000_IMS_TXQE);
-    e1000_write_reg(e1000, E1000_IMC, ~(E1000_IMC_TXQE | E1000_IMC_RXDMT0));
+    /* DONE: [p5-task4] Enable RXDMT0 Interrupt */
+    e1000_write_reg(e1000, E1000_IMS, E1000_IMS_RXDMT0);
 }
 
 /**
@@ -196,15 +195,15 @@ int e1000_poll(void* rxbuffer) {
 }
 
 void e1000_enable_txqe() {
-    uint32_t imc = e1000_read_reg(e1000, E1000_IMC);
-    imc = imc & (~E1000_IMC_TXQE);
-    e1000_write_reg(e1000, E1000_IMC, imc);
+    uint32_t ims = e1000_read_reg(e1000, E1000_IMS);
+    ims = ims | E1000_IMC_TXQE;
+    e1000_write_reg(e1000, E1000_IMS, ims);
 }
 
 void e1000_disable_txqe() {
-    uint32_t imc = e1000_read_reg(e1000, E1000_IMC);
-    imc = imc | E1000_IMC_TXQE;
-    e1000_write_reg(e1000, E1000_IMC, imc);
+    uint32_t ims = e1000_read_reg(e1000, E1000_IMS);
+    ims = ims & (~E1000_IMC_TXQE);
+    e1000_write_reg(e1000, E1000_IMS, ims);
 }
 
 /**

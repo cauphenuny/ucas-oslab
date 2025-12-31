@@ -38,10 +38,8 @@ typedef struct {
     uint32_t seq;
 } header_t;
 
-static void ack(int seq) {
+static void ack(char* tx, int seq) {
     pretty_logi("acknowledge seq=%u", seq);
-    static char tx[TX_PKT_SIZE];
-    memset(tx, 0, TX_PKT_SIZE);
     uint8_t* thdr = (uint8_t*)tx + RTP_HDR_OFFSET;
     thdr[0] = 0x45;
     thdr[1] = 0x04;  // ACK
@@ -51,10 +49,8 @@ static void ack(int seq) {
     do_net_send(tx, TX_PKT_SIZE);
 }
 
-static void rsd(int seq) {
+static void rsd(char* tx, int seq) {
     pretty_logi("restore seq=%u", seq);
-    static char tx[TX_PKT_SIZE];
-    memset(tx, 0, TX_PKT_SIZE);
     uint8_t* thdr = (uint8_t*)tx + RTP_HDR_OFFSET;
     thdr[0] = 0x45;
     thdr[1] = 0x02;  // RSD
@@ -81,7 +77,7 @@ static header_t poll(char* buffer, int seq) {
         cnt++;
     }
     if (!plen) {
-        rsd(seq);
+        rsd(buffer, seq);
         do_sleep(1);
         return poll(buffer, seq);
     }
@@ -119,9 +115,9 @@ int do_net_recv_stream(void* buffer, int* nbytes) {
     uint32_t next_seq = 0, recv_seq = 0;
     int received_total = 0;
     int want = capacity;
+    char pkt[RX_PKT_SIZE];
     while (received_total < want) {
         // drain all available packets
-        char pkt[RX_PKT_SIZE];
         header_t hdr = poll(pkt, next_seq);
         char* data_start = pkt + RTP_HDR_OFFSET + 8;
         pretty_logd("received pkt: flags=0x%x, len=%d, seq=%u", hdr.flags, hdr.len, hdr.seq);
@@ -139,11 +135,11 @@ int do_net_recv_stream(void* buffer, int* nbytes) {
             received_total += copy_len;
             recv_seq = next_seq;
             next_seq += hdr.len;
-            ack(recv_seq);
+            ack(pkt, recv_seq);
         }
     }
     *nbytes = received_total;
-    ack(recv_seq);
+    ack(pkt, recv_seq);
     uint16_t checksum = fletcher16((uint8_t*)out + 4, received_total - 4);
     pretty_logi("total received %d bytes, fletcher16=0x%x", received_total, checksum);
     return received_total;

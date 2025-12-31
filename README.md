@@ -231,3 +231,20 @@ make run-smp # or debug-smp
 - `swap.c`：可切换 `lru/fifo/sc` 算法，统计缺页次数与用时。
 - `pipe.c`、`ipc.c`：验证零拷贝 pipe 的自测与性能差异，并与 mailbox 进行吞吐对比。
 - `oom.c`：通过 `sys_set_max_memory()` 人为收紧配额，测试页框组不足以放下页目录时操作系统是否能杀死进程。
+
+## P5
+
+A-Core
+
+```
+# compile
+./configure
+make
+
+# run
+make run-net # or debug-net
+```
+
+### Features and Implementation 
+
+与任务书一致，没有自由发挥内容

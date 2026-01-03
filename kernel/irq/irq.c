@@ -2,6 +2,7 @@
 #include <csr.h>
 #include <e1000.h>
 #include <logger.h>
+#include <os/halt.h>
 #include <os/irq.h>
 #include <os/kernel.h>
 #include <os/lock.h>
@@ -217,6 +218,10 @@ void handle_irq_ext(regs_context_t* regs, uint64_t stval, uint64_t scause) {
     plic_complete(device);
 }
 
+void handle_irq_sw(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+    check_halted();
+}
+
 void init_exception() {
     /* DONE: [p2-task3] initialize exc_table */
     /* NOTE: handle_syscall, handle_other, etc.*/
@@ -234,6 +239,7 @@ void init_exception() {
     }
     irq_table[IRQC_S_TIMER] = handle_irq_timer;
     irq_table[IRQC_S_EXT] = handle_irq_ext;
+    irq_table[IRQC_S_SOFT] = handle_irq_sw;
 
     /* DONE: [p2-task3] set up the entrypoint of exceptions */
     setup_exception();

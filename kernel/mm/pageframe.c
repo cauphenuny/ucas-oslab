@@ -45,7 +45,7 @@ kva_t alloc_pageframe(pageframe_group_t* group, int num_page) {
         }
         counter++;
     }
-    halt("out of memory");
+    err_halt("out of memory");
     return 0;
 }
 

@@ -5,6 +5,7 @@ extern "C" {
 #include <e1000.h>
 #include <logger.h>
 #include <os/fs.h>
+#include <os/halt.h>
 #include <os/irq.h>
 #include <os/kernel.h>
 #include <os/lock.h>
@@ -427,12 +428,15 @@ long sys_net_recv_stream(void* buffer, int* nbytes) {
 
 /***************** filesystem *****************/
 
-long sys_mkfs(void) {
-    return do_mkfs();
-}
+long sys_mkfs(void) { return do_mkfs(); }
 
-long sys_statfs(void) {
-    return do_statfs();
+long sys_statfs(void) { return do_statfs(); }
+
+/***************** halt *****************/
+
+long sys_halt(void) {
+    do_halt();
+    return 0;
 }
 
 /***************** set handler *****************/
@@ -514,5 +518,7 @@ void init_syscall(void) {
 
     syscall[SYSCALL_FS_MKFS] = (syscall_t)sys_mkfs;
     syscall[SYSCALL_FS_STATFS] = (syscall_t)sys_statfs;
+
+    syscall[SYSCALL_HALT] = (syscall_t)sys_halt;
 }
 }

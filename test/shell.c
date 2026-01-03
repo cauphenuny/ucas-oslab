@@ -671,6 +671,11 @@ int statfs(int argc, char** argv) {
     return sys_statfs();
 }
 
+int shutdown(int argc, char** argv) {
+    sys_halt();
+    return 0;
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -690,6 +695,7 @@ const task_t COMMAND_TABLE[] = {
     {"watch", "execute a program periodically", subcmd_lint_watch, watch},
     {"mkfs", "make filesystem", subcmd_lint, mkfs},
     {"statfs", "show filesystem status", subcmd_lint, statfs},
+    {"shutdown", "halt operating system", subcmd_lint, shutdown},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

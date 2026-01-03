@@ -113,4 +113,6 @@ int sys_rm(char* path);
 int sys_lseek(int fd, int offset, int whence);
 /************************************************************/
 
+void sys_halt(void);
+
 #endif

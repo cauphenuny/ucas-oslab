@@ -381,3 +381,7 @@ int sys_lseek(int fd, int offset, int whence)
     return 0;  // the resulting offset location from the beginning of the file
 }
 /************************************************************/
+
+void sys_halt(void) {
+    invoke_syscall(SYSCALL_HALT, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
+}

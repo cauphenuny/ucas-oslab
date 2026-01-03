@@ -18,7 +18,7 @@ void wakeup_other_hart() {
     unsigned long mask = (1 << NR_CPUS) - 1;
     int hartid = get_current_cpu_id();
     mask = ~((~mask) | (1 << hartid));  // do not send ipi to self
-    pretty_log(LOG_WARN, "send ipi with mask 0x%x", mask);
+    pretty_log(LOG_DEBUG, "send ipi with mask 0x%x", mask);
     send_ipi(&mask);
 }
 

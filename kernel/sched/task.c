@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
+#include <os/fs.h>
 #include <os/loader.h>
 #include <os/mm.h>
 #include <os/sched.h>
@@ -153,6 +154,8 @@ pcb_t* construct_pcb(
     pretty_log(
         LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, task->name, kernel_stack_base,
         user_stack_base, task->entrance);
+
+    pcb->cwd_inode = ROOT_INODE;
     return pcb;
 }
 

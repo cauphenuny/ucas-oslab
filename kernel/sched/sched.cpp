@@ -60,7 +60,7 @@ int get_pcb_index(pid_t pid) {
             return i;
         }
     }
-    halt("pcb not found in pcb_all");
+    err_halt("pcb not found in pcb_all");
     return -1;
 }
 
@@ -193,7 +193,7 @@ pcb_t* pick_process() {
     if (!proc) {
         do_process_show();
         show_pcb();
-        halt("no process to run");
+        err_halt("no process to run");
     }
 
     // pretty_log(

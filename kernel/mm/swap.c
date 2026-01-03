@@ -19,7 +19,7 @@ uint64_t swap_counter_in, swap_counter_out;
 static uint64_t alloc_swap() {
     if (swap_used >= NUM_MAX_SWAP) {
         pretty_loge("out of swap space!");
-        halt("out of swap space");
+        err_halt("out of swap space");
     }
     while (swap_using[swap_next_idx]) {
         swap_next_idx = (swap_next_idx + 1) % NUM_MAX_SWAP;
@@ -81,7 +81,7 @@ kva_t swapout(pageframe_group_t* group) {
             pretty_loge(
                 "failed to reclaim any process for pagegroup '%s', system out of options",
                 group->pages.name);
-            halt("pagegroup reclaim failed");
+            err_halt("pagegroup reclaim failed");
         }
         return 0;
     }

@@ -34,6 +34,6 @@ static inline void _panics(
     }
 #endif
 
-#define halt(msg) _panics("Halted", __FILE__, __LINE__, __FUNCTION__, msg)
+#define err_halt(msg) _panics("Halted", __FILE__, __LINE__, __FUNCTION__, msg)
 
 #endif /* ASSERT_H */

@@ -8,6 +8,7 @@
 #include <common.h>
 #include <csr.h>
 #include <e1000.h>
+#include <os/cxxrt.h>
 #include <os/ioremap.h>
 #include <os/irq.h>
 #include <os/kernel.h>
@@ -192,6 +193,9 @@ int main(int argc, char** argv) {
         asserts(shell_task, "no shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
         pretty_logi("[INIT] Created shell process.");
+
+        cxxrt_setup();
+        pretty_logi("[INIT] C++ runtime initialized.");
 
         // Set initialized flag (≧▽≦)
         pretty_logi("[INIT] All done! Notifying other harts to continue...");

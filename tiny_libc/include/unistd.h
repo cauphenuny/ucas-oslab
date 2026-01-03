@@ -8,7 +8,7 @@ typedef uint64_t size_t;
 void sys_sleep(uint32_t time);
 void sys_yield(void);
 
-void sys_write(char* buff);
+void sys_screen_write(char* buff);
 void sys_move_cursor(int x, int y);
 void sys_move_cursor_row(int row);
 void sys_move_cursor_col(int col);
@@ -41,7 +41,7 @@ void sys_screen_clear_lines(int start, int end);
 
 size_t sys_get_free_memory(void);
 int sys_set_max_memory(size_t max_mem);
-int sys_set_page_repl_algo(const char *algo);
+int sys_set_page_repl_algo(const char* algo);
 
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
@@ -88,14 +88,29 @@ void sys_semaphore_down(int sema_idx);
 /* TODO: [P4 task4] free memory*/
 size_t sys_free_mem(void);
 /* TODO: [P4 task5] pipe*/
-int sys_pipe_open(const char *name);
-long sys_pipe_give_pages(int pipe_idx, void *src, size_t length);
-long sys_pipe_take_pages(int pipe_idx, void *dst, size_t length);
+int sys_pipe_open(const char* name);
+long sys_pipe_give_pages(int pipe_idx, void* src, size_t length);
+long sys_pipe_take_pages(int pipe_idx, void* dst, size_t length);
 
 /* TODO: [P5-task5] net send and recv */
-int sys_net_send(void *txpacket, int length);
-int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
+int sys_net_send(void* txpacket, int length);
+int sys_net_recv(void* rxbuffer, int pkt_num, int* pkt_lens);
 int sys_net_recv_stream(void* buffer, int* nbytes);
+
+/* file system operations */
+int sys_mkfs(void);
+int sys_statfs(void);
+int sys_cd(char* path);
+int sys_mkdir(char* path);
+int sys_rmdir(char* path);
+int sys_ls(char* path, int option);
+int sys_open(char* path, int mode);
+int sys_read(int fd, char* buff, int length);
+int sys_write(int fd, char* buff, int length);
+int sys_close(int fd);
+int sys_ln(char* src_path, char* dst_path);
+int sys_rm(char* path);
+int sys_lseek(int fd, int offset, int whence);
 /************************************************************/
 
 #endif

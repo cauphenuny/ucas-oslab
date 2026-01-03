@@ -2,7 +2,7 @@
 # Project Information
 # -----------------------------------------------------------------------
 
-PROJECT_IDX	= 5
+PROJECT_IDX	= 6
 
 # -----------------------------------------------------------------------
 # Include Platform-specific Configuration

@@ -253,6 +253,6 @@ $(ELF_CREATEIMAGE): $(SRC_CREATEIMAGE)
 	$(HOST_CC) $(SRC_CREATEIMAGE) -o $@ -ggdb -Wall
 
 image: $(ELF_CREATEIMAGE) $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
-	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F)) && dd if=/dev/zero of=image oflag=append conv=notrunc bs=64MiB count=1
+	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F)) && dd if=/dev/zero of=image oflag=append conv=notrunc bs=512MiB count=2
 
 .PHONY: image

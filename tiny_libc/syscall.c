@@ -39,7 +39,7 @@ void sys_move_cursor_col(int col) {
     invoke_syscall(SYSCALL_CURSOR_COL, (long)col, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
-void sys_write(char* buff) {
+void sys_screen_write(char* buff) {
     invoke_syscall(SYSCALL_WRITE, (long)buff, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
@@ -306,14 +306,12 @@ int sys_net_recv_stream(void* buffer, int* nbytes) {
 
 int sys_mkfs(void)
 {
-    // TODO [P6-task1]: Implement sys_mkfs
-    return 0;  // sys_mkfs succeeds
+    return invoke_syscall(SYSCALL_FS_MKFS, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_statfs(void)
 {
-    // TODO [P6-task1]: Implement sys_statfs
-    return 0;  // sys_statfs succeeds
+    return invoke_syscall(SYSCALL_FS_STATFS, IGNORE, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_cd(char *path)

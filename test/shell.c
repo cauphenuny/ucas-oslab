@@ -663,6 +663,14 @@ usage:
     return 1;
 }
 
+int mkfs(int argc, char** argv) {
+    return sys_mkfs();
+}
+
+int statfs(int argc, char** argv) {
+    return sys_statfs();
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -680,6 +688,8 @@ const task_t COMMAND_TABLE[] = {
     {"free", "show free memory", subcmd_lint_free, free},
     {"time", "measure command execution time", subcmd_lint_time, time},
     {"watch", "execute a program periodically", subcmd_lint_watch, watch},
+    {"mkfs", "make filesystem", subcmd_lint, mkfs},
+    {"statfs", "show filesystem status", subcmd_lint, statfs},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

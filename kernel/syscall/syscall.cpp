@@ -4,6 +4,7 @@ extern "C" {
 #include <csr.h>
 #include <e1000.h>
 #include <logger.h>
+#include <os/fs.h>
 #include <os/irq.h>
 #include <os/kernel.h>
 #include <os/lock.h>
@@ -173,6 +174,7 @@ const struct {
     {"mbox", "display mailbox status", (info_handler_t)show_mailboxes},
     {"page", "display page frame group status", (info_handler_t)show_pagegroups},
     {"swap", "display swap status", (info_handler_t)show_swap},
+    {"fs", "display filesystem status", (info_handler_t)do_statfs},
     {"help", "display this help message", (info_handler_t)show_help},
 };
 
@@ -423,6 +425,16 @@ long sys_net_recv_stream(void* buffer, int* nbytes) {
     return nbytes_kernel;
 }
 
+/***************** filesystem *****************/
+
+long sys_mkfs(void) {
+    return do_mkfs();
+}
+
+long sys_statfs(void) {
+    return do_statfs();
+}
+
 /***************** set handler *****************/
 
 void init_syscall(void) {
@@ -499,5 +511,8 @@ void init_syscall(void) {
     syscall[SYSCALL_NET_SEND] = (syscall_t)sys_net_send;
     syscall[SYSCALL_NET_RECV] = (syscall_t)sys_net_recv;
     syscall[SYSCALL_NET_RECV_STREAM] = (syscall_t)sys_net_recv_stream;
+
+    syscall[SYSCALL_FS_MKFS] = (syscall_t)sys_mkfs;
+    syscall[SYSCALL_FS_STATFS] = (syscall_t)sys_statfs;
 }
 }

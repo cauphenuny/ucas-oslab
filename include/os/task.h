@@ -9,6 +9,7 @@
 
 #define SECTOR_SIZE        512
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
+#define SEC2BYTES(nsecs)   ((nsecs) * SECTOR_SIZE)
 
 /* TODO: [p1-task4] implement your own task_info_t! */
 typedef struct task_info {

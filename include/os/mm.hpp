@@ -23,6 +23,7 @@ public:
         return *reinterpret_cast<T*>(uva2kva(addr + index * sizeof(T), current_running->pgdir));
     }
     [[nodiscard]] char* str() {
+        if (!addr) return nullptr;
         size_t len = 0;
         while (true) {
             char ch = this->at<char>(len);
@@ -33,6 +34,7 @@ public:
         // NOTE: when using c_str(), ensure current_running may not be switched out
     }
     [[nodiscard]] char** argv(int argc) {
+        if (!addr) return nullptr;
         for (int i = 0; i < argc; i++) {
             // this->at: ensure each argv[i] is allocated
             // uva_object_t(...).str(): ensure the string that argv[i] points to is allocated

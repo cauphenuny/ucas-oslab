@@ -43,7 +43,7 @@ MINICOM         ?= minicom
 
 COMMON_FLAGS    = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 COMMON_FLAGS    += -g
-COMMON_FLAGS    += -O2
+COMMON_FLAGS    += -O0
 # COMMON_FLAGS    += -DNOLOG
 # COMMON_FLAGS    += -DNOASSERTS
 
@@ -153,7 +153,7 @@ clean:
 	rm -rf $(DIR_BUILD)
 
 floppy:
-	sudo dd if=$(DIR_BUILD)/image of=$(DISK)$(DISK_SECTOR) conv=notrunc
+	sudo dd if=$(DIR_BUILD)/raw_image of=$(DISK)$(DISK_SECTOR) conv=notrunc
 	# sudo fdisk -l $(DISK)
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
@@ -253,6 +253,6 @@ $(ELF_CREATEIMAGE): $(SRC_CREATEIMAGE)
 	$(HOST_CC) $(SRC_CREATEIMAGE) -o $@ -ggdb -Wall
 
 image: $(ELF_CREATEIMAGE) $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
-	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F)) && dd if=/dev/zero of=image oflag=append conv=notrunc bs=512MiB count=2
+	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F)) && cp image raw_image && dd if=/dev/zero of=image oflag=append conv=notrunc bs=512MiB count=2
 
 .PHONY: image

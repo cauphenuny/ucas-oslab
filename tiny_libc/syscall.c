@@ -316,27 +316,23 @@ int sys_statfs(void)
 
 int sys_cd(char *path)
 {
-    // TODO [P6-task1]: Implement sys_cd
-    return 0;  // sys_cd succeeds
+    return invoke_syscall(SYSCALL_FS_CD, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_mkdir(char *path)
 {
-    // TODO [P6-task1]: Implement sys_mkdir
-    return 0;  // sys_mkdir succeeds
+    return invoke_syscall(SYSCALL_FS_MKDIR, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_rmdir(char *path)
 {
-    // TODO [P6-task1]: Implement sys_rmdir
-    return 0;  // sys_rmdir succeeds
+    return invoke_syscall(SYSCALL_FS_RMDIR, (long)path, IGNORE, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_ls(char *path, int option)
 {
-    // TODO [P6-task1]: Implement sys_ls
     // Note: argument 'option' serves for 'ls -l' in A-core
-    return 0;  // sys_ls succeeds
+    return invoke_syscall(SYSCALL_FS_LS, (long)path, (long)option, IGNORE, IGNORE, IGNORE);
 }
 
 int sys_open(char *path, int mode)

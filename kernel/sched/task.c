@@ -1,13 +1,13 @@
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
-#include <os/fs.h>
 #include <os/loader.h>
 #include <os/mm.h>
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
 #include <screen.h>
+#include <os/fs.h>
 
 // Task info array
 int task_num;

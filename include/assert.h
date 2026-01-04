@@ -12,7 +12,7 @@ static inline void _panic(const char* file_name, int lineno, const char* func_na
 
 static inline void _panics(
     const char* prompt, const char* file_name, int lineno, const char* func_name, const char* msg) {
-    printk("%s at %s due to %s in %s:%d\n\r", func_name, msg, file_name, lineno);
+    printk("%s at %s due to %s in %s:%d\n\r", prompt, func_name, msg, file_name, lineno);
     breakpoint();
     for (;;);
 }

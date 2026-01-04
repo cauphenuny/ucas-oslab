@@ -432,6 +432,17 @@ long sys_mkfs(void) { return do_mkfs(); }
 
 long sys_statfs(void) { return do_statfs(); }
 
+long sys_ls(char* upath, int option) {
+    char* path = uva_object_t((uva_t)upath).str();
+    pretty_logd("path='%s', option=%d", path ? path : "nullptr", option);
+    return do_ls(path, option);
+}
+
+long sys_cd(char* upath) {
+    char* path = uva_object_t((uva_t)upath).str();
+    return do_cd(path);
+}
+
 /***************** halt *****************/
 
 long sys_halt(void) {
@@ -518,6 +529,8 @@ void init_syscall(void) {
 
     syscall[SYSCALL_FS_MKFS] = (syscall_t)sys_mkfs;
     syscall[SYSCALL_FS_STATFS] = (syscall_t)sys_statfs;
+    syscall[SYSCALL_FS_LS] = (syscall_t)sys_ls;
+    syscall[SYSCALL_FS_CD] = (syscall_t)sys_cd;
 
     syscall[SYSCALL_HALT] = (syscall_t)sys_halt;
 }

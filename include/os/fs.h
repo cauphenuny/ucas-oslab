@@ -21,7 +21,7 @@ typedef struct superblock {
     uint32_t block_map_offset;
     uint32_t inode_map_offset;
     uint32_t inode_offset;
-    uint32_t data_offset;
+    uint32_t datablock_offset;
     uint32_t inode_count;
     uint32_t block_count;
     uint32_t used_inode;
@@ -40,14 +40,17 @@ typedef struct dentry {
 
 STATIC_ASSERT(sizeof(dentry_t) == 32, "dentry size incorrect");
 
+#define FS_TYPE_DIR 0x4000
+
+#define NUM_DIRECT_BLOCKS 10
 // size: 64 bytes
 typedef struct inode {
     // TODO [P6-task1]: Implement the data structure of inode
-    uint32_t mode;
-    uint32_t size;
+    uint32_t type;
     uint32_t link_count;
+    uint32_t size; // in bytes
     uint32_t blocks;
-    uint32_t direct[10];
+    uint32_t direct[NUM_DIRECT_BLOCKS];
     uint32_t indirect;
     uint32_t double_inderect;
 } inode_t;
@@ -67,6 +70,8 @@ typedef struct fdesc {
 
 #define SIZE_INODE_MAP 1  // 1 sector
 #define NUM_INODES     ((SIZE_INODE_MAP) * (SECTOR_SIZE) * 8)
+#define INODE_PER_SECTOR (SECTOR_SIZE / sizeof(inode_t))
+#define ROOT_INODE 0
 
 STATIC_ASSERT(
     SECTOR_SIZE % sizeof(inode_t) == 0, "SECTOR_SIZE must be a multiple of inode_t size");
@@ -76,6 +81,17 @@ STATIC_ASSERT(
 #define SIZE_BLOCK_MAP 32
 
 #define SIZE_BLOCK 8 // 4KB
+#define INODE_PER_BLOCK (SIZE_BLOCK * SECTOR_SIZE / sizeof(inode_t))
+
+#define MAX_DENTRIES (SIZE_BLOCK * SECTOR_SIZE / sizeof(dentry_t) - 1)
+
+typedef struct directory {
+    uint32_t num_entries;
+    uint8_t pad[32 - sizeof(uint32_t)];
+    dentry_t entries[MAX_DENTRIES];
+} directory_t;
+
+STATIC_ASSERT(sizeof(directory_t) == SIZE_BLOCK * SECTOR_SIZE, "directory size incorrect");
 
 /* modes of do_open */
 #define O_RDONLY 1 /* read only open */
@@ -86,6 +102,8 @@ STATIC_ASSERT(
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
+
+#define LS_VERBOSE (1 << 0) /* for 'ls -l' */
 
 /* fs function declarations */
 extern int do_mkfs(void);

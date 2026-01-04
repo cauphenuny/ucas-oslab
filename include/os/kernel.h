@@ -42,7 +42,7 @@ static inline int bios_getchar(void) { return call_jmptab(CONSOLE_GETCHAR, 0, 0,
 static inline int bios_sd_read(uint64_t mem_address, unsigned num_of_blocks, unsigned block_id) {
     int ret = call_jmptab(SD_READ, (long)kva2pa(mem_address), (long)num_of_blocks, (long)block_id, 0, 0);
     if (ret) {
-        pretty_loge("bios sd read error: mem_address=%lu, num_of_blocks=%u, block_id=%u", mem_address, num_of_blocks, block_id);
+        pretty_loge("bios sd read error: mem_address=%lx, num_of_blocks=%u, block_id=%u", kva2pa(mem_address), num_of_blocks, block_id);
     }
     return ret;
 }
@@ -52,7 +52,7 @@ static inline int bios_sd_read(uint64_t mem_address, unsigned num_of_blocks, uns
 static inline int bios_sd_write(uint64_t mem_address, unsigned num_of_blocks, unsigned block_id) {
     int ret = call_jmptab(SD_WRITE, (long)kva2pa(mem_address), (long)num_of_blocks, (long)block_id, 0, 0);
     if (ret) {
-        pretty_loge("bios sd write error: mem_address=%lx, num_of_blocks=%u, block_id=%u", mem_address, num_of_blocks, block_id);
+        pretty_loge("bios sd write error: mem_address=%x, num_of_blocks=%u, block_id=%u", kva2pa(mem_address), num_of_blocks, block_id);
     }
     return ret;
 }

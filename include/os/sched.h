@@ -165,6 +165,9 @@ typedef struct pcb {
     struct pcb* parent;
     list_node_t relation_node;
     list_t child_list;
+
+    /* filesystem */
+    int cwd_inode;
 } pcb_t;
 
 /* ready queue to run */

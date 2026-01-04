@@ -676,6 +676,18 @@ int shutdown(int argc, char** argv) {
     return 0;
 }
 
+int mkdir(int argc, char** argv) {
+    return sys_mkdir(argv[1]);
+}
+
+int rmdir(int argc, char** argv) {
+    return sys_rmdir(argv[1]);
+}
+
+int ls(int argc, char** argv) {
+    return sys_ls(argc > 1 ? argv[1] : NULL, 0);
+}
+
 const task_t COMMAND_TABLE[] = {
     {"echo", "echo", subcmd_lint, echo},
     {"ts", "show task", subcmd_lint, ts},
@@ -696,6 +708,9 @@ const task_t COMMAND_TABLE[] = {
     {"mkfs", "make filesystem", subcmd_lint, mkfs},
     {"statfs", "show filesystem status", subcmd_lint, statfs},
     {"shutdown", "halt operating system", subcmd_lint, shutdown},
+    {"mkdir", "make directory", subcmd_lint, mkdir},
+    {"rmdir", "remove directory", subcmd_lint, rmdir},
+    {"ls", "list directory contents", subcmd_lint, ls},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

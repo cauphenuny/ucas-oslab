@@ -1,9 +1,10 @@
 #ifndef __INCLUDE_OS_FS_H__
 #define __INCLUDE_OS_FS_H__
 
+#include <os/lock.h>
 #include <os/task.h>
-#include <type.h>
 #include <static_assert.h>
+#include <type.h>
 
 /* macros of file system */
 #define SUPERBLOCK_MAGIC 0xDF4C4459
@@ -29,33 +30,58 @@ typedef struct superblock {
     uint8_t pad[512 - sizeof(uint32_t) * 12];
 } superblock_t;
 
+extern superblock_t superblock;
+
 STATIC_ASSERT(sizeof(superblock_t) == 512, "superblock size incorrect");
+
+#define MAX_FILE_NAME 28
 
 // size: 32 bytes
 typedef struct dentry {
     // TODO [P6-task1]: Implement the data structure of directory entry
-    char name[28];
+    char name[MAX_FILE_NAME];
     uint32_t inode_num;
 } dentry_t;
 
 STATIC_ASSERT(sizeof(dentry_t) == 32, "dentry size incorrect");
 
-#define FS_TYPE_DIR 0x4000
+#define FS_TYPE_DIR  0x01
+#define FS_TYPE_FILE 0x02
+#define FS_TYPE_DEV  0x04
 
-#define NUM_DIRECT_BLOCKS 10
+#define NUM_DIRECT_BLOCKS          10
+#define NUM_INDIRECT_BLOCKS        (BLOCK_SIZE / sizeof(int))
+#define NUM_DOUBLE_INDIRECT_BLOCKS (NUM_INDIRECT_BLOCKS * NUM_INDIRECT_BLOCKS)
+
 // size: 64 bytes
-typedef struct inode {
+typedef struct diskinode {
     // TODO [P6-task1]: Implement the data structure of inode
-    uint32_t type;
-    uint32_t link_count;
-    uint32_t size; // in bytes
+    uint16_t type;
+    uint16_t link_count;  // reference in filesystem
+    uint32_t inode_num;
+    uint32_t size;  // in bytes
     uint32_t blocks;
     uint32_t direct[NUM_DIRECT_BLOCKS];
     uint32_t indirect;
-    uint32_t double_inderect;
+    uint32_t double_indirect;
+} diskinode_t;
+
+// NOTE: DO NOT change the layout (make it synchorous to diskinode_t)
+typedef struct inode {
+    uint16_t type;
+    uint16_t link_count;  // reference in filesystem
+    uint32_t inode_num;
+    uint32_t size;  // in bytes
+    uint32_t blocks;
+    uint32_t direct[NUM_DIRECT_BLOCKS];
+    uint32_t indirect;
+    uint32_t double_indirect;
+    uint16_t valid;
+    uint16_t ref_count;  // reference in memory
+    mutex_lock_t lock;
 } inode_t;
 
-STATIC_ASSERT(sizeof(inode_t) == 64, "inode size incorrect");
+STATIC_ASSERT(sizeof(diskinode_t) == 64, "inode size incorrect");
 
 typedef struct fdesc {
     // TODO [P6-task2]: Implement the data structure of file descriptor
@@ -65,33 +91,28 @@ typedef struct fdesc {
     uint32_t valid;
 } fdesc_t;
 
-#define FS_START_SECTOR (512 * 1024 * 1024 / SECTOR_SIZE)  // at 512MB
-#define FS_END_SECTOR (1024 * 1024 * 1024 / SECTOR_SIZE)    // at 1GB
+#define FS_START_SECTOR (512 * 1024 * 1024 / SECTOR_SIZE)   // at 512MB
+#define FS_END_SECTOR   (1024 * 1024 * 1024 / SECTOR_SIZE)  // at 1GB
 
-#define SIZE_INODE_MAP 1  // 1 sector
-#define NUM_INODES     ((SIZE_INODE_MAP) * (SECTOR_SIZE) * 8)
-#define INODE_PER_SECTOR (SECTOR_SIZE / sizeof(inode_t))
-#define ROOT_INODE 0
+#define ROOT_INODE 1
+
+#define NSECTOR_BLOCK 8  // 4KB, size of block in sectors
+
+#define BLOCK_SIZE NSECTOR_BLOCK* SECTOR_SIZE
+
+#define NBLOCK_INODE_MAP 1                                      // 1 sector
+#define NUM_INODES       ((NBLOCK_INODE_MAP) * BLOCK_SIZE * 8)  // all inodes in filesystem
+#define INODE_PER_BLOCK  (BLOCK_SIZE / sizeof(diskinode_t))     // inode(content) per sector
 
 STATIC_ASSERT(
-    SECTOR_SIZE % sizeof(inode_t) == 0, "SECTOR_SIZE must be a multiple of inode_t size");
+    BLOCK_SIZE % sizeof(diskinode_t) == 0, "SECTOR_SIZE must be a multiple of inode_t size");
 
-#define SIZE_INODE_TABLE (sizeof(inode_t) * NUM_INODES / SECTOR_SIZE)
+#define NBLOCK_INODE_TABLE \
+    (sizeof(diskinode_t) * NUM_INODES / BLOCK_SIZE)  // size of inode table in blocks
 
-#define SIZE_BLOCK_MAP 32
+#define NBLOCK_BLOCK_MAP 32  // size of block map in sectors
 
-#define SIZE_BLOCK 8 // 4KB
-#define INODE_PER_BLOCK (SIZE_BLOCK * SECTOR_SIZE / sizeof(inode_t))
-
-#define MAX_DENTRIES (SIZE_BLOCK * SECTOR_SIZE / sizeof(dentry_t) - 1)
-
-typedef struct directory {
-    uint32_t num_entries;
-    uint8_t pad[32 - sizeof(uint32_t)];
-    dentry_t entries[MAX_DENTRIES];
-} directory_t;
-
-STATIC_ASSERT(sizeof(directory_t) == SIZE_BLOCK * SECTOR_SIZE, "directory size incorrect");
+#define MAX_DENTRIES (BLOCK_SIZE / sizeof(dentry_t) - 1)
 
 /* modes of do_open */
 #define O_RDONLY 1 /* read only open */
@@ -119,5 +140,64 @@ extern int do_close(int fd);
 extern int do_ln(char* src_path, char* dst_path);
 extern int do_rm(char* path);
 extern int do_lseek(int fd, int offset, int whence);
+
+typedef struct block {
+    int valid;
+    int block_num;
+    int refcnt;
+    uint8_t data[BLOCK_SIZE];
+} block_t;
+
+block_t* block_open(int block_num);
+void block_memset(int block_num, uint8_t val);
+void block_close(block_t* blk);
+int block_alloc(void);
+int block_allocset(uint8_t val);
+void block_free(int block_num);
+void shutdown_blocks();
+
+#define INODE2BLOCK(inode_num)  (superblock.inode_offset + (inode_num) / INODE_PER_BLOCK)
+#define INODE2OFFSET(inode_num) ((inode_num) % INODE_PER_BLOCK)
+
+#define BLOCKID2MAPBLOCK(block_num)  (superblock.block_map_offset + (block_num) / (BLOCK_SIZE * 8))
+#define BLOCKID2MAPOFFSET(block_num) ((block_num) % (BLOCK_SIZE * 8))
+
+#define DATABLOCK(block_num) (superblock.datablock_offset + (block_num))
+
+void init_inodes();
+
+// NOTE: these returns an unlocked but referenced node
+inode_t* inode_alloc(int type);
+inode_t* inode_ref(int inode_num);
+
+// NOTE: these do not require inode locked
+void inode_deref(inode_t* inode);
+
+// NOTE: these requires inode locked
+void inode_clear(inode_t* inode);
+void inode_sync(inode_t* inode);
+int inode_mapblock(inode_t* inode, int block_in_file);
+void inode_delete(inode_t* inode);
+int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint32_t length);
+int inode_write(inode_t* inode, void* src, uint32_t pgdir, uint32_t offset, uint32_t length);
+
+// NOTE: these requires inode locked and unlocks inode
+void inode_unlock(inode_t* inode);
+void inode_close(inode_t* inode);
+
+// NOTE: these locks inode
+void inode_open(inode_t* inode);
+
+// NOTE: these below returns an unlocked but referenced inode
+
+inode_t* dir_lookup(inode_t* dir, const char* filename, size_t* poff);
+int dir_link(inode_t* dir, const char* filename, int inode_num);
+int dir_unlink(inode_t* dir, const char* filename);
+int dir_rmdir(inode_t* dir, const char* dirname);
+
+inode_t* path_resolve_entry(const char* path);
+inode_t* path_resolve_parent(const char* path, char* name);
+inode_t* path_create(const char* path, int type);
+int path_remove(const char* path, int isdir);
 
 #endif

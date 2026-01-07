@@ -219,6 +219,15 @@ inode_t* path_resolve_parent(const char* path, char* name);
 inode_t* path_create(const char* path, int type);
 int path_remove(const char* path, int isdir);
 
+void init_dentry_cache();
+bool dcache_get(uint32_t parent_inode, const char* name, dentry_t* out, size_t* offset);
+void dcache_put(uint32_t parent_inode, const dentry_t* entry, size_t offset);
+void dcache_remove(uint32_t parent_inode, const char* name);
+void dcache_invalidate(uint32_t parent_inode);
+void dcache_reset();
+void dcache_set_enabled(bool enabled);
+bool dcache_is_enabled();
+
 enum {
     POLICY_WRITE_BACK = 0,
     POLICY_WRITE_THROUGH,

@@ -14,11 +14,19 @@ inode_t* dir_lookup(inode_t* dir, const char* filename, size_t* poff) {
     asserts(filename != NULL, "dir_lookup with NULL filename");
     asserts(dir->type == FS_TYPE_DIR, "dir_lookup on non-directory inode");
 
+    dentry_t cached;
+    size_t cached_offset = 0;
+    if (dcache_get(dir->inode_num, filename, &cached, &cached_offset)) {
+        if (poff) *poff = cached_offset;
+        return inode_ref(cached.inode_num);
+    }
+
     for (size_t offset = 0; offset < dir->size; offset += sizeof(dentry_t)) {
         dentry_t dentry;
         int n = inode_read(dir, &dentry, 0, offset, sizeof(dentry_t));
         asserts(n == sizeof(dentry_t), "short read");
         if (dentry.inode_num == 0) continue;
+        dcache_put(dir->inode_num, &dentry, offset);
         if (filename_cmp(dentry.name, filename) == 0) {
             if (poff) *poff = offset;
             return inode_ref(dentry.inode_num);
@@ -61,6 +69,7 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
         pretty_logw("failed to write directory entry");
         return ERR_OPERATION_FAILED;
     }
+    dcache_put(dir->inode_num, &dentry, offset);
     return 0;
 }
 
@@ -91,6 +100,8 @@ int dir_unlink(inode_t* dir, const char* filename) {
         inode_close(child);
         return ERR_OPERATION_FAILED;
     }
+
+    dcache_remove(dir->inode_num, filename);
 
     inode_close(child);
     return 0;
@@ -147,6 +158,9 @@ int dir_rmdir(inode_t* dir, const char* dirname) {
         pretty_logw("failed to remove directory entry %s", dirname);
         return ERR_OPERATION_FAILED;
     }
+
+    dcache_remove(dir->inode_num, dirname);
+    dcache_invalidate(child->inode_num);
 
     if (child->type == FS_TYPE_DIR) {
         dir->link_count--;

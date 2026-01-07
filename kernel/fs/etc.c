@@ -138,17 +138,97 @@ static void etc_vm_daemon() {
             etc_vm_reset(inode);
         }
         inode_close(inode);
-        do_sleep(5);
+        do_sleep(1);
+    }
+}
+
+static void etc_fs_reset(inode_t* inode) {
+    static char buffer[128];
+    int size = snprintf(
+        buffer, sizeof(buffer), "dentry_cache = %s\nflush = 0\n",
+        dcache_is_enabled() ? "on" : "off");
+    inode_write(inode, (void*)buffer, 0, 0, size);
+}
+
+static int etc_fs_parse(inode_t* inode) {
+    static char buffer[128];
+    int size = inode_read(inode, (void*)buffer, 0, 0, sizeof(buffer) - 1);
+    if (size <= 0) return -1;
+    if (size >= (int)sizeof(buffer)) size = sizeof(buffer) - 1;
+    buffer[size] = '\0';
+
+    char* line2 = buffer;
+    while (*line2 && *line2 != '\n') line2++;
+    if (*line2 == '\n') {
+        *line2 = '\0';
+        line2++;
+    }
+    while (*line2 == '\n') line2++;
+
+    bool enable;
+    if (strncmp(buffer, "dentry_cache = on", 18) == 0) {
+        enable = true;
+    } else if (strncmp(buffer, "dentry_cache = off", 19) == 0) {
+        enable = false;
+    } else {
+        pretty_logw("etc/fs: invalid dentry cache toggle");
+        return -1;
+    }
+
+    dcache_set_enabled(enable);
+
+    bool flush = false;
+    if (*line2) {
+        if (strncmp(line2, "flush = 1", 9) == 0) {
+            flush = true;
+        } else if (strncmp(line2, "flush = 0", 9) != 0) {
+            pretty_logw("etc/fs: invalid flush flag");
+            return -1;
+        }
+    }
+
+    if (flush) {
+        dcache_reset();
+    }
+
+    etc_fs_reset(inode);
+    return 0;
+}
+
+static void etc_fs_daemon() {
+    set_process_nice(10, current_running->pid);
+    while (true) {
+        inode_t* inode = path_resolve_entry("/proc/sys/fs/dentry");
+        inode_open(inode);
+        if (etc_fs_parse(inode) != 0) {
+            pretty_logw("etc/fs: parse error, reset to default");
+            etc_fs_reset(inode);
+        }
+        inode_close(inode);
+        do_sleep(1);
     }
 }
 
 void init_fs_etc() {
     do_mkdir("/proc");
     do_mkdir("/proc/sys");
-    inode_t* vm_node = path_create("/proc/sys/vm", FS_TYPE_FILE);
-    inode_deref(vm_node);
+    do_mkdir("/proc/sys/fs");
 
-    do_exec(
-        NULL, "config_daemon", (uint64_t)etc_vm_daemon, 1, (char*[]){"config_daemon"},
-        (unsigned)-1);
+    inode_t* vm_node = path_create("/proc/sys/vm", FS_TYPE_FILE);
+    if (vm_node) {
+        inode_open(vm_node);
+        etc_vm_reset(vm_node);
+        inode_close(vm_node);
+    }
+
+    inode_t* fs_node = path_create("/proc/sys/fs/dentry", FS_TYPE_FILE);
+    if (fs_node) {
+        inode_open(fs_node);
+        etc_fs_reset(fs_node);
+        inode_close(fs_node);
+    }
+
+    do_exec(NULL, "vm_conf", (uint64_t)etc_vm_daemon, 1, (char*[]){"vm_conf"}, (unsigned)-1);
+
+    do_exec(NULL, "fs_config", (uint64_t)etc_fs_daemon, 1, (char*[]){"fs_conf"}, (unsigned)-1);
 }

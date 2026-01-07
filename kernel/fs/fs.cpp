@@ -13,6 +13,8 @@ extern "C" {
 int do_mkfs(void) {
     // TODO [P6-task1]: Implement do_mkfs
 
+    dcache_reset();
+
     uint32_t block_map = 1;  // superblock is at block 0
     uint32_t inode_map = block_map + NBLOCK_BLOCK_MAP;
     uint32_t inode_table = inode_map + NBLOCK_INODE_MAP;
@@ -65,6 +67,7 @@ int do_mkfs(void) {
 
 void init_fs() {
     init_inodes();
+    init_dentry_cache();
     init_fs_cache();
 
     if (bios_sd_read((kva_t)&superblock, 1, FS_START_SECTOR)) {
@@ -316,10 +319,12 @@ int do_close(int fd) {
     if (fd < 0 || fd >= NUM_MAX_PROC_FD) {
         return 0;
     }
-    if (!current_running->fd_table[fd]) {
+    fdesc_t* fdesc = current_running->fd_table[fd];
+    if (!fdesc) {
         return ERR_FD_INVALID;
     }
-    inode_deref(current_running->fd_table[fd]->inode);
+    inode_deref(fdesc->inode);
+    fdesc->valid = 0;
     current_running->fd_table[fd] = NULL;
     return 0;  // do_close succeeds
 }

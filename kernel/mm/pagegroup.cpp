@@ -60,7 +60,7 @@ void show_pagegroups(int argc, char** argv) {
         }
         return;
     }
-    using T = pageframe_group_t;
+    using T = const pageframe_group_t;
     display_table<T>(
         page_groups, NUM_MAX_PAGEGROUP, [](T* group) { return group->refcount > 0; },
         table_entry_t{"ID", 4, [](T* group) { printk("%d", group - page_groups); }},

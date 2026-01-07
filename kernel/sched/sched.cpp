@@ -356,23 +356,24 @@ int do_process_show() {
 
     using T = pcb_t*;
     return display_table<T>(
-        pcb_all, NUM_MAX_PCB, [](T* proc) { return (*proc)->status != TASK_EXITED; },
-        table_entry_t{"PID", 5, [](T* proc) { printkf("%d", (*proc)->pid); }},
+        pcb_all, NUM_MAX_PCB, [](const T* proc) { return (*proc)->status != TASK_EXITED; },
+        table_entry_t{"PID", 5, [](const T* proc) { printkf("%d", (*proc)->pid); }},
         table_entry_t{
             "PPID", 6,
-            [](T* proc) {
+            [](const T* proc) {
                 if ((*proc)->parent) {
                     printkf("%d", (*proc)->parent->pid);
                 } else {
                     printkf("N/A");
                 }
             }},
-        table_entry_t{"COMMAND", 18, [](T* proc) { printkf("%s", (*proc)->cmd); }},
+        table_entry_t{"COMMAND", 18, [](const T* proc) { printkf("%s", (*proc)->cmd); }},
         table_entry_t{
-            "STATUS", 10, [&status_str](T* proc) { printkf("%s", status_str[(*proc)->status]); }},
+            "STATUS", 10,
+            [&status_str](const T* proc) { printkf("%s", status_str[(*proc)->status]); }},
         table_entry_t{
             "CHANNEL", 10,
-            [](T* proc) {
+            [](const T* proc) {
                 if ((*proc)->sched_node.container) {
                     printkf("%s", (*proc)->sched_node.container->name);
                 } else {
@@ -383,27 +384,27 @@ int do_process_show() {
                     }
                 }
             }},
-        table_entry_t{"CPU", 6, [](T* proc) { printkf("%d%%", (*proc)->slice_cnt); }},
+        table_entry_t{"CPU", 6, [](const T* proc) { printkf("%d%%", (*proc)->slice_cnt); }},
         table_entry_t{
             "AFF", NR_CPUS + 3,
-            [](T* proc) {
+            [](const T* proc) {
                 for (int i = 0; i < NR_CPUS; i++) {
                     printkf("%d", (((*proc)->affinity) & (1 << i)) != 0);
                 }
             }},
         table_entry_t{
             "MEM/K", 7,
-            [](T* proc) { printkf("%d", (*proc)->kernel_stack_base - (*proc)->kernel_sp); }},
+            [](const T* proc) { printkf("%d", (*proc)->kernel_stack_base - (*proc)->kernel_sp); }},
         table_entry_t{
             "MEM/U", 7,
-            [](T* proc) {
+            [](const T* proc) {
                 if ((*proc)->pid >= NR_CPUS) {
                     printkf("%d", (*proc)->user_stack_base - (*proc)->user_sp);
                 } else {
                     printkf("N/A");
                 }
             }},
-        table_entry_t{"NI", 4, [](T* proc) { printkf("%d", (*proc)->nice); }});
+        table_entry_t{"NI", 4, [](const T* proc) { printkf("%d", (*proc)->nice); }});
 }
 
 int have_next[NUM_MAX_TASK];

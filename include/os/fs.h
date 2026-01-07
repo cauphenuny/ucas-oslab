@@ -10,7 +10,7 @@ void init_fs();
 
 /* macros of file system */
 #define SUPERBLOCK_MAGIC 0xDF4C4459
-#define NUM_FDESCS       16
+#define NUM_FDESCS       32
 
 /* data structures of file system */
 
@@ -21,7 +21,7 @@ typedef struct superblock {
     uint32_t fs_size;
     uint32_t start_sector;
     uint32_t root_inode;
-    uint32_t block_map_offset; // inode_map inode.type == 0
+    uint32_t block_map_offset;  // inode_map inode.type == 0
     uint32_t inode_offset;
     uint32_t datablock_offset;
     uint32_t inode_count;
@@ -86,10 +86,11 @@ STATIC_ASSERT(sizeof(diskinode_t) == 64, "inode size incorrect");
 
 typedef struct fdesc {
     // TODO [P6-task2]: Implement the data structure of file descriptor
-    uint32_t inode_num;
-    uint32_t pos;
-    uint32_t flags;
+    inode_t* inode;
     uint32_t valid;
+    uint32_t pos;
+    uint8_t readable;
+    uint8_t writable;
 } fdesc_t;
 
 #define FS_START_SECTOR (512 * 1024 * 1024 / SECTOR_SIZE)   // at 512MB
@@ -99,7 +100,7 @@ typedef struct fdesc {
 
 #define NSECTOR_BLOCK 8  // 4KB, size of block in sectors
 
-#define BLOCK_SIZE (NSECTOR_BLOCK* SECTOR_SIZE)
+#define BLOCK_SIZE (NSECTOR_BLOCK * SECTOR_SIZE)
 
 #define NBLOCK_INODE_MAP 1                                      // 1 sector
 #define NUM_INODES       ((NBLOCK_INODE_MAP) * BLOCK_SIZE * 8)  // all inodes in filesystem
@@ -156,6 +157,7 @@ int block_alloc(void);
 int block_allocset(uint8_t val);
 void block_free(int block_num);
 void shutdown_blocks();
+void shutdown_fs();
 
 #define INODE2BLOCK(inode_num)  (superblock.inode_offset + (inode_num) / INODE_PER_BLOCK)
 #define INODE2OFFSET(inode_num) ((inode_num) % INODE_PER_BLOCK)
@@ -189,13 +191,13 @@ void inode_close(inode_t* inode);
 // NOTE: these locks inode
 void inode_open(inode_t* inode);
 
+// NOTE: these requires a locked inode
+[[nodiscard]] int dir_link(inode_t* dir, const char* filename, int inode_num);
+[[nodiscard]] int dir_unlink(inode_t* dir, const char* filename);
+[[nodiscard]] int dir_rmdir(inode_t* dir, const char* dirname);
+
 // NOTE: these below returns an unlocked but referenced inode
-
 inode_t* dir_lookup(inode_t* dir, const char* filename, size_t* poff);
-int dir_link(inode_t* dir, const char* filename, int inode_num);
-int dir_unlink(inode_t* dir, const char* filename);
-int dir_rmdir(inode_t* dir, const char* dirname);
-
 inode_t* path_resolve_entry(const char* path);
 inode_t* path_resolve_parent(const char* path, char* name);
 inode_t* path_create(const char* path, int type);

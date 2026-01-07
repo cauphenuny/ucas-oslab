@@ -102,6 +102,7 @@ void shutdown_blocks() {
                 pretty_logw(
                     "block %d closed with refcnt %d", blocks[i].block_num, blocks[i].refcnt);
             }
+            pretty_logi("writeback block #%d", blocks[i].block_num);
             block_write(blocks[i].block_num, blocks[i].data);
         }
     }

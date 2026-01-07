@@ -5,7 +5,7 @@
 #include <os/string.h>
 #include <type.h>
 
-#define NINODE 32
+#define NINODE 64
 
 inode_t inodes[NINODE];
 

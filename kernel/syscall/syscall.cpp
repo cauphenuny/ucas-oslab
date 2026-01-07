@@ -335,7 +335,7 @@ long sys_mbox_recv(int mbox_idx, void* msg, int msg_length) {
 
 /***************** screen *****************/
 
-long sys_write(char* ubuff) {
+long sys_screen_write(char* ubuff) {
     char* buff = uva_object_t((uva_t)ubuff).str();
     screen_write(buff);
     return 0;
@@ -453,6 +453,28 @@ long sys_rmdir(char* upath) {
     return do_rmdir(path);
 }
 
+long sys_open(char* upath, int mode) {
+    char* path = uva_object_t((uva_t)upath).str();
+    return do_open(path, mode);
+}
+
+long sys_close(int fd) { return do_close(fd); }
+
+long sys_read(int fd, char* buff, int length) { return do_read(fd, buff, length); }
+
+long sys_write(int fd, char* buff, int length) { return do_write(fd, buff, length); }
+
+long sys_ln(char* usrc_path, char* udst_path) {
+    char* src_path = uva_object_t((uva_t)usrc_path).str();
+    char* dst_path = uva_object_t((uva_t)udst_path).str();
+    return do_ln(src_path, dst_path);
+}
+
+long sys_rm(char* upath) {
+    char* path = uva_object_t((uva_t)upath).str();
+    return do_rm(path);
+}
+
 /***************** halt *****************/
 
 long sys_halt(void) {
@@ -482,7 +504,7 @@ void init_syscall(void) {
     syscall[SYSCALL_SET_MAX_MEM] = (syscall_t)sys_set_max_memory;
     syscall[SYSCALL_SET_PAGE_ALGO] = (syscall_t)sys_set_page_repl_algo;
 
-    syscall[SYSCALL_WRITE] = (syscall_t)sys_write;
+    syscall[SYSCALL_WRITE] = (syscall_t)sys_screen_write;
     syscall[SYSCALL_READCH] = (syscall_t)sys_readch;
     syscall[SYSCALL_CURSOR] = (syscall_t)sys_move_cursor;
     syscall[SYSCALL_CURSOR_COL] = (syscall_t)sys_move_cursor_col;
@@ -543,6 +565,10 @@ void init_syscall(void) {
     syscall[SYSCALL_FS_CD] = (syscall_t)sys_cd;
     syscall[SYSCALL_FS_MKDIR] = (syscall_t)sys_mkdir;
     syscall[SYSCALL_FS_RMDIR] = (syscall_t)sys_rmdir;
+    syscall[SYSCALL_FS_OPEN] = (syscall_t)sys_open;
+    syscall[SYSCALL_FS_CLOSE] = (syscall_t)sys_close;
+    syscall[SYSCALL_FS_READ] = (syscall_t)sys_read;
+    syscall[SYSCALL_FS_WRITE] = (syscall_t)sys_write;
 
     syscall[SYSCALL_HALT] = (syscall_t)sys_halt;
 }

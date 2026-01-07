@@ -37,6 +37,8 @@
 
 #define NUM_MAX_TASK 32
 
+#define NUM_MAX_PROC_FD 8
+
 #define REG_ZERO (OFFSET_REG_ZERO >> RISCV_LGPTR)
 #define REG_RA   (OFFSET_REG_RA >> RISCV_LGPTR)
 #define REG_SP   (OFFSET_REG_SP >> RISCV_LGPTR)
@@ -114,6 +116,8 @@ typedef enum {
     TASK_STATUS_SIZE,
 } task_status_t;
 
+struct fdesc;
+
 /* Process Control Block */
 typedef struct pcb {
     /* register context */
@@ -168,6 +172,7 @@ typedef struct pcb {
 
     /* filesystem */
     int cwd_inode;
+    struct fdesc* fd_table[NUM_MAX_PROC_FD];
 } pcb_t;
 
 /* ready queue to run */

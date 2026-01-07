@@ -1,5 +1,6 @@
 #include <logger.h>
 #include <os/cxxrt.h>
+#include <os/fs.h>
 
 _Atomic int halted;
 
@@ -10,6 +11,8 @@ static void halt_spin() {
 }
 
 void do_halt() {
+    printk("farewell.");
+    shutdown_fs();
     cxxrt_teardown();
     halted = 1;
     wakeup_other_hart();
@@ -21,4 +24,3 @@ void check_halted() {
         halt_spin();
     }
 }
-

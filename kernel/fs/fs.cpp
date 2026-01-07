@@ -9,8 +9,6 @@ extern "C" {
 #include <os/task.h>
 }
 
-static fdesc_t fdesc_array[NUM_FDESCS];
-
 int do_mkfs(void) {
     // TODO [P6-task1]: Implement do_mkfs
 
@@ -203,49 +201,154 @@ int do_ls(char* path, int option) {
     return 0;
 }
 
-int do_open(char* path, int mode) {
-    // TODO [P6-task2]: Implement do_open
+static fdesc_t fdesc_array[NUM_FDESCS];
 
-    return 0;  // return the id of file descriptor
+int do_open(char* path, int mode) {
+    int writable = (mode & O_WRONLY) || (mode & O_RDWR);
+    int readable = (mode & O_RDONLY) || (mode & O_RDWR);
+
+    inode_t* inode;
+
+    if (writable)
+        inode = path_create(path, FS_TYPE_FILE);
+    else
+        inode = path_resolve_entry(path);
+
+    if (inode == NULL) {
+        return -1;
+    }
+
+    if (inode->type == FS_TYPE_DIR) {
+        pretty_logw("cannot open a directory");
+        inode_close(inode);
+        return -1;
+    }
+
+    int fd = -1;
+    for (int i = 0; i < NUM_MAX_PROC_FD; i++) {
+        if (!current_running->fd_table[i]) {
+            fd = i;
+            break;
+        }
+    }
+    if (fd == -1) {
+        pretty_logw("too many open files in current process");
+        inode_close(inode);
+        return -1;
+    }
+
+    for (int i = 0; i < NUM_FDESCS; i++) {
+        if (fdesc_array[i].valid == 0) {
+            fdesc_array[i].inode = inode;
+            fdesc_array[i].pos = 0;
+            fdesc_array[i].writable = writable;
+            fdesc_array[i].readable = readable;
+            fdesc_array[i].valid = 1;
+            current_running->fd_table[fd] = &fdesc_array[i];
+            inode_unlock(inode);
+            return fd;
+        }
+    }
+
+    pretty_logw("no free file descriptor available");
+
+    return -1;
 }
 
 int do_read(int fd, char* buff, int length) {
-    // TODO [P6-task2]: Implement do_read
-
-    return 0;  // return the length of trully read data
+    auto fp = current_running->fd_table[fd];
+    if (!fp) {
+        return 0;
+    }
+    inode_open(fp->inode);
+    int ret = inode_read(fp->inode, buff, current_running->pgdir, fp->pos, length);
+    fp->pos += ret;
+    inode_unlock(fp->inode);
+    return ret;
 }
 
 int do_write(int fd, char* buff, int length) {
-    // TODO [P6-task2]: Implement do_write
-
-    return 0;  // return the length of trully written data
+    auto fp = current_running->fd_table[fd];
+    if (!fp) {
+        return 0;
+    }
+    inode_open(fp->inode);
+    int ret = inode_write(fp->inode, buff, current_running->pgdir, fp->pos, length);
+    fp->pos += ret;
+    inode_unlock(fp->inode);
+    return ret;
 }
 
 int do_close(int fd) {
-    // TODO [P6-task2]: Implement do_close
-
+    if (!current_running->fd_table[fd]) {
+        return ERR_FD_INVALID;
+    }
+    inode_deref(current_running->fd_table[fd]->inode);
+    current_running->fd_table[fd] = NULL;
     return 0;  // do_close succeeds
 }
 
 int do_ln(char* src_path, char* dst_path) {
-    // TODO [P6-task2]: Implement do_ln
+    inode_t* src_inode = path_resolve_entry(src_path);
+    if (!src_inode) {
+        return ERR_FILE_NOT_EXISTS;
+    }
+    inode_open(src_inode);
+    if (src_inode->type == FS_TYPE_DIR) {
+        inode_close(src_inode);
+        return ERR_FILE_TYPE_MISMATCH;
+    }
 
-    return 0;  // do_ln succeeds
+    char name[MAX_FILE_NAME];
+    inode_t* parent = path_resolve_parent(dst_path, name);
+    if (!parent) {
+        inode_close(src_inode);
+        return ERR_FILE_NOT_EXISTS;
+    }
+
+    inode_open(parent);
+    int ret = dir_link(parent, name, src_inode->inode_num);
+    inode_close(parent);
+    inode_close(src_inode);
+    return ret;
 }
 
 int do_rm(char* path) {
-    // TODO [P6-task2]: Implement do_rm
+    char name[MAX_FILE_NAME];
+    inode_t* dir = path_resolve_parent(path, name);
+    if (!dir) {
+        return ERR_FILE_NOT_EXISTS;
+    }
 
-    return 0;  // do_rm succeeds
+    inode_open(dir);
+    int ret = dir_unlink(dir, name);
+    inode_close(dir);
+    return ret;
 }
 
 int do_lseek(int fd, int offset, int whence) {
-    // TODO [P6-task2]: Implement do_lseek
+    auto fp = current_running->fd_table[fd];
+    if (!fp) {
+        return ERR_FD_INVALID;
+    }
 
-    return 0;  // the resulting offset location from the beginning of the file
+    int target = fp->pos;
+    inode_open(fp->inode);
+    switch (whence) {
+        case SEEK_SET: target = offset; break;
+        case SEEK_CUR: target += offset; break;
+        case SEEK_END: target = fp->inode->size + offset; break;
+        default:;
+    }
+    if (target < 0) target = 0;
+    if (target > (int)fp->inode->size) target = fp->inode->size;
+    inode_unlock(fp->inode);
+
+    fp->pos = target;
+    return fp->pos;
 }
 
 void shutdown_fs() {
-    bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
     shutdown_blocks();
+    bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
 }

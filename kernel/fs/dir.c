@@ -202,7 +202,7 @@ inode_t* path_resolve(const char* path, bool skip_last, char* name) {
         pretty_logi("resolving path component: %s", name);
         inode_open(cur);
         if (cur->type != FS_TYPE_DIR) {
-            pretty_logi("failed: not a directory");
+            pretty_logw("failed: not a directory");
             inode_close(cur);
             return NULL;
         }
@@ -213,7 +213,7 @@ inode_t* path_resolve(const char* path, bool skip_last, char* name) {
         }
         next = dir_lookup(cur, name, NULL);
         if (next == NULL) {
-            pretty_logi("failed: not such file or directory");
+            pretty_logw("failed: not such file or directory");
             inode_close(cur);
             return NULL;
         }
@@ -249,9 +249,16 @@ inode_t* path_create(const char* path, int type) {
     inode_open(parent);
     inode_t* child = dir_lookup(parent, name, NULL);
     if (child != NULL) {
-        inode_deref(child);
-        inode_close(parent);
-        return NULL;
+        inode_open(child);
+        if (child->type != type) {
+            inode_close(child);
+            inode_close(parent);
+            child = NULL;
+        } else {
+            inode_unlock(child);
+            inode_close(parent);
+        }
+        return child;
     }
 
     child = inode_alloc(type);

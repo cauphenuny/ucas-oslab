@@ -676,7 +676,7 @@ int mkfs(int argc, char** argv) { return sys_mkfs(); }
 
 int statfs(int argc, char** argv) { return sys_statfs(); }
 
-int shutdown(int argc, char** argv) {
+int halt(int argc, char** argv) {
     sys_halt();
     return 0;
 }
@@ -692,6 +692,40 @@ int ls(int argc, char** argv) {
     } else {
         return sys_ls(argc > 1 ? argv[1] : NULL, 0);
     }
+}
+
+int touch(int argc, char** argv) {
+    if (argc < 2) {
+        log_info("usage: touch {filename}");
+        return 1;
+    }
+    int fd = sys_open(argv[1], O_RDWR);
+    if (fd < 0) {
+        return 2;
+    }
+    sys_close(fd);
+    return 0;
+}
+
+int cat(int argc, char** argv) {
+    if (argc < 2) {
+        log_info("usage: cat {filename}");
+        return 1;
+    }
+    int fd = sys_open(argv[1], O_RDONLY);
+    if (fd < 0) {
+        log_info("cannot open %s", argv[1]);
+        return 2;
+    }
+    char buffer[256];
+    int n;
+    while ((n = sys_read(fd, buffer, sizeof(buffer))) > 0) {
+        for (int i = 0; i < n; i++) {
+            printf("%c", buffer[i]);
+        }
+    }
+    sys_close(fd);
+    return 0;
 }
 
 const task_t COMMAND_TABLE[] = {
@@ -713,10 +747,12 @@ const task_t COMMAND_TABLE[] = {
     {"watch", "execute a program periodically", subcmd_lint_watch, watch},
     {"mkfs", "make filesystem", subcmd_lint, mkfs},
     {"statfs", "show filesystem status", subcmd_lint, statfs},
-    {"shutdown", "halt operating system", subcmd_lint, shutdown},
+    {"halt", "halt operating system", subcmd_lint, halt},
     {"mkdir", "make directory", subcmd_lint, mkdir},
     {"rmdir", "remove directory", subcmd_lint, rmdir},
     {"ls", "list directory contents", subcmd_lint_ls, ls},
+    {"touch", "create empty file", subcmd_lint, touch},
+    {"cat", "concatenate and display file", subcmd_lint, cat},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

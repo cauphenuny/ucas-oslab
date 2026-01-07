@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     cacheconf("write back", 300);
 
     printf("Waiting cacheconf effect...\n");
-    sys_sleep(10);
+    sys_sleep(3);
     printf("Start...\n");
 
     uint64_t time_wb = bench(size, repeat);

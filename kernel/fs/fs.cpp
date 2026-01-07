@@ -174,7 +174,7 @@ int do_ls(char* path, int option) {
 
     if (option & LS_VERBOSE) {
         display_table<dentry_t>(
-            dir, dir.size(), [](const dentry_t* _) { return true; },
+            dir, dir.size(), [](const dentry_t* entry) { return entry->inode_num != 0; },
             table_entry_t{
                 "INODE", 7, [](const dentry_t* entry) { printkf("%d", entry->inode_num); }},
             table_entry_t{
@@ -211,15 +211,15 @@ int do_ls(char* path, int option) {
 
     } else {
         for (size_t i = 0; i < dir.size(); i++) {
+            if (dir[i].inode_num == 0) {
+                continue;
+            }
             inode_t* ind = inode_ref(dir[i].inode_num);
             if (ind != dir_inode) inode_open(ind);
             printkf("%s%s  ", dir[i].name, ind->type == FS_TYPE_DIR ? "/" : "");
             if (ind != dir_inode) inode_close(ind);
-            if ((i + 1) % 4 == 0) printkf("\n");
         }
-        if (dir.size() % 4 != 0) {
-            printkf("\n");
-        }
+        printkf("\n");
     }
     screen_reflush();
 

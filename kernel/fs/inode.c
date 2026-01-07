@@ -260,7 +260,7 @@ int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_
             length, inode->size);
         return 0;
     }
-    pretty_logd("reading %d bytes from inode %d at offset %d", length, inode->inode_num, offset);
+    // pretty_logd("reading %d bytes from inode %d at offset %d", length, inode->inode_num, offset);
     if (offset + length > inode->size) {
         length = inode->size - offset;
         pretty_logd(
@@ -289,7 +289,7 @@ int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_
         // pretty_logd(
         // "read %d bytes from inode %d at offset %d", chunk_size, inode->inode_num, offset);
     }
-    pretty_logd("read %d bytes from inode %d at offset %d", total, inode->inode_num, offset);
+    // pretty_logd("read %d bytes from inode %d at offset %d", total, inode->inode_num, offset);
 
     return total;
 }

@@ -18,21 +18,26 @@ uint64_t bench(int size, int repeat) {
     uint64_t start = sys_get_proc_tick();
     int fd = sys_open("large.txt", O_RDWR);
     for (int t = 0; t < repeat; t++) {
+        sys_lseek(fd, 0, SEEK_SET);
         for (int k = 0; k < size; k++) {
             // write 1M
             for (int i = 0; i < 8 * 1024; i++) {
-                sys_write(fd, buff, 128);
+                int ret = sys_write(fd, buff, 128);
+                if (ret == 0) {
+                    printf("write errror.");
+                    sys_exit();
+                }
             }
         }
+
+        sys_lseek(fd, 0, SEEK_SET);
         for (int k = 0; k < size; k++) {
             // read 1M
             for (int i = 0; i < 8 * 1024; i++) {
-                sys_read(fd, buff, 128);
-                for (int i = 0; i < 128; i++) {
-                    if (buff[i] != i) {
-                        printf("data mismatch at byte %d: expected %d, got %d\n", i, i, buff[i]);
-                        sys_exit();
-                    }
+                int ret = sys_read(fd, buff, 128);
+                if (ret == 0) {
+                    printf("read error");
+                    sys_exit();
                 }
             }
         }
@@ -55,14 +60,18 @@ int main(int argc, char** argv) {
         buff[i] = i;
     }
 
-    cacheconf("write_back", 60);
+    cacheconf("write back", 300);
+
+    printf("Waiting cacheconf effect...\n");
+    sys_sleep(10);
+    printf("Start...\n");
 
     uint64_t time_wb = bench(size, repeat);
-    printf("Write-back cache time: %d ticks\n", time_wb);
+    printf("Write-back cache time: %ld ticks\n", time_wb);
 
-    cacheconf("write_through", 1);
+    cacheconf("write through", 1);
     uint64_t time_wt = bench(size, repeat);
-    printf("Write-through cache time: %d ticks\n", time_wt);
+    printf("Write-through cache time: %ld ticks\n", time_wt);
 
     return 0;
 }

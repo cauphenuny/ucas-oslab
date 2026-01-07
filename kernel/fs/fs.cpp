@@ -28,7 +28,7 @@ int do_mkfs(void) {
         .inode_offset = inode_table,
         .datablock_offset = data,
         .inode_count = NUM_INODES,
-        .block_count = (fs_size - data) / BLOCK_SIZE,
+        .block_count = fs_size / NSECTOR_BLOCK - data,
         .used_inode = 0,  // root inode
         .used_block = 0,  // root directory block
     };
@@ -96,10 +96,10 @@ int do_statfs(void) {
         printk("<uninitialized>\n");
         return 1;
     }
-    printk("Total size: %d sectors at 0x%x\n", superblock.fs_size, superblock.start_sector);
-    printk("Block map: %d sectors at #%d\n", NBLOCK_BLOCK_MAP, superblock.block_map_offset);
+    printk("Total size: %d blocks at 0x%x\n", superblock.fs_size, superblock.start_sector);
+    printk("Block map: %d blocks at #%d\n", NBLOCK_BLOCK_MAP, superblock.block_map_offset);
     printk(
-        "Inodes: %d entries, %d sectors at #%d, used: %d(%d%%)\n", NUM_INODES, NBLOCK_INODE_TABLE,
+        "Inodes: %d entries, %d blocks at #%d, used: %d(%d%%)\n", NUM_INODES, NBLOCK_INODE_TABLE,
         superblock.inode_offset, superblock.used_inode,
         superblock.used_inode * 100 / superblock.inode_count);
     printk(
@@ -107,7 +107,7 @@ int do_statfs(void) {
         superblock.datablock_offset, superblock.used_block,
         superblock.used_block * 100 / superblock.block_count);
     printk(
-        "Cache policy: %s, freq: %ds",
+        "Cache policy: %s, freq: %ds\n",
         pagecache_config.policy == POLICY_WRITE_THROUGH ? "write-through" : "write-back",
         pagecache_config.write_back_freq);
     return 0;  // do_statfs succeeds
@@ -175,12 +175,12 @@ int do_ls(char* path, int option) {
             table_entry_t{
                 "INODE", 7, [](const dentry_t* entry) { printkf("%d", entry->inode_num); }},
             table_entry_t{
-                "NAME",
-                24,
+                "SIZE",
+                10,
                 [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
                     if (ind != dir_inode) inode_open(ind);
-                    printkf("%s%s", entry->name, ind->type == FS_TYPE_DIR ? "/" : "");
+                    printkf("%d", ind->size);
                     if (ind != dir_inode) inode_close(ind);
                 },
             },
@@ -196,12 +196,12 @@ int do_ls(char* path, int option) {
                     if (ind != dir_inode) inode_close(ind);
                 }},
             table_entry_t{
-                "SIZE",
-                8,
+                "NAME",
+                24,
                 [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
                     if (ind != dir_inode) inode_open(ind);
-                    printkf("%d", ind->size);
+                    printkf("%s%s", entry->name, ind->type == FS_TYPE_DIR ? "/" : "");
                     if (ind != dir_inode) inode_close(ind);
                 },
             });

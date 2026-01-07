@@ -1,3 +1,4 @@
+#include <logger.h>
 #include <os/fs.h>
 #include <os/string.h>
 #include <sys/syscall.h>
@@ -94,25 +95,32 @@ static int etc_vm_parse(inode_t* inode, cache_config_t* dest) {
     for (int i = 1; i < size; i++) {
         if (buffer[i] == '\n' || buffer[i] == '\0') {
             buffer[i] = '\0';
-            break;
         }
     }
 
     const char* line1 = min(line0 + strlen(line0) + 1, buffer + size);
+
+    pretty_logd("line0: '%s'", line0);
+    pretty_logd("line1: '%s'", line1);
+
     if (strncmp(line0, "page_cache_policy = write back", 30) == 0) {
         dest->policy = POLICY_WRITE_BACK;
     } else if (strncmp(line0, "page_cache_policy = write through", 33) == 0) {
         dest->policy = POLICY_WRITE_THROUGH;
     } else {
+        pretty_logw("etc/vm: invalid cache policy");
         return -1;
     }
+    pretty_logd("etc/vm: set cache policy = %s", cache_policy_name[dest->policy]);
 
     if (strncmp(line1, "write_back_freq = ", 18) == 0) {
         dest->write_back_freq = atoi(line1 + 18);
     } else {
+        pretty_logw("etc/vm: invalid write_back_freq");
         return -1;
     }
 
+    pretty_logd("etc/vm: set write_back_freq = %d", dest->write_back_freq);
     return 0;
 }
 
@@ -126,6 +134,7 @@ static void etc_vm_daemon() {
             pagecache_config.policy = config.policy;
             pagecache_config.write_back_freq = config.write_back_freq;
         } else {
+            pretty_logw("etc/vm: parse error, reset to default");
             etc_vm_reset(inode);
         }
         inode_close(inode);

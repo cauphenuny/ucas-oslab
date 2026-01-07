@@ -1,4 +1,5 @@
 #include <logger.h>
+#include <os/errno.h>
 #include <os/fs.h>
 #include <os/string.h>
 
@@ -36,7 +37,7 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
     inode_t* child = dir_lookup(dir, filename, NULL);
     if (child != NULL) {
         inode_deref(child);
-        return -1;
+        return ERR_FILE_EXISTS;
     }
 
     size_t offset = 0;
@@ -58,7 +59,7 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
     int n = inode_write(dir, &dentry, 0, offset, sizeof(dentry_t));
     if (n != sizeof(dentry_t)) {
         pretty_logw("failed to write directory entry");
-        return -1;
+        return ERR_OPERATION_FAILED;
     }
     return 0;
 }
@@ -71,20 +72,27 @@ int dir_unlink(inode_t* dir, const char* filename) {
 
     size_t offset;
     inode_t* child = dir_lookup(dir, filename, &offset);
-    if (child == NULL || child->type == FS_TYPE_DIR) {
-        return -1;
+    if (child == NULL) {
+        return ERR_FILE_NOT_EXISTS;
     }
+
+    inode_open(child);
+    if (child->type == FS_TYPE_DIR) {
+        inode_close(child);
+        return ERR_FILE_TYPE_MISMATCH;
+    }
+
     child->link_count--;
 
     dentry_t dentry;
     memset(&dentry, 0, sizeof(dentry_t));
     int n = inode_write(dir, &dentry, 0, offset, sizeof(dentry_t));
     if (n != sizeof(dentry_t)) {
-        inode_deref(child);
-        return -1;
+        inode_close(child);
+        return ERR_OPERATION_FAILED;
     }
 
-    inode_deref(child);
+    inode_close(child);
     return 0;
 }
 
@@ -108,14 +116,14 @@ int dir_rmdir(inode_t* dir, const char* dirname) {
 
     if (filename_cmp(dirname, ".") == 0 || filename_cmp(dirname, "..") == 0) {
         pretty_logd("cannot remove . or .. directory");
-        return 3;
+        return ERR_FILE_NO_PERMISSION;
     }
 
     size_t offset;
     inode_t* child = dir_lookup(dir, dirname, &offset);
 
     if (child == NULL) {
-        return 1;
+        return ERR_FILE_NOT_EXISTS;
     }
 
     inode_open(child);
@@ -123,13 +131,13 @@ int dir_rmdir(inode_t* dir, const char* dirname) {
     if (child->type != FS_TYPE_DIR) {
         inode_close(child);
         pretty_logd("%s is not a directory", dirname);
-        return 2;
+        return ERR_FILE_TYPE_MISMATCH;
     }
 
     if (!dir_isempty(child)) {
         inode_close(child);
         pretty_logd("directory %s not empty", dirname);
-        return 4;  // not empty
+        return ERR_DIRECTORY_NOT_EMPTY;  // not empty
     }
 
     dentry_t dentry;
@@ -137,7 +145,7 @@ int dir_rmdir(inode_t* dir, const char* dirname) {
     int n = inode_write(dir, &dentry, 0, offset, sizeof(dentry_t));
     if (n != sizeof(dentry_t)) {
         pretty_logw("failed to remove directory entry %s", dirname);
-        return -1;
+        return ERR_OPERATION_FAILED;
     }
 
     if (child->type == FS_TYPE_DIR) {
@@ -284,7 +292,7 @@ int path_remove(const char* path, int isdir) {
     char name[MAX_FILE_NAME];
     inode_t* parent = path_resolve_parent(path, name);
     if (parent == NULL) {
-        return 1;
+        return ERR_FILE_NOT_EXISTS;
     }
     pretty_logi("parsed path '%s', parent %d, name '%s'", path, parent->inode_num, name);
 

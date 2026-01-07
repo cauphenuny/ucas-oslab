@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <logger.h>
+#include <os/errno.h>
 #include <os/fs.h>
 #include <os/kernel.h>
 #include <os/string.h>
@@ -106,7 +107,7 @@ int do_statfs(void) {
 
 int do_cd(char* path) {
     inode_t* target = path_resolve_entry(path);
-    if (!target) return -1;
+    if (!target) return ERR_FILE_NOT_EXISTS;
     current_running->cwd_inode = target->inode_num;
     inode_deref(target);
     return 0;  // do_cd succeeds
@@ -115,7 +116,7 @@ int do_cd(char* path) {
 int do_mkdir(char* path) {
     inode_t* inode = path_create(path, FS_TYPE_DIR);
     if (inode == NULL) {
-        return -1;
+        return ERR_FILE_NOT_EXISTS;
     }
     inode_deref(inode);
     return 0;
@@ -147,7 +148,7 @@ int do_ls(char* path, int option) {
 
     if (dir_inode == nullptr) {
         pretty_logw("cannot access '%s': No such file or directory", wrapped_path);
-        return 1;
+        return ERR_FILE_NOT_EXISTS;
     }
 
     inode_open(dir_inode);
@@ -155,7 +156,7 @@ int do_ls(char* path, int option) {
     if (dir_inode->type != FS_TYPE_DIR) {
         pretty_logw("cannot access '%s': Not a directory", wrapped_path);
         inode_close(dir_inode);
-        return 2;
+        return ERR_FILE_TYPE_MISMATCH;
     }
 
     directory_t dir(dir_inode);

@@ -251,6 +251,9 @@ void inode_delete(inode_t* inode) {
 }
 
 int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_t length) {
+    if (inode->type == FS_TYPE_DEV) {
+        return devices[inode->device_id].read(inode, dest, pgdir, offset, length);
+    }
     if (offset > inode->size || offset + length < offset) {
         pretty_logw(
             "read out of range: inode %d, offset %d, length %d, size %d", inode->inode_num, offset,
@@ -293,6 +296,9 @@ int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_
 
 int inode_write(inode_t* inode, void* src, kva_t pgdir, uint32_t offset, uint32_t length) {
     pretty_logd("writing %d bytes to inode %d at offset %d", length, inode->inode_num, offset);
+    if (inode->type == FS_TYPE_DEV) {
+        return devices[inode->device_id].write(inode, src, pgdir, offset, length);
+    }
     uint32_t chunk_size = 0, total = 0;
 
     for (total = 0; total < length; total += chunk_size, src += chunk_size) {

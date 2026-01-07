@@ -7,11 +7,6 @@ uintptr_t cache_pgdir;
 pageframe_group_t* fs_cache_group;
 #define FS_CACHE_SIZE (8 * 1024)  // 8K pages, 32M
 
-static const char* cache_policy_name[] = {
-    "write back",
-    "write through",
-};
-
 cache_config_t pagecache_config;
 
 uva_t cache_swapin(int start_sector) {

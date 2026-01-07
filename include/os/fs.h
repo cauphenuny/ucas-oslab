@@ -64,7 +64,10 @@ typedef struct diskinode {
     uint32_t blocks;
     int32_t direct[NUM_DIRECT_BLOCKS];
     int32_t indirect;
-    int32_t double_indirect;
+    union {
+        int32_t double_indirect;
+        uint32_t device_id;
+    };
 } diskinode_t;
 
 // NOTE: DO NOT change the layout (make it synchorous to diskinode_t)
@@ -76,13 +79,25 @@ typedef struct inode {
     uint32_t blocks;
     int32_t direct[NUM_DIRECT_BLOCKS];
     int32_t indirect;
-    int32_t double_indirect;
+    union {
+        int32_t double_indirect;  // for directory
+        uint32_t device_id;       // for device
+    };
     uint16_t valid;
     uint16_t ref_count;  // reference in memory
     mutex_lock_t lock;
 } inode_t;
 
 STATIC_ASSERT(sizeof(diskinode_t) == 64, "inode size incorrect");
+
+typedef struct device {
+    int (*read)(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_t length);
+    int (*write)(inode_t* inode, void* src, kva_t pgdir, uint32_t offset, uint32_t length);
+} device_t;
+
+#define NUM_DEVICES 8
+
+extern device_t devices[NUM_DEVICES];
 
 typedef struct fdesc {
     // TODO [P6-task2]: Implement the data structure of file descriptor
@@ -222,5 +237,7 @@ void cached_block_write(void* dest, int block_num);
 void init_fs_cache();
 void flush_fs_cache();
 void cache_routine();
+
+void init_fs_device();
 
 #endif

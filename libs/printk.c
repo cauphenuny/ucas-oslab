@@ -40,29 +40,27 @@
  * a chip with 32kB flash is crazy. Use mini_snprintf() instead.
  *
  */
-#include <screen.h>
-#include <stdarg.h>
-#include <os/sched.h>
 #include <os/irq.h>
 #include <os/kernel.h>
+#include <os/sched.h>
+#include <screen.h>
+#include <stdarg.h>
 
-static unsigned int mini_strlen(const char *s)
-{
+static unsigned int mini_strlen(const char* s) {
     unsigned int len = 0;
     while (s[len] != '\0') len++;
     return len;
 }
 
 static unsigned int mini_itoa(
-    long value, unsigned int radix, unsigned int uppercase,
-    unsigned int unsig, char *buffer, unsigned int n_pad, char cpad)
-{
+    long value, unsigned int radix, unsigned int uppercase, unsigned int unsig, char* buffer,
+    unsigned int n_pad, char cpad) {
     /*
      * Glucose180 modified: add `n_pad` and `cpad` to support
      * padding with different chars ('0' or ' ', etc).
      */
-    char *pbuffer = buffer;
-    int negative  = 0;
+    char* pbuffer = buffer;
+    int negative = 0;
     unsigned int i, len;
 
     /* No support for unusual radixes. */
@@ -70,7 +68,7 @@ static unsigned int mini_itoa(
 
     if (value < 0 && !unsig) {
         negative = 1;
-        value    = -value;
+        value = -value;
     }
 
     /* This builds the string back to front ... */
@@ -81,18 +79,15 @@ static unsigned int mini_itoa(
         } else {
             digit = value % radix;
         }
-        *(pbuffer++) =
-            (digit < 10 ? '0' + digit :
-             (uppercase ? 'A' : 'a') + digit - 10);
+        *(pbuffer++) = (digit < 10 ? '0' + digit : (uppercase ? 'A' : 'a') + digit - 10);
         if (unsig) {
-            value = (unsigned long) value / (unsigned) radix;
+            value = (unsigned long)value / (unsigned)radix;
         } else {
             value /= radix;
         }
     } while (value != 0);
 
-    for (i = (pbuffer - buffer); i < n_pad; i++)
-        *(pbuffer++) = cpad;//'0';
+    for (i = (pbuffer - buffer); i < n_pad; i++) *(pbuffer++) = cpad;  //'0';
 
     if (negative) *(pbuffer++) = '-';
 
@@ -102,32 +97,27 @@ static unsigned int mini_itoa(
      * conserve the stack space) */
     len = (pbuffer - buffer);
     for (i = 0; i < len / 2; i++) {
-        char j              = buffer[i];
-        buffer[i]           = buffer[len - i - 1];
+        char j = buffer[i];
+        buffer[i] = buffer[len - i - 1];
         buffer[len - i - 1] = j;
     }
 
     return len;
 }
 
-struct mini_buff
-{
+struct mini_buff {
     char *buffer, *pbuffer;
     unsigned int buffer_len;
 };
 
-static int _putc(int ch, struct mini_buff *b)
-{
-    if ((unsigned int)((b->pbuffer - b->buffer) + 1) >=
-        b->buffer_len)
-        return 0;
+static int _putc(int ch, struct mini_buff* b) {
+    if ((unsigned int)((b->pbuffer - b->buffer) + 1) >= b->buffer_len) return 0;
     *(b->pbuffer++) = ch;
-    *(b->pbuffer)   = '\0';
+    *(b->pbuffer) = '\0';
     return 1;
 }
 
-static int _puts(char *s, unsigned int len, struct mini_buff *b)
-{
+static int _puts(char* s, unsigned int len, struct mini_buff* b) {
     unsigned int i;
 
     if (b->buffer_len - (b->pbuffer - b->buffer) - 1 < len)
@@ -139,39 +129,32 @@ static int _puts(char *s, unsigned int len, struct mini_buff *b)
          * Added by Glucose180: if `s` is `NULL`,
          * pad the buffer with space ' '.
          */
-        for (i = 0U; i < len; ++i)
-            *(b->pbuffer++) = ' ';
+        for (i = 0U; i < len; ++i) *(b->pbuffer++) = ' ';
     else
-        for (i = 0U; i < len; ++i)
-            *(b->pbuffer++) = s[i];
+        for (i = 0U; i < len; ++i) *(b->pbuffer++) = s[i];
     *(b->pbuffer) = '\0';
 
     return len;
 }
 
-static int mini_vsnprintf(
-    char *buffer, unsigned int buffer_len, const char *fmt,
-    va_list va)
-{
+static int mini_vsnprintf(char* buffer, unsigned int buffer_len, const char* fmt, va_list va) {
     struct mini_buff b;
     char bf[24];
     char ch;
 
-    b.buffer     = buffer;
-    b.pbuffer    = buffer;
+    b.buffer = buffer;
+    b.pbuffer = buffer;
     b.buffer_len = buffer_len;
 
     while ((ch = *(fmt++))) {
-        if ((unsigned int)((b.pbuffer - b.buffer) + 1) >=
-            b.buffer_len)
-            break;
+        if ((unsigned int)((b.pbuffer - b.buffer) + 1) >= b.buffer_len) break;
         if (ch != '%')
             _putc(ch, &b);
         else {
             unsigned int n_pad = 0U;
             char c_pad = ' ';
             char longflag = 0;
-            char *ptr;
+            char* ptr;
             unsigned int len;
 
             ch = *(fmt++);
@@ -198,57 +181,45 @@ static int mini_vsnprintf(
             }
 
             switch (ch) {
-                case 0:
-                    goto end;
+                case 0: goto end;
 
-                case 'l':
-                    longflag = 1;
-                    break;
+                case 'l': longflag = 1; break;
 
                 case 'u':
                     len = mini_itoa(
-                        longflag == 0 ? (unsigned long)va_arg(
-                                            va, unsigned int) :
-                                        va_arg(va, unsigned long),
+                        longflag == 0 ? (unsigned long)va_arg(va, unsigned int)
+                                      : va_arg(va, unsigned long),
                         10, 0, (ch == 'u'), bf, n_pad, c_pad);
                     _puts(bf, len, &b);
                     longflag = 0;
                     break;
                 case 'd':
                     len = mini_itoa(
-                        longflag == 0 ? (long)va_arg(
-                                            va, int) :
-                                        va_arg(va, unsigned long),
-                        10, 0, (ch == 'u'), bf, n_pad, c_pad);
+                        longflag == 0 ? (long)va_arg(va, int) : va_arg(va, unsigned long), 10, 0,
+                        (ch == 'u'), bf, n_pad, c_pad);
                     _puts(bf, len, &b);
                     longflag = 0;
                     break;
                 case 'x':
                 case 'X':
                     len = mini_itoa(
-                        longflag == 0 ? (unsigned long)va_arg(
-                                            va, unsigned int) :
-                                        va_arg(va, unsigned long),
+                        longflag == 0 ? (unsigned long)va_arg(va, unsigned int)
+                                      : va_arg(va, unsigned long),
                         16, (ch == 'X'), 1, bf, n_pad, c_pad);
                     _puts(bf, len, &b);
                     longflag = 0;
                     break;
 
-                case 'c':
-                    _putc((char)(va_arg(va, int)), &b);
-                    break;
+                case 'c': _putc((char)(va_arg(va, int)), &b); break;
 
                 case 's':
-                    ptr = va_arg(va, char *);
+                    ptr = va_arg(va, char*);
                     _puts(ptr, len = mini_strlen(ptr), &b);
-                    if (len < n_pad)
-                        /* Space padding */
+                    if (len < n_pad) /* Space padding */
                         _puts(NULL, n_pad - len, &b);
                     break;
 
-                default:
-                    _putc(ch, &b);
-                    break;
+                default: _putc(ch, &b); break;
             }
         }
     }
@@ -256,9 +227,7 @@ end:
     return b.pbuffer - b.buffer;
 }
 
-static int _vprint(const char *fmt, va_list _va,
-                   void (*output)(char*))
-{
+static int _vprint(const char* fmt, va_list _va, void (*output)(char*)) {
     va_list va;
     va_copy(va, _va);
 
@@ -274,19 +243,14 @@ static int _vprint(const char *fmt, va_list _va,
     return ret;
 }
 
-static void _output_wrapper(char *buff)
-{
+static void _output_wrapper(char* buff) {
     screen_write(buff);
     screen_reflush();
 }
 
-int vprintk(const char *fmt, va_list _va)
-{
-    return _vprint(fmt, _va, _output_wrapper);
-}
+int vprintk(const char* fmt, va_list _va) { return _vprint(fmt, _va, _output_wrapper); }
 
-int printk(const char *fmt, ...)
-{
+int printk(const char* fmt, ...) {
     int ret = 0;
     va_list va;
 
@@ -298,8 +262,7 @@ int printk(const char *fmt, ...)
 }
 
 // fast printk
-int printkf(const char *fmt, ...)
-{
+int printkf(const char* fmt, ...) {
     int ret = 0;
     va_list va;
 
@@ -310,8 +273,7 @@ int printkf(const char *fmt, ...)
     return ret;
 }
 
-int printv(const char *fmt, ...)
-{
+int printv(const char* fmt, ...) {
     int ret = 0;
     va_list va;
 
@@ -322,13 +284,23 @@ int printv(const char *fmt, ...)
     return ret;
 }
 
-int printl(const char *fmt, ...)
-{
+int printl(const char* fmt, ...) {
     int ret = 0;
     va_list va;
 
     va_start(va, fmt);
     ret = _vprint(fmt, va, bios_logging);
+    va_end(va);
+
+    return ret;
+}
+
+int snprintf(char* buffer, size_t buffer_len, const char* fmt, ...) {
+    int ret = 0;
+    va_list va;
+
+    va_start(va, fmt);
+    ret = mini_vsnprintf(buffer, buffer_len, fmt, va);
     va_end(va);
 
     return ret;

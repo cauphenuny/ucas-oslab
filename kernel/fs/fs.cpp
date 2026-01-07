@@ -83,6 +83,8 @@ void init_fs() {
             LOG_INFO, "filesystem exists: size=%d sectors, inode_count=%d, block_count=%d",
             superblock.fs_size, superblock.inode_count, superblock.block_count);
     }
+
+    init_fs_device();
 }
 
 superblock_t superblock;
@@ -225,12 +227,12 @@ int do_open(char* path, int mode) {
     int writable = (mode & O_WRONLY) || (mode & O_RDWR);
     int readable = (mode & O_RDONLY) || (mode & O_RDWR);
 
-    inode_t* inode;
+    inode_t* inode = NULL;
 
-    if (writable)
+    if (writable) {
         inode = path_create(path, FS_TYPE_FILE);
-    else
-        inode = path_resolve_entry(path);
+    }
+    if (!inode) inode = path_resolve_entry(path);
 
     if (inode == NULL) {
         return -1;

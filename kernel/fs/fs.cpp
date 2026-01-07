@@ -46,9 +46,17 @@ int do_mkfs(void) {
         pretty_logw("failed to write superblock to SD card");
         return 1;
     }
-    for (uint32_t bnum = superblock.block_map_offset; bnum < superblock.inode_offset; bnum++) {
+    for (uint32_t base = superblock.block_map_offset, offset = 0,
+                  total = superblock.datablock_offset - superblock.block_map_offset,
+                  chunk = total / 80;
+         offset < total; offset++) {
+        uint32_t bnum = base + offset;
         block_memset(bnum, 0x00);  // clear block map
+        if (offset % chunk == 0) {
+            printk(".");
+        }
     }
+    screen_clear();
     pretty_logd("block map cleared");
 
     inode_t* root_inode = inode_alloc(FS_TYPE_DIR);

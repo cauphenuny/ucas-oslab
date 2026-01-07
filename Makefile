@@ -43,7 +43,7 @@ MINICOM         ?= minicom
 
 COMMON_FLAGS    = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3
 COMMON_FLAGS    += -g
-COMMON_FLAGS    += -O0
+COMMON_FLAGS    += -O2
 # COMMON_FLAGS    += -DNOLOG
 # COMMON_FLAGS    += -DNOASSERTS
 # COMMON_FLAGS    += -DRET_WHEN_KERNEL_EXCEPTION
@@ -155,6 +155,7 @@ clean:
 
 floppy:
 	sudo dd if=$(DIR_BUILD)/raw_image of=$(DISK)$(DISK_SECTOR) conv=notrunc
+	sudo dd if=/dev/zero of=$(DISK)$(DISK_SECTOR) bs=512 seek=1048576 count=1 conv=notrunc
 	# sudo fdisk -l $(DISK)
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)

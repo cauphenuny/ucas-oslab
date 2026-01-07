@@ -716,7 +716,7 @@ const task_t COMMAND_TABLE[] = {
     {"shutdown", "halt operating system", subcmd_lint, shutdown},
     {"mkdir", "make directory", subcmd_lint, mkdir},
     {"rmdir", "remove directory", subcmd_lint, rmdir},
-    {"ls", "list directory contents", subcmd_lint, ls},
+    {"ls", "list directory contents", subcmd_lint_ls, ls},
     {".keycode", "show keycode", subcmd_lint, keycode},
 };
 

@@ -49,10 +49,10 @@ int do_mkfs(void) {
     }
 
     inode_t* root_inode = inode_alloc(FS_TYPE_DIR);
-    root_inode->link_count = 1;
     asserts(root_inode->inode_num == ROOT_INODE, "root inode number incorrect");
 
     inode_open(root_inode);
+    root_inode->link_count = 1;
     dir_link(root_inode, ".", ROOT_INODE);
     dir_link(root_inode, "..", ROOT_INODE);
     root_inode->link_count++;
@@ -141,7 +141,7 @@ public:
 int do_ls(char* path, int option) {
     // Note: argument 'option' serves for 'ls -l' in A-core
 
-    const char* wrapped_path = (path == nullptr || path[0] == '\0') ? "." : path;
+    const char* wrapped_path = (path == nullptr || path[0] == '\0') ? "" : path;
 
     inode_t* dir_inode = path_resolve_entry(wrapped_path);
 
@@ -150,9 +150,11 @@ int do_ls(char* path, int option) {
         return 1;
     }
 
+    inode_open(dir_inode);
+
     if (dir_inode->type != FS_TYPE_DIR) {
         pretty_logw("cannot access '%s': Not a directory", wrapped_path);
-        inode_deref(dir_inode);
+        inode_close(dir_inode);
         return 2;
     }
 
@@ -165,19 +167,22 @@ int do_ls(char* path, int option) {
                 "INODE", 7, [](const dentry_t* entry) { printkf("%d", entry->inode_num); }},
             table_entry_t{
                 "TYPE", 6,
-                [](const dentry_t* entry) {
+                [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
+                    if (ind != dir_inode) inode_open(ind);
                     printkf(
                         "%s", ind->type == FS_TYPE_DIR   ? "DIR"
                               : ind->type == FS_TYPE_DEV ? "DEV"
                                                          : "FILE");
-                    inode_deref(ind);
+                    if (ind != dir_inode) inode_close(ind);
                 }},
             table_entry_t{
                 "SIZE", 6,
-                [](const dentry_t* entry) {
+                [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
+                    if (ind != dir_inode) inode_open(ind);
                     printkf("%d", ind->size);
+                    if (ind != dir_inode) inode_close(ind);
                 }},
             table_entry_t{"NAME", 24, [](const dentry_t* entry) { printkf("%s", entry->name); }});
 
@@ -191,6 +196,8 @@ int do_ls(char* path, int option) {
         }
     }
     screen_reflush();
+
+    inode_close(dir_inode);
 
     return 0;
 }

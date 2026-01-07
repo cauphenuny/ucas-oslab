@@ -79,6 +79,7 @@ void inode_deref(inode_t* inode) {
 void inode_open(inode_t* inode) {
     mutex_acquire(&inode->lock);
     if (!inode->valid) {
+        pretty_logd("loading inode #%d from disk", inode->inode_num);
         block_t* block = block_open(INODE2BLOCK(inode->inode_num));
         diskinode_t* diskinode = &((diskinode_t*)block->data)[INODE2OFFSET(inode->inode_num)];
         memcpy(inode, diskinode, sizeof(diskinode_t));

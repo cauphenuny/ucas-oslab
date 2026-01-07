@@ -108,20 +108,28 @@ int dir_rmdir(inode_t* dir, const char* dirname) {
 
     if (filename_cmp(dirname, ".") == 0 || filename_cmp(dirname, "..") == 0) {
         pretty_logd("cannot remove . or .. directory");
-        return -1;
+        return 3;
     }
 
     size_t offset;
     inode_t* child = dir_lookup(dir, dirname, &offset);
-    if (child == NULL || child->type != FS_TYPE_DIR) {
-        return -1;
+
+    if (child == NULL) {
+        return 1;
     }
 
     inode_open(child);
+
+    if (child->type != FS_TYPE_DIR) {
+        inode_close(child);
+        pretty_logd("%s is not a directory", dirname);
+        return 2;
+    }
+
     if (!dir_isempty(child)) {
         inode_close(child);
         pretty_logd("directory %s not empty", dirname);
-        return -1;  // not empty
+        return 4;  // not empty
     }
 
     dentry_t dentry;
@@ -174,29 +182,36 @@ inode_t* path_resolve(const char* path, bool skip_last, char* name) {
     else
         cur = inode_ref(current_running->cwd_inode);
 
-    pretty_logd("current inode: %d", cur->inode_num);
+    if (*path == 0) {
+        pretty_logd("resolving empty path, return current inode: %d", cur->inode_num);
+        *name = 0;
+        return cur;
+    }
+
+    pretty_logi("current inode: %d", cur->inode_num);
 
     while ((path = path_shift(path, name)) != 0) {
-        pretty_logd("resolving path component: %s", name);
+        pretty_logi("resolving path component: %s", name);
         inode_open(cur);
         if (cur->type != FS_TYPE_DIR) {
-            pretty_logd("failed: not a directory");
+            pretty_logi("failed: not a directory");
             inode_close(cur);
             return NULL;
         }
         if (skip_last && *path == 0) {
+            pretty_logi("skip last component, return parent inode: %d", cur->inode_num);
             inode_unlock(cur);
             return cur;
         }
         next = dir_lookup(cur, name, NULL);
         if (next == NULL) {
-            pretty_logd("failed: not such file or directory");
+            pretty_logi("failed: not such file or directory");
             inode_close(cur);
             return NULL;
         }
         inode_close(cur);
         cur = next;
-        pretty_logd("next inode: %d", cur->inode_num);
+        pretty_logi("next inode: %d", cur->inode_num);
     }
 
     if (skip_last) {  // no parent
@@ -269,8 +284,9 @@ int path_remove(const char* path, int isdir) {
     char name[MAX_FILE_NAME];
     inode_t* parent = path_resolve_parent(path, name);
     if (parent == NULL) {
-        return -1;
+        return 1;
     }
+    pretty_logi("parsed path '%s', parent %d, name '%s'", path, parent->inode_num, name);
 
     inode_open(parent);
     int ret = isdir ? dir_rmdir(parent, name) : dir_unlink(parent, name);

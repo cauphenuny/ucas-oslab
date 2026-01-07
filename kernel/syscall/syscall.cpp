@@ -443,6 +443,16 @@ long sys_cd(char* upath) {
     return do_cd(path);
 }
 
+long sys_mkdir(char* upath) {
+    char* path = uva_object_t((uva_t)upath).str();
+    return do_mkdir(path);
+}
+
+long sys_rmdir(char* upath) {
+    char* path = uva_object_t((uva_t)upath).str();
+    return do_rmdir(path);
+}
+
 /***************** halt *****************/
 
 long sys_halt(void) {
@@ -531,6 +541,8 @@ void init_syscall(void) {
     syscall[SYSCALL_FS_STATFS] = (syscall_t)sys_statfs;
     syscall[SYSCALL_FS_LS] = (syscall_t)sys_ls;
     syscall[SYSCALL_FS_CD] = (syscall_t)sys_cd;
+    syscall[SYSCALL_FS_MKDIR] = (syscall_t)sys_mkdir;
+    syscall[SYSCALL_FS_RMDIR] = (syscall_t)sys_rmdir;
 
     syscall[SYSCALL_HALT] = (syscall_t)sys_halt;
 }

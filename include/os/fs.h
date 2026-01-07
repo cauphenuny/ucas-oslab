@@ -238,6 +238,8 @@ void init_fs_cache();
 void flush_fs_cache();
 void cache_routine();
 
-void init_fs_device();
+void flush_filesystem();
+
+void init_fs_etc();
 
 #endif

@@ -66,10 +66,22 @@ kva_t create_fs_pgdir() {
     return pgdir;
 }
 
+void cache_routine() {
+    while (true) {
+        do_sleep(max(1, pagecache_config.write_back_freq));
+        if (pagecache_config.policy == POLICY_WRITE_BACK) {
+            pretty_logi("fs cache write-back routine triggered");
+            flush_filesystem();
+        }
+    }
+}
+
 void init_fs_cache() {
     memcpy(&fs_swap_vtable, get_current_pagegroup()->vtable, sizeof(pagegroup_vtable_t));
     cache_pgdir = create_fs_pgdir();
-    pagecache_config.write_back_freq = 3;  // s
+    pagecache_config.write_back_freq = 10;  // s
+    do_exec(
+        NULL, "cache_daemon", (uint64_t)cache_routine, 1, (char*[]){"cache_daemon"}, (unsigned)-1);
 }
 
 void flush_fs_cache() {

@@ -84,7 +84,7 @@ void init_fs() {
             superblock.fs_size, superblock.inode_count, superblock.block_count);
     }
 
-    init_fs_device();
+    init_fs_etc();
 }
 
 superblock_t superblock;
@@ -394,13 +394,3 @@ void flush_filesystem() {
 }
 
 void shutdown_fs() { flush_filesystem(); }
-
-void cache_routine() {
-    while (true) {
-        do_sleep(pagecache_config.write_back_freq);
-        if (pagecache_config.policy == POLICY_WRITE_BACK) {
-            pretty_logi("fs cache write-back routine triggered");
-            flush_filesystem();
-        }
-    }
-}

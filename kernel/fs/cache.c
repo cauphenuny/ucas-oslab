@@ -7,6 +7,13 @@ uintptr_t cache_pgdir;
 pageframe_group_t* fs_cache_group;
 #define FS_CACHE_SIZE (8 * 1024)  // 8K pages, 32M
 
+static const char* cache_policy_name[] = {
+    "write back",
+    "write through",
+};
+
+cache_config_t pagecache_config;
+
 uva_t cache_swapin(int start_sector) {
     uva_t va = (uva_t)start_sector * SECTOR_SIZE;
     pretty_logd("calculated virtual address 0x%x for sector %d", va, start_sector);
@@ -56,10 +63,10 @@ pagegroup_vtable_t fs_swap_vtable;
 kva_t create_fs_pgdir() {
     kva_t pgdir = new_top_pgdir(get_current_pagegroup());
     pretty_logd("allcoated pgdir 0x%x for fs cache", kva2pa(pgdir));
-    fork_pagegroup(pgdir, FS_CACHE_SIZE, "fs_cache");
+    fork_pagegroup(pgdir, FS_CACHE_SIZE, "pagecache");
     fs_cache_group = find_pagegroup(pgdir);
     fs_swap_vtable.swap_alloc = fs_cache_swap_alloc;
-    fs_swap_vtable.page_free = fs_cache_swap_free;
+    fs_swap_vtable.on_page_free = fs_cache_swap_free;
     fs_cache_group->vtable = &fs_swap_vtable;
     return pgdir;
 }
@@ -67,6 +74,7 @@ kva_t create_fs_pgdir() {
 void init_fs_cache() {
     memcpy(&fs_swap_vtable, get_current_pagegroup()->vtable, sizeof(pagegroup_vtable_t));
     cache_pgdir = create_fs_pgdir();
+    pagecache_config.write_back_freq = 3;  // s
 }
 
 void flush_fs_cache() {

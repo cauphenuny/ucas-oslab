@@ -250,7 +250,7 @@ void inode_delete(inode_t* inode) {
     superblock.used_inode--;
 }
 
-int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint32_t length) {
+int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_t length) {
     if (offset > inode->size || offset + length < offset) {
         pretty_logw(
             "read out of range: inode %d, offset %d, length %d, size %d", inode->inode_num, offset,
@@ -291,7 +291,7 @@ int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint
     return total;
 }
 
-int inode_write(inode_t* inode, void* src, uint32_t pgdir, uint32_t offset, uint32_t length) {
+int inode_write(inode_t* inode, void* src, kva_t pgdir, uint32_t offset, uint32_t length) {
     pretty_logd("writing %d bytes to inode %d at offset %d", length, inode->inode_num, offset);
     uint32_t chunk_size = 0, total = 0;
 

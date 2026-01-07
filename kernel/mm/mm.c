@@ -65,6 +65,10 @@ PTE* find_pte(uva_t va, kva_t pgdir, bool create) {
     uint64_t vpn2, vpn1, vpn0;
     get_vpn(va, &vpn2, &vpn1, &vpn0);
     PTE* current_pgdir = (PTE*)pgdir;
+    pretty_logd("find pte for va 0x%lx in pgdir 0x%lx", va, pgdir);
+    if ((pgdir & (1ul << 63)) == 0) {
+        breakpoint();
+    }
     if (!get_attribute(current_pgdir[vpn2], _PAGE_PRESENT)) {
         if (create) {
             clear_pgdir(add_page(vpn2, (kva_t)current_pgdir, 0));
@@ -103,6 +107,7 @@ PTE* find_kernel_pte(uva_t va, bool create, int num_pgdirs) {
 
 PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok) {
     PTE* pte = find_pte(va, pgdir, true);
+    pretty_logd("found pte 0x%lx for va 0x%lx in pgdir 0x%x", pte, va, kva2pa(pgdir));
     if (*pte != 0) {
         asserts(exist_ok, "page already allocated");
         if (!get_attribute(*pte, _PAGE_PRESENT)) {

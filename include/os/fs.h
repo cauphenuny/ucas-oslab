@@ -157,7 +157,7 @@ void block_close(block_t* blk);
 int block_alloc(void);
 int block_allocset(uint8_t val);
 void block_free(int block_num);
-void flush_blocks();
+void flush_block_cache();
 void shutdown_fs();
 
 #define INODE2BLOCK(inode_num)  (superblock.inode_offset + (inode_num) / INODE_PER_BLOCK)
@@ -182,8 +182,8 @@ void inode_clear(inode_t* inode);
 void inode_sync(inode_t* inode);
 int inode_mapblock(inode_t* inode, int block_in_file);
 void inode_delete(inode_t* inode);
-int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint32_t length);
-int inode_write(inode_t* inode, void* src, uint32_t pgdir, uint32_t offset, uint32_t length);
+int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_t length);
+int inode_write(inode_t* inode, void* src, kva_t pgdir, uint32_t offset, uint32_t length);
 
 // NOTE: these requires inode locked and unlocks inode
 void inode_unlock(inode_t* inode);
@@ -204,9 +204,23 @@ inode_t* path_resolve_parent(const char* path, char* name);
 inode_t* path_create(const char* path, int type);
 int path_remove(const char* path, int isdir);
 
+enum {
+    POLICY_WRITE_BACK = 0,
+    POLICY_WRITE_THROUGH,
+};
+
+typedef struct {
+    int policy;
+    int cache_size;
+    int write_back_freq;
+} cache_config_t;
+
+extern cache_config_t pagecache_config;
+
 void cached_block_read(void* dest, int block_num);
 void cached_block_write(void* dest, int block_num);
 void init_fs_cache();
 void flush_fs_cache();
+void cache_routine();
 
 #endif

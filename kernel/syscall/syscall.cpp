@@ -73,7 +73,7 @@ long exec_dispatch(char* uname, int argc, char* uargv[], uint64_t entrance, int 
     if (entrance == (uint64_t)-1) {
         entrance = task->entrance;
     }
-    return do_exec(task, entrance, argc, argv, affinity);
+    return do_exec(task, task->name, entrance, argc, argv, affinity);
 }
 
 long sys_exec_with_affinity(char* name, int argc, char* argv[], int affinity) {

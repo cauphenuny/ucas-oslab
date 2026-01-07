@@ -1,13 +1,13 @@
 #include <assert.h>
 #include <csr.h>
 #include <logger.h>
+#include <os/fs.h>
 #include <os/loader.h>
 #include <os/mm.h>
 #include <os/sched.h>
 #include <os/string.h>
 #include <os/task.h>
 #include <screen.h>
-#include <os/fs.h>
 
 // Task info array
 int task_num;
@@ -63,7 +63,8 @@ void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra) {
 }
 
 void init_pcb_stack(
-    pcb_t* pcb, kva_t kernel_stack, uva_t user_stack, uva_t entry_point, int argc, char** argv) {
+    pcb_t* pcb, kva_t kernel_stack, uva_t user_stack, uva_t entry_point, bool is_user, int argc,
+    char** argv) {
     /* DONE: [p2-task3] initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
      * NOTE: To run the task in user mode, you should set corresponding bits
@@ -103,14 +104,17 @@ void init_pcb_stack(
 
     pcb->kernel_sp = (ptr_t)pt_switchto;
     pcb->user_sp = user_stack;
-    pt_switchto->regs[SWITCHTO_REG_RA] = (reg_t)ret_from_exception;
+    if (is_user)
+        pt_switchto->regs[SWITCHTO_REG_RA] = (reg_t)ret_from_exception;
+    else
+        pt_switchto->regs[SWITCHTO_REG_RA] = entry_point;
     pt_switchto->regs[SWITCHTO_REG_SP] = pcb->kernel_sp;
 }
 
 pcb_t* construct_pcb(
-    const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem,
-    int user_mem) {
-    pretty_log(LOG_DEBUG, "constructing pcb for task %s", task->name);
+    const task_info_t* task, const char* name, uint64_t entrance, int argc, char* argv[],
+    int kernel_mem, int user_mem) {
+    pretty_log(LOG_DEBUG, "constructing pcb for %s (task 0x%x)", name, task);
     pcb_t* pcb = alloc_pcb();
     if (!pcb) return NULL;
     asserts(pcb->status == TASK_EXITED, "PCB is not free");
@@ -119,9 +123,9 @@ pcb_t* construct_pcb(
 
     pcb->pgdir = create_task_pgdir(task);
     share_pgtable(pcb->pgdir, PGDIR_VA);
-    pretty_logi("shared pgtable for task %s", task->name);
+    pretty_logi("shared pgtable for task %s", name);
     load_task_img(task, pcb->pgdir);
-    pretty_logi("loaded task image for task %s", task->name);
+    pretty_logi("loaded task image for task %s", name);
 
     kva_t kernel_stack_bottom = alloc_pageframe(PAGE_GROUP_KERNEL, kernel_mem),
           kernel_stack_base = kernel_stack_bottom + kernel_mem * PAGE_SIZE;
@@ -131,7 +135,7 @@ pcb_t* construct_pcb(
     pcb->pid = process_id++;
     list_init(&pcb->wait_list, "proc");
     pcb->status = TASK_READY;
-    strncpy(pcb->name, task->name, sizeof(pcb->name) - 1);
+    strncpy(pcb->name, name, sizeof(pcb->name) - 1);
     char* cmd = pcb->cmd;
     for (int i = 0, sum = 0; i < argc; i++) {
         int len = strlen(argv[i]) + 1;
@@ -150,10 +154,10 @@ pcb_t* construct_pcb(
     pcb->kernel_stack_bottom = kernel_stack_bottom;
     pcb->user_stack_base = user_stack_base;
     pcb->user_stack_bottom = user_stack_bottom;
-    init_pcb_stack(pcb, kernel_stack_base, user_stack_base, entrance, argc, argv);
+    init_pcb_stack(pcb, kernel_stack_base, user_stack_base, entrance, task != NULL, argc, argv);
     pretty_log(
-        LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, task->name, kernel_stack_base,
-        user_stack_base, task->entrance);
+        LOG_DEBUG, "pid %d: %s: ksp=%x, usp=%x, entry=%x", pcb->pid, name, kernel_stack_base,
+        user_stack_base, entrance);
 
     pcb->cwd_inode = ROOT_INODE;
     return pcb;

@@ -107,7 +107,7 @@ void block_free(int block_num) {
     pretty_logn("freed block %d", block_num);
 }
 
-void flush_blocks() {
+void flush_block_cache() {
     for (int i = 0; i < BLOCK_CONCURRENCY; i++) {
         if (blocks[i].valid) {
             if (blocks[i].refcnt != 0) {

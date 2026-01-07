@@ -27,8 +27,8 @@ task_info_t* find_task(const char* name);
 void show_tasks();
 void fetch_pcb_info(const pcb_t* pcb, ptr_t* kernel_ra, ptr_t* user_ra);
 pcb_t* construct_pcb(
-    const task_info_t* task, uint64_t entrance, int argc, char* argv[], int kernel_mem,
-    int user_mem);
+    const task_info_t* task, const char* name, uint64_t entrance, int argc, char* argv[],
+    int kernel_mem, int user_mem);
 int set_proc_affinity(pcb_t* pcb, unsigned affinity_mask);
 void init_pcb(void);
 

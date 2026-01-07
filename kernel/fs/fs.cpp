@@ -363,8 +363,20 @@ int do_lseek(int fd, int offset, int whence) {
     return fp->pos;
 }
 
-void shutdown_fs() {
+void flush_filesystem() {
     bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
-    flush_blocks();
+    flush_block_cache();
     flush_fs_cache();
+}
+
+void shutdown_fs() { flush_filesystem(); }
+
+void cache_routine() {
+    while (true) {
+        do_sleep(pagecache_config.write_back_freq);
+        if (pagecache_config.policy == POLICY_WRITE_BACK) {
+            pretty_logi("fs cache write-back routine triggered");
+            flush_filesystem();
+        }
+    }
 }

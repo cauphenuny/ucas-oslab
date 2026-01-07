@@ -190,8 +190,11 @@ int main(int argc, char** argv) {
 
         task_info_t* shell_task = find_task("shell");
         asserts(shell_task, "no shell");
-        do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
-        pretty_logi("[INIT] Created shell process.");
+        do_exec(
+            shell_task, shell_task->name, shell_task->entrance, 1, (char*[]){"shell"},
+            (unsigned)-1);
+        do_exec(NULL, "page_cache", (uint64_t)cache_routine, 0, NULL, (unsigned)-1);
+        pretty_logi("[INIT] Created kernel process.");
 
         init_fs();
         pretty_logi("[INIT] File system initialized.");

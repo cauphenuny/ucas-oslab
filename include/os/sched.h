@@ -226,7 +226,7 @@ struct task_info;
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
 extern pid_t do_exec(
-    const struct task_info* task, uint64_t entrance, int argc, char* argv[],
+    const struct task_info* task, const char* name, uint64_t entrance, int argc, char* argv[],
     unsigned affinity_mask);
 #endif
 extern void do_exit(void);

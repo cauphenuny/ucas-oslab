@@ -8,14 +8,19 @@
 
 kva_t create_task_pgdir(const task_info_t* task) {
     kva_t pgdir = new_top_pgdir(get_current_pagegroup());
-    pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
-    for (uva_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
-        alloc_page(va, pgdir, false);
+    if (task != NULL) {
+        pretty_logi("allocated pgdir at 0x%lx for task %s", pgdir, task->name);
+        for (uva_t va = task->entrance; va < task->entrance + task->memsize; va += PAGE_SIZE) {
+            alloc_page(va, pgdir, false);
+        }
     }
     return pgdir;
 }
 
 uint64_t load_task_img(const task_info_t* task, kva_t pgdir) {
+    if (task == NULL) {
+        return (uint64_t)-1;
+    }
     /**
      * DONE:
      * 1. [p1-task3] load task from image via task id, and return its entrypoint

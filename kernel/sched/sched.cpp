@@ -336,14 +336,15 @@ void attach_subprocess(pcb_t* parent, pcb_t* child) {
 }
 
 pid_t do_exec(
-    const task_info_t* task, uint64_t entrance, int argc, char* argv[], unsigned affinity_mask) {
-    pretty_log(LOG_DEBUG, "handling exec for %s", task->name);
-    pcb_t* pcb = construct_pcb(task, entrance, argc, argv, 2, 8);
+    const task_info_t* task, const char* name, uint64_t entrance, int argc, char* argv[],
+    unsigned affinity_mask) {
+    pretty_log(LOG_DEBUG, "handling exec for %s", name);
+    pcb_t* pcb = construct_pcb(task, name, entrance, argc, argv, 2, 8);
     if (!pcb) {
-        pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", task->name);
+        pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", name);
         return 0;
     }
-    pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", task->name, pcb->pid);
+    pretty_log(LOG_INFO, "exec %s succeeded! pid=%d", name, pcb->pid);
     set_proc_affinity(pcb, affinity_mask);
     list_append(&ready_queue, &pcb->sched_node);
     attach_subprocess(current_running, pcb);

@@ -79,6 +79,11 @@ int dir_unlink(inode_t* dir, const char* filename) {
     asserts(filename != NULL, "dir_unlink with NULL filename");
     asserts(dir->type == FS_TYPE_DIR, "dir_unlink on non-directory inode");
 
+    if (filename_cmp(filename, ".") == 0 || filename_cmp(filename, "..") == 0) {
+        pretty_logd("cannot unlink . or .. directory entries");
+        return ERR_FILE_NO_PERMISSION;
+    }
+
     size_t offset;
     inode_t* child = dir_lookup(dir, filename, &offset);
     if (child == NULL) {

@@ -372,7 +372,7 @@ int do_lseek(int fd, int offset, int whence) {
         pretty_logw("invalid fd %d", fd);
         return ERR_FD_INVALID;
     }
-    pretty_logi("try seek fd=%d offset=%d whence=%d", fd, offset, whence);
+    // pretty_logi("try seek fd=%d offset=%d whence=%d", fd, offset, whence);
     auto fp = current_running->fd_table[fd];
     if (!fp) {
         return ERR_FD_INVALID;
@@ -389,7 +389,7 @@ int do_lseek(int fd, int offset, int whence) {
     if (target < 0) target = 0;
     inode_unlock(fp->inode);
 
-    pretty_logi("lseek fd=%d to %d (whence=%d, offset=%d)", fd, target, whence, offset);
+    // pretty_logd("lseek fd=%d to %d (whence=%d, offset=%d)", fd, target, whence, offset);
 
     fp->wpos = target;
     fp->rpos = min(target, fp->inode->size);

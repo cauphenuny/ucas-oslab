@@ -9,7 +9,7 @@ pageframe_group_t* fs_cache_group;
 
 cache_config_t pagecache_config;
 
-uva_t cache_swapin(int start_sector) {
+uva_t cache_swapin(int start_sector, bool load) {
     uva_t va = (uva_t)start_sector * SECTOR_SIZE;
     pretty_logd("calculated virtual address 0x%x for sector %d", va, start_sector);
     PTE* pte = find_pte(va, cache_pgdir, true);
@@ -23,20 +23,31 @@ uva_t cache_swapin(int start_sector) {
         kva_t page = alloc_pageframe(fs_cache_group, BLOCK_SIZE / PAGE_SIZE);
         pageframe_t* attr = pageframe_kva2attr(page);
         attr->uva = va;
-        bios_sd_read(page, NSECTOR_BLOCK, start_sector);
+        if (load) {
+            bios_sd_read(page, NSECTOR_BLOCK, start_sector);
+        }
         bind_page(pte, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE);
     }
     return va;
 }
 
 void cached_block_read(void* dest, int start_sector) {
-    uva_t uva = cache_swapin(start_sector);
-    memcpy_uva2kva((kva_t)dest, uva, BLOCK_SIZE, cache_pgdir);
+    if (pagecache_config.policy == POLICY_WRITE_THROUGH) {
+        bios_sd_read((kva_t)dest, NSECTOR_BLOCK, start_sector);
+    } else {
+        uva_t uva = cache_swapin(start_sector, true);
+        memcpy_uva2kva((kva_t)dest, uva, BLOCK_SIZE, cache_pgdir);
+    }
 }
 
 void cached_block_write(void* src, int start_sector) {
-    uva_t uva = cache_swapin(start_sector);
-    memcpy_kva2uva(uva, (kva_t)src, BLOCK_SIZE, cache_pgdir);
+    if (pagecache_config.policy == POLICY_WRITE_THROUGH) {
+        bios_sd_write((kva_t)src, NSECTOR_BLOCK, start_sector);
+        return;
+    } else {
+        uva_t uva = cache_swapin(start_sector, false);
+        memcpy_kva2uva(uva, (kva_t)src, BLOCK_SIZE, cache_pgdir);
+    }
 }
 
 uint64_t fs_cache_swap_alloc(pageframe_group_t* group, uva_t va) {

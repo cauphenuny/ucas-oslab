@@ -367,7 +367,7 @@ int sys_rm(char *path)
 
 int sys_lseek(int fd, int offset, int whence)
 {
-    return invoke_syscall(SYSCALL_FS_LSEEK, (long)offset, (long)whence, IGNORE, IGNORE, IGNORE);
+    return invoke_syscall(SYSCALL_FS_LSEEK, (long)fd, (long)offset, (long)whence, IGNORE, IGNORE);
 }
 /************************************************************/
 

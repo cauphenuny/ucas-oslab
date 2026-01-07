@@ -339,7 +339,7 @@ pid_t do_exec(
     const task_info_t* task, const char* name, uint64_t entrance, int argc, char* argv[],
     unsigned affinity_mask) {
     pretty_log(LOG_DEBUG, "handling exec for %s", name);
-    pcb_t* pcb = construct_pcb(task, name, entrance, argc, argv, 2, 8);
+    pcb_t* pcb = construct_pcb(task, name, entrance, argc, argv, 8, 8);
     if (!pcb) {
         pretty_log(LOG_WARN, "exec %s failed: failed to allocate pcb!", name);
         return 0;

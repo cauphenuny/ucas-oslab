@@ -7,6 +7,7 @@ extern "C" {
 #include <os/kernel.h>
 #include <os/string.h>
 #include <os/task.h>
+#include <type.h>
 }
 
 int do_mkfs(void) {
@@ -168,6 +169,16 @@ int do_ls(char* path, int option) {
             table_entry_t{
                 "INODE", 7, [](const dentry_t* entry) { printkf("%d", entry->inode_num); }},
             table_entry_t{
+                "NAME",
+                24,
+                [dir_inode](const dentry_t* entry) {
+                    inode_t* ind = inode_ref(entry->inode_num);
+                    if (ind != dir_inode) inode_open(ind);
+                    printkf("%s%s", entry->name, ind->type == FS_TYPE_DIR ? "/" : "");
+                    if (ind != dir_inode) inode_close(ind);
+                },
+            },
+            table_entry_t{
                 "TYPE", 6,
                 [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
@@ -179,23 +190,14 @@ int do_ls(char* path, int option) {
                     if (ind != dir_inode) inode_close(ind);
                 }},
             table_entry_t{
-                "SIZE", 6,
+                "SIZE", 8,
                 [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
                     if (ind != dir_inode) inode_open(ind);
                     printkf("%d", ind->size);
                     if (ind != dir_inode) inode_close(ind);
-                }},
-            table_entry_t{
-                "NAME",
-                24,
-                [dir_inode](const dentry_t* entry) {
-                    inode_t* ind = inode_ref(entry->inode_num);
-                    if (ind != dir_inode) inode_open(ind);
-                    printkf("%s%s", entry->name, ind->type == FS_TYPE_DIR ? "/" : "");
-                    if (ind != dir_inode) inode_close(ind);
-                },
-            });
+                }}
+            );
 
     } else {
         for (size_t i = 0; i < dir.size(); i++) {
@@ -232,6 +234,7 @@ int do_open(char* path, int mode) {
     if (inode == NULL) {
         return -1;
     }
+
     inode_open(inode);
 
     if (inode->type == FS_TYPE_DIR) {
@@ -256,7 +259,8 @@ int do_open(char* path, int mode) {
     for (int i = 0; i < NUM_FDESCS; i++) {
         if (fdesc_array[i].valid == 0) {
             fdesc_array[i].inode = inode;
-            fdesc_array[i].pos = 0;
+            fdesc_array[i].rpos = 0;
+            fdesc_array[i].wpos = 0;
             fdesc_array[i].writable = writable;
             fdesc_array[i].readable = readable;
             fdesc_array[i].valid = 1;
@@ -272,30 +276,39 @@ int do_open(char* path, int mode) {
 }
 
 int do_read(int fd, char* buff, int length) {
+    if (fd < 0 || fd >= NUM_MAX_PROC_FD) {
+        return 0;
+    }
     auto fp = current_running->fd_table[fd];
     if (!fp) {
         return 0;
     }
     inode_open(fp->inode);
-    int ret = inode_read(fp->inode, buff, current_running->pgdir, fp->pos, length);
-    fp->pos += ret;
+    int ret = inode_read(fp->inode, buff, current_running->pgdir, fp->rpos, length);
+    fp->rpos += ret;
     inode_unlock(fp->inode);
     return ret;
 }
 
 int do_write(int fd, char* buff, int length) {
+    if (fd < 0 || fd >= NUM_MAX_PROC_FD) {
+        return 0;
+    }
     auto fp = current_running->fd_table[fd];
     if (!fp) {
         return 0;
     }
     inode_open(fp->inode);
-    int ret = inode_write(fp->inode, buff, current_running->pgdir, fp->pos, length);
-    fp->pos += ret;
+    int ret = inode_write(fp->inode, buff, current_running->pgdir, fp->wpos, length);
+    fp->wpos += ret;
     inode_unlock(fp->inode);
     return ret;
 }
 
 int do_close(int fd) {
+    if (fd < 0 || fd >= NUM_MAX_PROC_FD) {
+        return 0;
+    }
     if (!current_running->fd_table[fd]) {
         return ERR_FD_INVALID;
     }
@@ -343,12 +356,17 @@ int do_rm(char* path) {
 }
 
 int do_lseek(int fd, int offset, int whence) {
+    if (fd < 0 || fd >= NUM_MAX_PROC_FD) {
+        pretty_logw("invalid fd %d", fd);
+        return ERR_FD_INVALID;
+    }
+    pretty_logi("try seek fd=%d offset=%d whence=%d", fd, offset, whence);
     auto fp = current_running->fd_table[fd];
     if (!fp) {
         return ERR_FD_INVALID;
     }
 
-    int target = fp->pos;
+    int target = max(fp->rpos, fp->wpos);
     inode_open(fp->inode);
     switch (whence) {
         case SEEK_SET: target = offset; break;
@@ -357,11 +375,13 @@ int do_lseek(int fd, int offset, int whence) {
         default:;
     }
     if (target < 0) target = 0;
-    if (target > (int)fp->inode->size) target = fp->inode->size;
     inode_unlock(fp->inode);
 
-    fp->pos = target;
-    return fp->pos;
+    pretty_logi("lseek fd=%d to %d (whence=%d, offset=%d)", fd, target, whence, offset);
+
+    fp->wpos = target;
+    fp->rpos = min(target, fp->inode->size);
+    return target;
 }
 
 void flush_filesystem() {

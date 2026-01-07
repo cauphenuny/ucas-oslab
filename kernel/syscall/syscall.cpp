@@ -476,6 +476,8 @@ long sys_rm(char* upath) {
     return do_rm(path);
 }
 
+long sys_lseek(int fd, int offset, int whence) { return do_lseek(fd, offset, whence); }
+
 /***************** halt *****************/
 
 long sys_halt(void) {
@@ -570,6 +572,9 @@ void init_syscall(void) {
     syscall[SYSCALL_FS_CLOSE] = (syscall_t)sys_close;
     syscall[SYSCALL_FS_READ] = (syscall_t)sys_read;
     syscall[SYSCALL_FS_WRITE] = (syscall_t)sys_write;
+    syscall[SYSCALL_FS_LN] = (syscall_t)sys_ln;
+    syscall[SYSCALL_FS_RM] = (syscall_t)sys_rm;
+    syscall[SYSCALL_FS_LSEEK] = (syscall_t)sys_lseek;
 
     syscall[SYSCALL_HALT] = (syscall_t)sys_halt;
 }

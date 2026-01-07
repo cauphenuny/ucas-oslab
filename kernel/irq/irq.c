@@ -105,7 +105,7 @@ void print_backtrace(regs_context_t* regs) {
     int depth = 0;
     printk("Backtrace (using sepc and stack):\n");
     printk("  [0] 0x%lx\n", regs->sepc);
-    while (fp && depth < 20) {
+    while (fp && depth < 30) {
         if (ra) {
             depth++;
             printk("  [%d] 0x%lx\n", depth, ra);
@@ -246,6 +246,7 @@ void init_exception() {
 }
 
 void handle_other(regs_context_t* regs, uint64_t stval, uint64_t scause) {
+    screen_clear();
     print_backtrace(regs);
 
     char* reg_name[] = {"zero ", " ra  ", " sp  ", " gp  ", " tp  ", " t0  ", " t1  ", " t2  ",

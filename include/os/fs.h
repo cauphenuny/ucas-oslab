@@ -88,7 +88,7 @@ typedef struct fdesc {
     // TODO [P6-task2]: Implement the data structure of file descriptor
     inode_t* inode;
     uint32_t valid;
-    uint32_t pos;
+    uint32_t wpos, rpos;
     uint8_t readable;
     uint8_t writable;
 } fdesc_t;

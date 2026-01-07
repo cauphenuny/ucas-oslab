@@ -25,7 +25,7 @@ void wakeup_other_hart() {
 extern void ret_from_exception();
 
 void lock_kernel(regs_context_t* regs, uint64_t stval, uint64_t scause, uint64_t sepc) {
-    if (regs && (sepc & (1ul << 63)) && !(scause & SCAUSE_IRQ_FLAG)) {
+    if (regs && (sepc == 0 || (sepc & (1ul << 63))) && !(scause & SCAUSE_IRQ_FLAG)) {
 // NOTE: exception occured in kernel code
 #ifdef RET_WHEN_KERNEL_EXCEPTION
         pretty_loge(

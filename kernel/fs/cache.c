@@ -8,7 +8,8 @@ pageframe_group_t* fs_cache_group;
 #define FS_CACHE_SIZE (8 * 1024)  // 8K pages, 32M
 
 uva_t cache_swapin(int start_sector) {
-    uva_t va = start_sector * SECTOR_SIZE;
+    uva_t va = (uva_t)start_sector * SECTOR_SIZE;
+    pretty_logd("calculated virtual address 0x%x for sector %d", va, start_sector);
     PTE* pte = find_pte(va, cache_pgdir, true);
     if (*pte != 0) {
         if (!get_attribute(*pte, _PAGE_PRESENT)) {
@@ -31,14 +32,23 @@ void cached_block_read(void* dest, int start_sector) {
     memcpy_uva2kva((kva_t)dest, uva, BLOCK_SIZE, cache_pgdir);
 }
 
-void cached_block_write(void* dest, int start_sector) {
+void cached_block_write(void* src, int start_sector) {
     uva_t uva = cache_swapin(start_sector);
-    memcpy_kva2uva(uva, (kva_t)dest, BLOCK_SIZE, cache_pgdir);
+    memcpy_kva2uva(uva, (kva_t)src, BLOCK_SIZE, cache_pgdir);
 }
 
 uint64_t fs_cache_swap_alloc(pageframe_group_t* group, uva_t va) {
     asserts(va % BLOCK_SIZE == 0, "va not block aligned");
     return va / SECTOR_SIZE;
+}
+
+void fs_cache_swap_free(pageframe_group_t* group, uint64_t uva) {
+    static uint8_t buffer[BLOCK_SIZE];
+    uint64_t sector_id = uva / SECTOR_SIZE;
+    if (sector_id < FS_START_SECTOR) return;
+    memcpy_uva2kva((kva_t)buffer, uva, BLOCK_SIZE, cache_pgdir);
+    pretty_logn("fs cache writing back block to SD card, sector %d", sector_id);
+    bios_sd_write((kva_t)buffer, NSECTOR_BLOCK, sector_id);
 }
 
 pagegroup_vtable_t fs_swap_vtable;
@@ -47,10 +57,9 @@ kva_t create_fs_pgdir() {
     kva_t pgdir = new_top_pgdir(get_current_pagegroup());
     pretty_logd("allcoated pgdir 0x%x for fs cache", kva2pa(pgdir));
     fork_pagegroup(pgdir, FS_CACHE_SIZE, "fs_cache");
-    share_pgtable(pgdir, PGDIR_VA);
     fs_cache_group = find_pagegroup(pgdir);
     fs_swap_vtable.swap_alloc = fs_cache_swap_alloc;
-    fs_swap_vtable.swap_free = NULL;
+    fs_swap_vtable.page_free = fs_cache_swap_free;
     fs_cache_group->vtable = &fs_swap_vtable;
     return pgdir;
 }
@@ -64,5 +73,3 @@ void flush_fs_cache() {
     free_top_pgdir(cache_pgdir);
     cache_pgdir = create_fs_pgdir();
 }
-
-void shutdown_fs_cache() { free_top_pgdir(cache_pgdir); }

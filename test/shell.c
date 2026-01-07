@@ -563,7 +563,7 @@ int help(int argc, char** argv) {
 }
 
 int exit(int argc, char** argv) {
-    sys_exit();
+    sys_halt();
     return 0;
 }
 
@@ -676,11 +676,6 @@ int mkfs(int argc, char** argv) { return sys_mkfs(); }
 
 int statfs(int argc, char** argv) { return sys_statfs(); }
 
-int halt(int argc, char** argv) {
-    sys_halt();
-    return 0;
-}
-
 int mkdir(int argc, char** argv) { return sys_mkdir(argv[1]); }
 
 int rmdir(int argc, char** argv) { return sys_rmdir(argv[1]); }
@@ -747,7 +742,6 @@ const task_t COMMAND_TABLE[] = {
     {"watch", "execute a program periodically", subcmd_lint_watch, watch},
     {"mkfs", "make filesystem", subcmd_lint, mkfs},
     {"statfs", "show filesystem status", subcmd_lint, statfs},
-    {"halt", "halt operating system", subcmd_lint, halt},
     {"mkdir", "make directory", subcmd_lint, mkdir},
     {"rmdir", "remove directory", subcmd_lint, rmdir},
     {"ls", "list directory contents", subcmd_lint_ls, ls},

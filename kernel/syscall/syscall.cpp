@@ -176,6 +176,7 @@ const struct {
     {"page", "display page frame group status", (info_handler_t)show_pagegroups},
     {"swap", "display swap status", (info_handler_t)show_swap},
     {"fs", "display filesystem status", (info_handler_t)do_statfs},
+    {"block", "display filesystem block status", (info_handler_t)show_blocks},
     {"help", "display this help message", (info_handler_t)show_help},
 };
 

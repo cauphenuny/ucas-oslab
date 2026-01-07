@@ -2,6 +2,7 @@
 #include <logger.h>
 #include <os/mm.h>
 #include <os/sched.h>
+#include <pgtable.h>
 
 kva_t new_top_pgdir(pageframe_group_t* group) {
     kva_t pgdir = alloc_pageframe(group, 1);
@@ -169,20 +170,27 @@ void strcpy_kva2uva(uva_t dest_va, const char* src, kva_t pgdir_dest) {
     memcpy_kva2uva(dest_va, (kva_t)src, len, pgdir_dest);
 }
 
-static void free_pgdir(kva_t pgdir) {
+static void free_pgdir(kva_t pgdir, uva_t va, int level) {
+    pageframe_group_t* group = find_pagegroup(pgdir);
     for (int i = 0; i < PTE_ENTRY_NUM; i++) {
         PTE pte = ((PTE*)pgdir)[i];
+        uva_t child_va = va | ((uva_t)i << (NORMAL_PAGE_SHIFT + level * PPN_BITS));
         if (get_attribute(pte, _PAGE_PRESENT)) {
             if (get_attribute(pte, _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC)) {
                 if (get_attribute(pte, _PAGE_USER)) {
+                    if (group->vtable->on_page_free) {
+                        pretty_logd(
+                            "found va 0x%lx to free in group '%s'", child_va, group->pages.name);
+                        group->vtable->on_page_free(group, child_va);
+                    }
                     free_pageframe(pa2kva(get_pa(pte)));
                 }
             } else {
-                free_pgdir(pa2kva(get_pa(pte)));
+                free_pgdir(pa2kva(get_pa(pte)), child_va, level - 1);
             }
         } else if (get_attribute(pte, _PAGE_SOFT)) {
-            uint64_t swap_id = get_pfn(pte);
-            free_swap(swap_id);
+            uint64_t swap_location = get_pfn(pte);
+            group->vtable->swap_free(group, swap_location);
         }
     }
     free_pageframe(pgdir);
@@ -190,7 +198,7 @@ static void free_pgdir(kva_t pgdir) {
 
 void free_top_pgdir(kva_t pgdir) {
     pageframe_group_t* group = find_pagegroup(pgdir);
-    free_pgdir(pgdir);
+    free_pgdir(pgdir, 0, 2);
     group->refcount--;
     if (!group->refcount) {
         free_pagegroup(group);

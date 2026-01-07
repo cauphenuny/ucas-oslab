@@ -152,11 +152,12 @@ typedef struct block {
 
 block_t* block_open(int block_num);
 void block_memset(int block_num, uint8_t val);
+void show_blocks();
 void block_close(block_t* blk);
 int block_alloc(void);
 int block_allocset(uint8_t val);
 void block_free(int block_num);
-void shutdown_blocks();
+void flush_blocks();
 void shutdown_fs();
 
 #define INODE2BLOCK(inode_num)  (superblock.inode_offset + (inode_num) / INODE_PER_BLOCK)
@@ -206,6 +207,6 @@ int path_remove(const char* path, int isdir);
 void cached_block_read(void* dest, int block_num);
 void cached_block_write(void* dest, int block_num);
 void init_fs_cache();
-void shutdown_fs_cache();
+void flush_fs_cache();
 
 #endif

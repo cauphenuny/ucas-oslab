@@ -11,9 +11,9 @@ static void halt_spin() {
 }
 
 void do_halt() {
-    printk("farewell.");
     shutdown_fs();
     cxxrt_teardown();
+    printk("farewell.");
     halted = 1;
     wakeup_other_hart();
     halt_spin();

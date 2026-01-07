@@ -6,6 +6,16 @@
 
 static block_t blocks[BLOCK_CONCURRENCY];
 
+void show_blocks() {
+    for (int i = 0; i < BLOCK_CONCURRENCY; i++) {
+        if (blocks[i].valid) {
+            printk(
+                "block buffer %d: block_num=%d, refcnt=%d\n", i, blocks[i].block_num,
+                blocks[i].refcnt);
+        }
+    }
+}
+
 void block_read(int block_num, void* data) {
     uint32_t src = superblock.start_sector + block_num * NSECTOR_BLOCK;
     cached_block_read(data, src);
@@ -66,7 +76,7 @@ int block_alloc() {
                 block_close(map);
                 superblock.used_block++;
                 pretty_logn("allocated block %d", bblock + boffset);
-                return bblock + boffset;
+                return superblock.datablock_offset + bblock + boffset;
             }
         }
         block_close(map);
@@ -83,6 +93,8 @@ int block_allocset(uint8_t val) {
 }
 
 void block_free(int block_num) {
+    asserts(block_num >= superblock.datablock_offset, "block_free on non-data block");
+    block_num -= superblock.datablock_offset;
     block_t* map = block_open(BLOCKID2MAPBLOCK(block_num));
     int bit_offset = BLOCKID2MAPOFFSET(block_num);
     int byte_offset = bit_offset / 8;
@@ -95,14 +107,14 @@ void block_free(int block_num) {
     pretty_logn("freed block %d", block_num);
 }
 
-void shutdown_blocks() {
+void flush_blocks() {
     for (int i = 0; i < BLOCK_CONCURRENCY; i++) {
         if (blocks[i].valid) {
             if (blocks[i].refcnt != 0) {
                 pretty_logw(
                     "block %d closed with refcnt %d", blocks[i].block_num, blocks[i].refcnt);
             }
-            pretty_logi("writeback block #%d", blocks[i].block_num);
+            pretty_logn("writeback block #%d", blocks[i].block_num);
             block_write(blocks[i].block_num, blocks[i].data);
         }
     }

@@ -114,6 +114,8 @@ struct pagegroup_vtable {
     uint64_t (*swap_alloc)(struct pageframe_group* group, uva_t va);
     void (*swap_free)(struct pageframe_group* group, uint64_t swap_location);
 
+    void (*on_page_free)(struct pageframe_group* group, uva_t va);
+
     const char* name;
 };
 

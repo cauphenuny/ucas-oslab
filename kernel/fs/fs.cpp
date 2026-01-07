@@ -66,21 +66,22 @@ void init_fs() {
     init_inodes();
     init_fs_cache();
 
-    superblock_t sb;
-    if (bios_sd_read((kva_t)&sb, 1, FS_START_SECTOR)) {
+    if (bios_sd_read((kva_t)&superblock, 1, FS_START_SECTOR)) {
         pretty_loge("failed to read superblock from sd-card");
     }
-    if (sb.magic != SUPERBLOCK_MAGIC) {
+    if (superblock.magic != SUPERBLOCK_MAGIC) {
         pretty_logw(
-            "invalid filesystem magic number: expected 0x%x, got 0x%x", SUPERBLOCK_MAGIC, sb.magic);
+            "invalid filesystem magic number: expected 0x%x, got 0x%x", SUPERBLOCK_MAGIC,
+            superblock.magic);
         do_mkfs();
-        bios_sd_read((kva_t)&sb, 1, FS_START_SECTOR);
+        pretty_log(
+            LOG_INFO, "filesystem init: size=%d sectors, inode_count=%d, block_count=%d",
+            superblock.fs_size, superblock.inode_count, superblock.block_count);
     } else {
-        pretty_logd("filesystem exists");
+        pretty_log(
+            LOG_INFO, "filesystem exists: size=%d sectors, inode_count=%d, block_count=%d",
+            superblock.fs_size, superblock.inode_count, superblock.block_count);
     }
-    pretty_log(
-        LOG_INFO, "filesystem initialized: size=%d sectors, inode_count=%d, block_count=%d",
-        sb.fs_size, sb.inode_count, sb.block_count);
 }
 
 superblock_t superblock;
@@ -185,11 +186,23 @@ int do_ls(char* path, int option) {
                     printkf("%d", ind->size);
                     if (ind != dir_inode) inode_close(ind);
                 }},
-            table_entry_t{"NAME", 24, [](const dentry_t* entry) { printkf("%s", entry->name); }});
+            table_entry_t{
+                "NAME",
+                24,
+                [dir_inode](const dentry_t* entry) {
+                    inode_t* ind = inode_ref(entry->inode_num);
+                    if (ind != dir_inode) inode_open(ind);
+                    printkf("%s%s", entry->name, ind->type == FS_TYPE_DIR ? "/" : "");
+                    if (ind != dir_inode) inode_close(ind);
+                },
+            });
 
     } else {
         for (size_t i = 0; i < dir.size(); i++) {
-            printkf("%s  ", dir[i].name);
+            inode_t* ind = inode_ref(dir[i].inode_num);
+            if (ind != dir_inode) inode_open(ind);
+            printkf("%s%s  ", dir[i].name, ind->type == FS_TYPE_DIR ? "/" : "");
+            if (ind != dir_inode) inode_close(ind);
             if ((i + 1) % 4 == 0) printkf("\n");
         }
         if (dir.size() % 4 != 0) {
@@ -352,6 +365,6 @@ int do_lseek(int fd, int offset, int whence) {
 
 void shutdown_fs() {
     bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
-    shutdown_blocks();
-    shutdown_fs_cache();
+    flush_blocks();
+    flush_fs_cache();
 }

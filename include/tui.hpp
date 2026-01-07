@@ -46,9 +46,8 @@ int display_table(
     display_header<item_t>(entries...);
     int count = 0;
     for (int i = 0; i < n; i++) {
-        auto item = array[i];
-        if (!filter(&item)) continue;
-        ((entries.action(&item), screen_move_cursor_col(entries.len)), ...);
+        if (!filter(&array[i])) continue;
+        ((entries.action(&array[i]), screen_move_cursor_col(entries.len)), ...);
         printkf("\n");
         count++;
     }

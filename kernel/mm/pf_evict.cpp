@@ -82,6 +82,9 @@ static pagegroup_vtable_t VTABLE = {
     .evict = evict,
     .show = show,
 
+    .swap_alloc = regular_swap_location,
+    .swap_free = regular_swap_free,
+
     .name = "fifo",
 };
 
@@ -135,6 +138,9 @@ static pagegroup_vtable_t VTABLE = {
 
     .evict = evict,
     .show = show,
+
+    .swap_alloc = regular_swap_location,
+    .swap_free = regular_swap_free,
 
     .name = "sc",
 };
@@ -204,6 +210,9 @@ static pagegroup_vtable_t VTABLE = {
 
     .evict = fifo::evict,
     .show = show,
+
+    .swap_alloc = regular_swap_location,
+    .swap_free = regular_swap_free,
 
     .name = "lru",
 };

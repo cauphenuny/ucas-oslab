@@ -92,6 +92,7 @@ extern void memcpy_uva2kva(kva_t dest, uva_t src_va, size_t size, kva_t pgdir_de
 extern void strcpy_kva2uva(kva_t dest_va, const char* src, kva_t pgdir_dest);
 
 extern void cleanup_vm(pcb_t* pcb);
+void free_top_pgdir(kva_t pgdir);
 
 struct pageframe;
 struct pageframe_group;
@@ -110,10 +111,13 @@ struct pagegroup_vtable {
     list_node_t* (*evict)(struct pageframe_group* group);  // select a page to swapout
     void (*show)(struct pageframe_group* group, struct pageframe* pf);
 
+    uint64_t (*swap_alloc)(struct pageframe_group* group, uva_t va);
+    void (*swap_free)(struct pageframe_group* group, uint64_t swap_location);
+
     const char* name;
 };
 
-typedef const struct pagegroup_vtable pagegroup_vtable_t;
+typedef struct pagegroup_vtable pagegroup_vtable_t;
 
 extern pagegroup_vtable_t* const PAGEGROUP_VTABLE_LRU;
 extern pagegroup_vtable_t* const PAGEGROUP_VTABLE_FIFO;
@@ -149,6 +153,8 @@ extern kva_t new_top_pgdir(pageframe_group_t* group);
 
 // swap out one page from group, return its addr(in kva)
 extern kva_t swapout(pageframe_group_t* group);
+extern uint64_t regular_swap_location(pageframe_group_t* group, uva_t va);
+extern void regular_swap_free(pageframe_group_t* group, uint64_t swap_location);
 
 // swap in one page to given page, then bind it to pgdir
 // NOTE: page must be disattached from any pgdir when passes to this function
@@ -160,6 +166,7 @@ extern void free_swap(uint64_t swap_id);
 typedef struct pageframe {
     list_node_t group_node;
     PTE* pte;
+    uva_t uva;
 } pageframe_t;
 
 #define MAX_PAGE_NUM ((ALLMEM_KERNEL - FREEMEM_KERNEL) / PAGE_SIZE)

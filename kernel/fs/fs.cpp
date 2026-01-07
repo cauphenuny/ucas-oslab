@@ -46,14 +46,15 @@ int do_mkfs(void) {
     for (uint32_t bnum = superblock.block_map_offset; bnum < superblock.inode_offset; bnum++) {
         block_memset(bnum, 0x00);  // clear block map
     }
+    pretty_logd("block map cleared");
 
     inode_t* root_inode = inode_alloc(FS_TYPE_DIR);
     asserts(root_inode->inode_num == ROOT_INODE, "root inode number incorrect");
 
     inode_open(root_inode);
     root_inode->link_count = 1;
-    dir_link(root_inode, ".", ROOT_INODE);
-    dir_link(root_inode, "..", ROOT_INODE);
+    asserts(dir_link(root_inode, ".", ROOT_INODE) == 0, "failed to link . in root directory");
+    asserts(dir_link(root_inode, "..", ROOT_INODE) == 0, "failed to link .. in root directory");
     root_inode->link_count++;
     inode_close(root_inode);
 
@@ -63,6 +64,7 @@ int do_mkfs(void) {
 
 void init_fs() {
     init_inodes();
+    init_fs_cache();
 
     superblock_t sb;
     if (bios_sd_read((kva_t)&sb, 1, FS_START_SECTOR)) {
@@ -124,13 +126,13 @@ int do_rmdir(char* path) { return path_remove(path, 1); }
 
 class directory_t {
     inode_t* inode;
+    dentry_t dentry;
 
 public:
     directory_t(inode_t* inode) : inode(inode) {}
     size_t size() { return inode->size / sizeof(dentry_t); }
-    dentry_t operator[](size_t index) {
+    dentry_t& operator[](size_t index) {
         asserts(index < size(), "directory index out of range");
-        dentry_t dentry;
         int n = inode_read(inode, &dentry, 0, index * sizeof(dentry_t), sizeof(dentry_t));
         asserts(n == sizeof(dentry_t), "short read");
         return dentry;
@@ -349,6 +351,7 @@ int do_lseek(int fd, int offset, int whence) {
 }
 
 void shutdown_fs() {
-    shutdown_blocks();
     bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
+    shutdown_blocks();
+    shutdown_fs_cache();
 }

@@ -8,12 +8,12 @@ static block_t blocks[BLOCK_CONCURRENCY];
 
 void block_read(int block_num, void* data) {
     uint32_t src = superblock.start_sector + block_num * NSECTOR_BLOCK;
-    bios_sd_read((kva_t)data, NSECTOR_BLOCK, src);
+    cached_block_read(data, src);
 }
 
 void block_write(int block_num, void* data) {
     uint32_t dest = superblock.start_sector + block_num * NSECTOR_BLOCK;
-    bios_sd_write((kva_t)data, NSECTOR_BLOCK, dest);
+    cached_block_write(data, dest);
 }
 
 block_t* block_open(int block_num) {

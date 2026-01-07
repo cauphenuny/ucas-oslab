@@ -203,4 +203,9 @@ inode_t* path_resolve_parent(const char* path, char* name);
 inode_t* path_create(const char* path, int type);
 int path_remove(const char* path, int isdir);
 
+void cached_block_read(void* dest, int block_num);
+void cached_block_write(void* dest, int block_num);
+void init_fs_cache();
+void shutdown_fs_cache();
+
 #endif

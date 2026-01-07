@@ -34,6 +34,18 @@ void free_swap(uint64_t swap_id) {
     swap_used--;
 }
 
+// implements pageframe_group_t->vtable->swap_alloc
+uint64_t regular_swap_location(pageframe_group_t* group, uva_t va) {
+    uint64_t swap_id = alloc_swap();
+    return swap_id * SWAP_LEN + swap_base_location;
+}
+
+// implements pageframe_group_t->vtable->swap_free
+void regular_swap_free(pageframe_group_t* group, uint64_t swap_location) {
+    uint64_t swap_id = (swap_location - swap_base_location) / SWAP_LEN;
+    free_swap(swap_id);
+}
+
 // NOTE: do not swapout pagedir in grouop, only swapout leaf nodes
 kva_t swapout(pageframe_group_t* group) {
     list_node_t* evict_node = group->vtable->evict(group);
@@ -41,13 +53,12 @@ kva_t swapout(pageframe_group_t* group) {
         pageframe_t* pf = container_of(evict_node, pageframe_t, group_node);
         PTE* pte = pf->pte;
         kva_t page = pageframe_attr2kva(pf);
-        // find a swap location
-        uint64_t swap_id = alloc_swap();
-        pretty_logn("swapping out page 0x%x to swap id 0x%x", kva2pa(page), swap_id);
-        bios_sd_write(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
+        uint64_t swap_location = group->vtable->swap_alloc(group, pf->uva);
+        pretty_logn("swapping out page 0x%x to swap 0x%x", kva2pa(page), swap_location);
+        bios_sd_write(page, SWAP_LEN, swap_location);
         clear_attribute(pte, _PAGE_PRESENT);
         set_attribute(pte, _PAGE_SOFT);
-        set_pfn(pte, swap_id);
+        set_pfn(pte, swap_location);
         pageframe_destruct(pf, page);
         local_flush_tlb_all();
         swap_counter_out++;
@@ -100,13 +111,14 @@ void swapin(uva_t uva, kva_t pgdir, kva_t page) {
     PTE* entry_level0 = &((PTE*)level0_pgdir)[vpn0];
     asserts(get_attribute(*entry_level0, _PAGE_SOFT), "level 0 entry not swapped out");
     // find swap location
-    uint64_t swap_id = get_pfn(*entry_level0);
-    pretty_logn("swapping in page 0x%x from swap id 0x%x", kva2pa(page), swap_id);
-    bios_sd_read(page, SWAP_LEN, swap_id * SWAP_LEN + swap_base_location);
+    uint64_t swap_location = get_pfn(*entry_level0);
+    pretty_logn("swapping in page 0x%x from swap 0x%x", kva2pa(page), swap_location);
+    bios_sd_read(page, SWAP_LEN, swap_location);
     pretty_logi("uva 0x%lx swapped in, first bytes: %lx", uva, *(uint64_t*)page);
     clear_attribute(entry_level0, _PAGE_SOFT);
     bind_page(entry_level0, page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
-    free_swap(swap_id);
+    pageframe_group_t* group = find_pagegroup(pgdir);
+    group->vtable->swap_free(group, swap_location);
     swap_counter_in++;
 }
 

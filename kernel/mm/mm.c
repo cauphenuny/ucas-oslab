@@ -113,6 +113,8 @@ PTE* alloc_page(uva_t va, kva_t pgdir, bool exist_ok) {
     } else {
         kva_t new_page = alloc_pageframe(find_pagegroup(pgdir), 1);
         bind_page(pte, new_page, _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC);
+        pageframe_t* attr = pageframe_kva2attr(new_page);
+        attr->uva = va;
 
         uint64_t vpn2, vpn1, vpn0;
         get_vpn(va, &vpn2, &vpn1, &vpn0);
@@ -186,7 +188,7 @@ static void free_pgdir(kva_t pgdir) {
     free_pageframe(pgdir);
 }
 
-static void free_top_pgdir(kva_t pgdir) {
+void free_top_pgdir(kva_t pgdir) {
     pageframe_group_t* group = find_pagegroup(pgdir);
     free_pgdir(pgdir);
     group->refcount--;

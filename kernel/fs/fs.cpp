@@ -190,14 +190,15 @@ int do_ls(char* path, int option) {
                     if (ind != dir_inode) inode_close(ind);
                 }},
             table_entry_t{
-                "SIZE", 8,
+                "SIZE",
+                8,
                 [dir_inode](const dentry_t* entry) {
                     inode_t* ind = inode_ref(entry->inode_num);
                     if (ind != dir_inode) inode_open(ind);
                     printkf("%d", ind->size);
                     if (ind != dir_inode) inode_close(ind);
-                }}
-            );
+                },
+            });
 
     } else {
         for (size_t i = 0; i < dir.size(); i++) {

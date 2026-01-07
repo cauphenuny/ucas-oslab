@@ -680,6 +680,30 @@ int mkdir(int argc, char** argv) { return sys_mkdir(argv[1]); }
 
 int rmdir(int argc, char** argv) { return sys_rmdir(argv[1]); }
 
+int cd(int argc, char** argv) {
+    if (argc < 2) {
+        log_info("usage: cd {path}");
+        return 1;
+    }
+    return sys_cd(argv[1]);
+}
+
+int ln(int argc, char** argv) {
+    if (argc != 3) {
+        log_info("usage: ln {src} {dst}");
+        return 1;
+    }
+    return sys_ln(argv[1], argv[2]);
+}
+
+int rm(int argc, char** argv) {
+    if (argc < 2) {
+        log_info("usage: rm {path}");
+        return 1;
+    }
+    return sys_rm(argv[1]);
+}
+
 int ls(int argc, char** argv) {
     if (argc > 1 && strcmp(argv[1], "-l") == 0) {
         shift(&argc, &argv);
@@ -744,6 +768,9 @@ const task_t COMMAND_TABLE[] = {
     {"statfs", "show filesystem status", subcmd_lint, statfs},
     {"mkdir", "make directory", subcmd_lint, mkdir},
     {"rmdir", "remove directory", subcmd_lint, rmdir},
+    {"cd", "change directory", subcmd_lint, cd},
+    {"ln", "create hard link", subcmd_lint, ln},
+    {"rm", "remove file", subcmd_lint, rm},
     {"ls", "list directory contents", subcmd_lint_ls, ls},
     {"touch", "create empty file", subcmd_lint, touch},
     {"cat", "concatenate and display file", subcmd_lint, cat},

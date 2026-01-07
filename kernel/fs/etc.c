@@ -170,9 +170,9 @@ static int etc_fs_parse(inode_t* inode) {
     while (*line2 == '\n') line2++;
 
     bool enable;
-    if (strncmp(buffer, "dentry_cache = on", 18) == 0) {
+    if (strncmp(buffer, "dentry_cache = on", 17) == 0) {
         enable = true;
-    } else if (strncmp(buffer, "dentry_cache = off", 19) == 0) {
+    } else if (strncmp(buffer, "dentry_cache = off", 18) == 0) {
         enable = false;
     } else {
         pretty_logw("etc/fs: invalid dentry cache toggle");
@@ -240,6 +240,5 @@ void init_fs_etc() {
     }
 
     do_exec(NULL, "vm_conf", (uint64_t)etc_vm_daemon, 1, (char*[]){"vm_conf"}, (unsigned)-1);
-
     do_exec(NULL, "fs_config", (uint64_t)etc_fs_daemon, 1, (char*[]){"fs_conf"}, (unsigned)-1);
 }

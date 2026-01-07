@@ -248,3 +248,42 @@ make run-net # or debug-net
 ### Features and Implementation 
 
 与任务书一致，没有自由发挥内容
+
+---
+
+## P6
+
+C-Core
+
+```
+# compile
+./configure
+make
+
+# run
+make run-smp # or debug-smp
+```
+
+### Features
+
+#### 三层缓存架构
+
+- **Page Cache 层**：`kernel/fs/cache.c` 实现 32 MiB（8K 页）的页缓存，通过独立的页表 `cache_pgdir` 与页框组 `fs_cache_group` 管理。支持 Write-Back 和 Write-Through 两种策略，通过 `cache_swapin()` 将扇区映射到虚拟地址空间，利用 P4 的虚拟内存系统实现换页。后台守护进程 `cache_routine()` 定期触发 `flush_filesystem()` 写回脏页。
+- **Block Cache 层**：`kernel/fs/block.c` 维护 8 个并发块缓冲区，每个 `block_t` 包含 4 KiB 数据与引用计数。`block_open()` 实现 LRU 风格的替换：命中时增加引用计数，未命中时选择空闲或引用计数为 0 的槽位，必要时先写回旧块。`block_alloc()`/`block_free()` 通过位图管理数据块分配，支持直接访问块映射表。
+- **Inode Cache 层**：`kernel/fs/inode.c` 提供 64 个 inode 缓存槽位，每个 `inode_t` 维护引用计数 `ref_count` 与文件系统引用 `link_count`。`inode_open()` 加锁并懒加载磁盘 inode，`inode_sync()` 写回元数据。支持直接块（10 个）、间接块（1024 个）、双重间接块（1024×1024 个）的三级索引结构，`inode_mapblock()` 按需分配数据块。
+
+#### Dentry Cache
+
+- **哈希表实现**：`kernel/fs/dcache.c` 使用 256 个哈希桶的链式哈希表，基于 `(parent_inode, filename)` 的 FNV-1a 哈希。`dcache_get()` 在 `dir_lookup()` 前先查询缓存，命中时直接返回 inode 号与目录偏移；`dcache_put()` 在遍历目录时自动填充缓存；`dcache_remove()`/`dcache_invalidate()` 在删除文件或目录时失效相关条目。
+- **与目录操作集成**：`kernel/fs/dir.c` 的 `dir_lookup()` 优先查询 dentry cache，未命中时遍历目录并缓存所有遇到的条目，加速后续查找。`dir_link()`/`dir_unlink()`/`dir_rmdir()` 同步更新缓存状态，保证一致性。
+
+#### 文件系统操作
+
+- **路径解析**：`path_resolve()` 支持绝对路径与相对路径，通过 `path_shift()` 逐级解析组件，利用 dentry cache 加速目录查找。`path_create()`/`path_remove()` 提供创建与删除的统一接口。
+- **文件读写**：`inode_read()`/`inode_write()` 按块对齐处理，支持跨页表的数据传输（`memcpy_kva2uva`/`memcpy_uva2kva`），自动处理文件边界与块分配。
+- **同步机制**：`flush_filesystem()` 依次写回 superblock、block cache 与 page cache，`shutdown_fs()` 在系统关闭时确保数据持久化。
+
+#### 可配置性与测试
+
+- **运行时配置**：通过 `/proc/sys/vm` 接口可调整 page cache 策略（write-back/write-through）与写回频率；通过 `/proc/sys/fs/dentry` 可启用/禁用 dentry cache。
+- **性能测试**：`test/test_project6/test_cache.c` 对比 write-back 与 write-through 策略的读写性能；`test/test_project6/test_dcache.c` 测试 dentry cache 对大量文件随机访问的加速效果；`test/test_project6/largefile.c`、`rwfile.c` 验证大文件与并发读写场景。

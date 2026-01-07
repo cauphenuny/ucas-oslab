@@ -113,6 +113,7 @@ int do_statfs(void) {
         "Cache policy: %s, freq: %ds\n",
         pagecache_config.policy == POLICY_WRITE_THROUGH ? "write-through" : "write-back",
         pagecache_config.write_back_freq);
+    printk("Dentry cache: %s\n", dcache_is_enabled() ? "enabled" : "disabled");
     return 0;  // do_statfs succeeds
 }
 

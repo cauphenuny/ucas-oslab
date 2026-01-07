@@ -27,8 +27,10 @@ uint64_t bench(int size, int repeat) {
                     printf("write errror.");
                     sys_exit();
                 }
+                if (i % 1024 == 0) printf(".");  // 128K
             }
         }
+        printf("|");
 
         sys_lseek(fd, 0, SEEK_SET);
         for (int k = 0; k < size; k++) {
@@ -39,8 +41,10 @@ uint64_t bench(int size, int repeat) {
                     printf("read error");
                     sys_exit();
                 }
+                if (i % 1024 == 0) printf(".");  // 128K
             }
         }
+        printf("\n");
     }
     sys_close(fd);
     return sys_get_proc_tick() - start;
@@ -64,12 +68,16 @@ int main(int argc, char** argv) {
 
     printf("Waiting cacheconf effect...\n");
     sys_sleep(3);
-    printf("Start...\n");
 
+    printf("Write-back:\n");
     uint64_t time_wb = bench(size, repeat);
     printf("Write-back cache time: %ld ticks\n", time_wb);
 
-    cacheconf("write through", 1);
+    cacheconf("write through", 300);
+    printf("Waiting cacheconf effect...\n");
+    sys_sleep(3);
+
+    printf("Write-through:\n");
     uint64_t time_wt = bench(size, repeat);
     printf("Write-through cache time: %ld ticks\n", time_wt);
 

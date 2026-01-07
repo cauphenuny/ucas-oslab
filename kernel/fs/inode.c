@@ -272,7 +272,7 @@ int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_
     for (total = 0; total < length; total += chunk_size, dest += chunk_size, offset += chunk_size) {
         uint32_t block_in_file = offset / BLOCK_SIZE;
         uint32_t block_offset = offset % BLOCK_SIZE;
-        pretty_logd("offset: %d, blockid: %d, offset: %d", offset, block_in_file, block_offset);
+        // pretty_logd("offset: %d, blockid: %d, offset: %d", offset, block_in_file, block_offset);
         int block_num = inode_mapblock(inode, block_in_file);
         if (block_num < 0) {
             pretty_logw("failed to map block %d of inode %d", block_in_file, inode->inode_num);
@@ -286,16 +286,16 @@ int inode_read(inode_t* inode, void* dest, kva_t pgdir, uint32_t offset, uint32_
             memcpy(dest, blk->data + block_offset, chunk_size);
         }
         block_close(blk);
-        pretty_logd(
-            "read %d bytes from inode %d at offset %d", chunk_size, inode->inode_num, offset);
+        // pretty_logd(
+        // "read %d bytes from inode %d at offset %d", chunk_size, inode->inode_num, offset);
     }
-    pretty_logd("total: %d bytes", total);
+    pretty_logd("read %d bytes from inode %d at offset %d", total, inode->inode_num, offset);
 
     return total;
 }
 
 int inode_write(inode_t* inode, void* src, kva_t pgdir, uint32_t offset, uint32_t length) {
-    pretty_logd("writing %d bytes to inode %d at offset %d", length, inode->inode_num, offset);
+    // pretty_logd("writing %d bytes to inode %d at offset %d", length, inode->inode_num, offset);
     if (inode->type == FS_TYPE_DEV) {
         return devices[inode->device_id].write(inode, src, pgdir, offset, length);
     }

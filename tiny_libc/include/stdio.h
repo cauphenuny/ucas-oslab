@@ -14,6 +14,7 @@
 #define SEEK_END 2
 
 int printf(const char *fmt, ...);
+int snprintf(char *buffer, unsigned int buffer_len, const char *fmt, ...);
 int vprintf(const char *fmt, va_list va);
 
 #endif

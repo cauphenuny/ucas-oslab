@@ -106,6 +106,10 @@ int do_statfs(void) {
         "Data blocks: %d entries at #%d, used: %d(%d%%)\n", superblock.block_count,
         superblock.datablock_offset, superblock.used_block,
         superblock.used_block * 100 / superblock.block_count);
+    printk(
+        "Cache policy: %s, freq: %ds",
+        pagecache_config.policy == POLICY_WRITE_THROUGH ? "write-through" : "write-back",
+        pagecache_config.write_back_freq);
     return 0;  // do_statfs succeeds
 }
 

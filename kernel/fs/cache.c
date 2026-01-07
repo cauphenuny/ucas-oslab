@@ -11,7 +11,7 @@ cache_config_t pagecache_config;
 
 uva_t cache_swapin(int start_sector, bool load) {
     uva_t va = (uva_t)start_sector * SECTOR_SIZE;
-    pretty_logd("calculated virtual address 0x%x for sector %d", va, start_sector);
+    // pretty_logd("calculated virtual address 0x%x for sector %d", va, start_sector);
     PTE* pte = find_pte(va, cache_pgdir, true);
     if (*pte != 0) {
         if (!get_attribute(*pte, _PAGE_PRESENT)) {

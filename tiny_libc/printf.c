@@ -246,3 +246,15 @@ int printf(const char *fmt, ...)
 
     return ret;
 }
+
+int snprintf(char *buffer, unsigned int buffer_len, const char *fmt, ...)
+{
+    int ret = 0;
+    va_list va;
+
+    va_start(va, fmt);
+    ret = mini_vsnprintf(buffer, buffer_len, fmt, va);
+    va_end(va);
+
+    return ret;
+}

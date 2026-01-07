@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <logger.h>
 #include <os/fs.h>
 #include <os/lock.h>
 #include <os/string.h>
@@ -22,9 +23,14 @@ inode_t* inode_alloc(int type) {
         block_t* block = block_open(INODE2BLOCK(i));
         diskinode_t* diskinode = (diskinode_t*)block->data + INODE2OFFSET(i);
         if (diskinode->type == 0) {
+            pretty_logi("alloc inode #%d of type %d", i, type);
+            superblock.used_inode++;
             memset(diskinode, 0, sizeof(diskinode_t));
             diskinode->type = type;
             diskinode->inode_num = i;
+            memset(diskinode->direct, -1, sizeof(diskinode->direct));
+            diskinode->indirect = -1;
+            diskinode->double_indirect = -1;
             block_close(block);
             return inode_ref(i);
         }
@@ -128,6 +134,7 @@ int inode_mapblock(inode_t* inode, int block_in_file) {
             inode->direct[block_in_file] = block_num;
             return block_num;
         }
+        return block_num;
     }
     block_in_file -= NUM_DIRECT_BLOCKS;
 
@@ -144,6 +151,8 @@ int inode_mapblock(inode_t* inode, int block_in_file) {
             if (block_num >= 0) {
                 arr[block_in_file] = block_num;
             }
+        } else {
+            block_num = arr[block_in_file];
         }
         block_close(blk);
         return block_num;
@@ -181,6 +190,8 @@ int inode_mapblock(inode_t* inode, int block_in_file) {
         if (block_num >= 0) {
             arr[offset] = block_num;
         }
+    } else {
+        block_num = arr[offset];
     }
     block_close(blk);
 
@@ -190,6 +201,8 @@ int inode_mapblock(inode_t* inode, int block_in_file) {
 }
 
 void inode_delete(inode_t* inode) {
+    pretty_logd("deleting inode %d", inode->inode_num);
+
     for (int i = 0; i < NUM_DIRECT_BLOCKS; i++) {
         if (inode->direct[i] >= 0) {
             block_free(inode->direct[i]);
@@ -232,21 +245,33 @@ void inode_delete(inode_t* inode) {
     }
 
     inode->valid = 0;
+    inode->type = 0;
+    superblock.used_inode--;
 }
 
 int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint32_t length) {
+    if (offset > inode->size || offset + length < offset) {
+        pretty_logw(
+            "read out of range: inode %d, offset %d, length %d, size %d", inode->inode_num, offset,
+            length, inode->size);
+        return 0;
+    }
+    pretty_logd("reading %d bytes from inode %d at offset %d", length, inode->inode_num, offset);
     if (offset + length > inode->size) {
         length = inode->size - offset;
+        pretty_logd(
+            "adjust read length to %d bytes due to end of file at %d bytes", length, inode->size);
     }
-    if (length <= 0) return 0;
 
     uint32_t chunk_size = 0, total = 0;
 
-    for (total = 0; total < length; total += chunk_size, dest += chunk_size) {
-        int block_in_file = offset / BLOCK_SIZE;
-        int block_offset = offset % BLOCK_SIZE;
+    for (total = 0; total < length; total += chunk_size, dest += chunk_size, offset += chunk_size) {
+        uint32_t block_in_file = offset / BLOCK_SIZE;
+        uint32_t block_offset = offset % BLOCK_SIZE;
+        pretty_logd("offset: %d, blockid: %d, offset: %d", offset, block_in_file, block_offset);
         int block_num = inode_mapblock(inode, block_in_file);
         if (block_num < 0) {
+            pretty_logw("failed to map block %d of inode %d", block_in_file, inode->inode_num);
             break;
         }
         block_t* blk = block_open(block_num);
@@ -257,12 +282,16 @@ int inode_read(inode_t* inode, void* dest, uint32_t pgdir, uint32_t offset, uint
             memcpy(dest, blk->data + block_offset, chunk_size);
         }
         block_close(blk);
+        pretty_logd(
+            "read %d bytes from inode %d at offset %d", chunk_size, inode->inode_num, offset);
     }
+    pretty_logd("total: %d bytes", total);
 
     return total;
 }
 
 int inode_write(inode_t* inode, void* src, uint32_t pgdir, uint32_t offset, uint32_t length) {
+    pretty_logd("writing %d bytes to inode %d at offset %d", length, inode->inode_num, offset);
     uint32_t chunk_size = 0, total = 0;
 
     for (total = 0; total < length; total += chunk_size, src += chunk_size) {

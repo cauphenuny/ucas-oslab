@@ -6,6 +6,8 @@
 #include <static_assert.h>
 #include <type.h>
 
+void init_fs();
+
 /* macros of file system */
 #define SUPERBLOCK_MAGIC 0xDF4C4459
 #define NUM_FDESCS       16
@@ -19,15 +21,14 @@ typedef struct superblock {
     uint32_t fs_size;
     uint32_t start_sector;
     uint32_t root_inode;
-    uint32_t block_map_offset;
-    uint32_t inode_map_offset;
+    uint32_t block_map_offset; // inode_map inode.type == 0
     uint32_t inode_offset;
     uint32_t datablock_offset;
     uint32_t inode_count;
     uint32_t block_count;
     uint32_t used_inode;
     uint32_t used_block;
-    uint8_t pad[512 - sizeof(uint32_t) * 12];
+    uint8_t pad[512 - sizeof(uint32_t) * 11];
 } superblock_t;
 
 extern superblock_t superblock;
@@ -50,7 +51,7 @@ STATIC_ASSERT(sizeof(dentry_t) == 32, "dentry size incorrect");
 #define FS_TYPE_DEV  0x04
 
 #define NUM_DIRECT_BLOCKS          10
-#define NUM_INDIRECT_BLOCKS        (BLOCK_SIZE / sizeof(int))
+#define NUM_INDIRECT_BLOCKS        (BLOCK_SIZE / sizeof(int32_t))
 #define NUM_DOUBLE_INDIRECT_BLOCKS (NUM_INDIRECT_BLOCKS * NUM_INDIRECT_BLOCKS)
 
 // size: 64 bytes
@@ -61,9 +62,9 @@ typedef struct diskinode {
     uint32_t inode_num;
     uint32_t size;  // in bytes
     uint32_t blocks;
-    uint32_t direct[NUM_DIRECT_BLOCKS];
-    uint32_t indirect;
-    uint32_t double_indirect;
+    int32_t direct[NUM_DIRECT_BLOCKS];
+    int32_t indirect;
+    int32_t double_indirect;
 } diskinode_t;
 
 // NOTE: DO NOT change the layout (make it synchorous to diskinode_t)
@@ -73,9 +74,9 @@ typedef struct inode {
     uint32_t inode_num;
     uint32_t size;  // in bytes
     uint32_t blocks;
-    uint32_t direct[NUM_DIRECT_BLOCKS];
-    uint32_t indirect;
-    uint32_t double_indirect;
+    int32_t direct[NUM_DIRECT_BLOCKS];
+    int32_t indirect;
+    int32_t double_indirect;
     uint16_t valid;
     uint16_t ref_count;  // reference in memory
     mutex_lock_t lock;
@@ -98,7 +99,7 @@ typedef struct fdesc {
 
 #define NSECTOR_BLOCK 8  // 4KB, size of block in sectors
 
-#define BLOCK_SIZE NSECTOR_BLOCK* SECTOR_SIZE
+#define BLOCK_SIZE (NSECTOR_BLOCK* SECTOR_SIZE)
 
 #define NBLOCK_INODE_MAP 1                                      // 1 sector
 #define NUM_INODES       ((NBLOCK_INODE_MAP) * BLOCK_SIZE * 8)  // all inodes in filesystem

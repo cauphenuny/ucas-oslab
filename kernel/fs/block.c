@@ -64,6 +64,8 @@ int block_alloc() {
                 // found free block
                 map->data[byte_offset] |= mask;
                 block_close(map);
+                superblock.used_block++;
+                pretty_logd("allocated block %d", bblock + boffset);
                 return bblock + boffset;
             }
         }
@@ -89,6 +91,8 @@ void block_free(int block_num) {
     asserts(map->data[byte_offset] & mask, "block_free on free block");
     map->data[byte_offset] &= ~mask;
     block_close(map);
+    superblock.used_block--;
+    pretty_logd("freed block %d", block_num);
 }
 
 void shutdown_blocks() {

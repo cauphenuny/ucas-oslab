@@ -51,6 +51,8 @@ int shell_end = SHELL_END;
 #define COMMAND_LEN  16
 #define ARGUMENT_LEN 16
 
+#define LS_VERBOSE (1 << 0)
+
 #define log_info(fmt, ...)                                \
     do {                                                  \
         printf("%s: " fmt "\n", __func__, ##__VA_ARGS__); \
@@ -367,6 +369,13 @@ void subcmd_lint_free(int dest[], int argc, char** argv) {
     }
 }
 
+void subcmd_lint_ls(int dest[], int argc, char** argv) {
+    subcmd_lint(dest, argc, argv);
+    if (argc >= 1 && strcmp("-l", argv[0]) == 0) {
+        dest[0] = COLOR_YELLOW;
+    }
+}
+
 void subcmd_lint_time(int dest[], int argc, char** argv) {
     subcmd_lint(dest, argc, argv);
     if (argc >= 1 && strcmp("-g", argv[0]) == 0) {
@@ -663,29 +672,26 @@ usage:
     return 1;
 }
 
-int mkfs(int argc, char** argv) {
-    return sys_mkfs();
-}
+int mkfs(int argc, char** argv) { return sys_mkfs(); }
 
-int statfs(int argc, char** argv) {
-    return sys_statfs();
-}
+int statfs(int argc, char** argv) { return sys_statfs(); }
 
 int shutdown(int argc, char** argv) {
     sys_halt();
     return 0;
 }
 
-int mkdir(int argc, char** argv) {
-    return sys_mkdir(argv[1]);
-}
+int mkdir(int argc, char** argv) { return sys_mkdir(argv[1]); }
 
-int rmdir(int argc, char** argv) {
-    return sys_rmdir(argv[1]);
-}
+int rmdir(int argc, char** argv) { return sys_rmdir(argv[1]); }
 
 int ls(int argc, char** argv) {
-    return sys_ls(argc > 1 ? argv[1] : NULL, 0);
+    if (argc > 1 && strcmp(argv[1], "-l") == 0) {
+        shift(&argc, &argv);
+        return sys_ls(argc > 1 ? argv[1] : NULL, LS_VERBOSE);
+    } else {
+        return sys_ls(argc > 1 ? argv[1] : NULL, 0);
+    }
 }
 
 const task_t COMMAND_TABLE[] = {

@@ -1,5 +1,3 @@
-#include "logger.h"
-
 #include <asm.h>
 #include <asm/unistd.h>
 #include <assert.h>
@@ -8,7 +6,9 @@
 #include <common.h>
 #include <csr.h>
 #include <e1000.h>
+#include <logger.h>
 #include <os/cxxrt.h>
+#include <os/fs.h>
 #include <os/ioremap.h>
 #include <os/irq.h>
 #include <os/kernel.h>
@@ -180,7 +180,6 @@ int main(int argc, char** argv) {
         e1000 = (uint8_t*)ioremap((uint64_t)e1000, 8 * NORMAL_PAGE_SIZE);
         pretty_logi("[INIT] IOremap initialization succeeded.");
 
-        // TODO: [p5-task4] Init plic
         plic_init(plic_addr, nr_irqs);
         pretty_logi(
             "[INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x", plic_addr, nr_irqs);
@@ -193,6 +192,9 @@ int main(int argc, char** argv) {
         asserts(shell_task, "no shell");
         do_exec(shell_task, shell_task->entrance, 1, (char*[]){"shell"}, (unsigned)-1);
         pretty_logi("[INIT] Created shell process.");
+
+        init_fs();
+        pretty_logi("[INIT] File system initialized.");
 
         cxxrt_setup();
         pretty_logi("[INIT] C++ runtime initialized.");

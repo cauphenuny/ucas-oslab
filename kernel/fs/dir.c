@@ -19,10 +19,11 @@ inode_t* dir_lookup(inode_t* dir, const char* filename, size_t* poff) {
         asserts(n == sizeof(dentry_t), "short read");
         if (dentry.inode_num == 0) continue;
         if (filename_cmp(dentry.name, filename) == 0) {
-            *poff = offset;
+            if (poff) *poff = offset;
             return inode_ref(dentry.inode_num);
         }
     }
+    if (poff) *poff = 0;
     return NULL;
 }
 
@@ -39,11 +40,12 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
     }
 
     size_t offset = 0;
-    for (size_t offset = 0; offset < dir->size; offset += sizeof(dentry_t)) {
+    for (offset = 0; offset < dir->size; offset += sizeof(dentry_t)) {
         dentry_t dentry;
         int n = inode_read(dir, &dentry, 0, offset, sizeof(dentry_t));
         asserts(n == sizeof(dentry_t), "short read");
         if (dentry.inode_num == 0) {
+            pretty_logd("find invalid entry at offset %d, reuse it", offset);
             break;
         }
     }
@@ -55,12 +57,13 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
 
     int n = inode_write(dir, &dentry, 0, offset, sizeof(dentry_t));
     if (n != sizeof(dentry_t)) {
+        pretty_logw("failed to write directory entry");
         return -1;
     }
     return 0;
 }
 
-// NOTE: do not change link count
+// NOTE: changes link count
 int dir_unlink(inode_t* dir, const char* filename) {
     asserts(dir != NULL, "dir_unlink with NULL dir");
     asserts(filename != NULL, "dir_unlink with NULL filename");
@@ -71,6 +74,7 @@ int dir_unlink(inode_t* dir, const char* filename) {
     if (child == NULL || child->type == FS_TYPE_DIR) {
         return -1;
     }
+    child->link_count--;
 
     dentry_t dentry;
     memset(&dentry, 0, sizeof(dentry_t));
@@ -91,7 +95,6 @@ int dir_isempty(inode_t* dir) {
         int n = inode_read(dir, &dentry, 0, off, sizeof(dentry_t));
         asserts(n == sizeof(dentry_t), "short read");
         if (dentry.inode_num != 0) {
-            inode_close(dir);
             return 0;  // not empty
         }
     }
@@ -171,10 +174,13 @@ inode_t* path_resolve(const char* path, bool skip_last, char* name) {
     else
         cur = inode_ref(current_running->cwd_inode);
 
+    pretty_logd("current inode: %d", cur->inode_num);
+
     while ((path = path_shift(path, name)) != 0) {
-        pretty_logd("resolved path component: %s", name);
+        pretty_logd("resolving path component: %s", name);
         inode_open(cur);
         if (cur->type != FS_TYPE_DIR) {
+            pretty_logd("failed: not a directory");
             inode_close(cur);
             return NULL;
         }
@@ -184,11 +190,13 @@ inode_t* path_resolve(const char* path, bool skip_last, char* name) {
         }
         next = dir_lookup(cur, name, NULL);
         if (next == NULL) {
+            pretty_logd("failed: not such file or directory");
             inode_close(cur);
             return NULL;
         }
         inode_close(cur);
         cur = next;
+        pretty_logd("next inode: %d", cur->inode_num);
     }
 
     if (skip_last) {  // no parent

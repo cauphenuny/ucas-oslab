@@ -84,6 +84,9 @@ void inode_open(inode_t* inode) {
         diskinode_t* diskinode = &((diskinode_t*)block->data)[INODE2OFFSET(inode->inode_num)];
         memcpy(inode, diskinode, sizeof(diskinode_t));
         block_close(block);
+        if (inode->type == 0) {
+            pretty_loge("loaded invalid inode #%d with type 0", inode->inode_num);
+        }
         inode->valid = 1;
         asserts(inode->type != 0, "loaded inode with type 0");
     }

@@ -151,6 +151,10 @@ static void etc_fs_reset(inode_t* inode) {
 }
 
 static int etc_fs_parse(inode_t* inode) {
+    if (!inode) {
+        pretty_logw("etc/fs: null inode");
+        return -1;
+    }
     static char buffer[128];
     int size = inode_read(inode, (void*)buffer, 0, 0, sizeof(buffer) - 1);
     if (size <= 0) return -1;
@@ -199,8 +203,15 @@ static void etc_fs_daemon() {
     set_process_nice(10, current_running->pid);
     while (true) {
         inode_t* inode = path_resolve_entry("/proc/sys/fs/dentry");
+        if (!inode) {
+            pretty_logw("etc/fs: dentry config missing");
+            do_sleep(1);
+            continue;
+        }
         inode_open(inode);
-        if (etc_fs_parse(inode) != 0) {
+        if (inode->type != FS_TYPE_FILE) {
+            pretty_logw("etc/fs: config is not a file");
+        } else if (etc_fs_parse(inode) != 0) {
             pretty_logw("etc/fs: parse error, reset to default");
             etc_fs_reset(inode);
         }

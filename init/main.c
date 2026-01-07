@@ -193,7 +193,9 @@ int main(int argc, char** argv) {
         do_exec(
             shell_task, shell_task->name, shell_task->entrance, 1, (char*[]){"shell"},
             (unsigned)-1);
-        do_exec(NULL, "page_cache", (uint64_t)cache_routine, 0, NULL, (unsigned)-1);
+        do_exec(
+            NULL, "cache_daemon", (uint64_t)cache_routine, 1, (char*[]){"cache_daemon"},
+            (unsigned)-1);
         pretty_logi("[INIT] Created kernel process.");
 
         init_fs();

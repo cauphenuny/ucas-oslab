@@ -286,6 +286,7 @@ inode_t* path_create(const char* path, int type) {
     }
 
     inode_close(parent);
+    inode_unlock(child);
     return child;
 
 fail:

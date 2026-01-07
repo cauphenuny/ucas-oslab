@@ -232,6 +232,7 @@ int do_open(char* path, int mode) {
     if (inode == NULL) {
         return -1;
     }
+    inode_open(inode);
 
     if (inode->type == FS_TYPE_DIR) {
         pretty_logw("cannot open a directory");
@@ -266,7 +267,7 @@ int do_open(char* path, int mode) {
     }
 
     pretty_logw("no free file descriptor available");
-
+    inode_close(inode);
     return -1;
 }
 

@@ -300,6 +300,7 @@ void preamble() {
 int help(int argc, char** argv);
 
 int main(int argc, char** argv) {
+    sys_screen_clear_lines(0, shell_end);
     sys_screen_set_scroll(shell_begin + 1, shell_end);
     prompt_len = strlen(prompt);
     preamble();

@@ -71,6 +71,8 @@ static long atol(const char* str) {
  */
 static int atoi(const char* str) { return (int)atol(str); }
 
+static _Atomic int running;
+
 device_t devices[NUM_DEVICES];
 int device_count;
 
@@ -127,17 +129,19 @@ static int etc_vm_parse(inode_t* inode, cache_config_t* dest) {
 static void etc_vm_daemon() {
     set_process_nice(10, current_running->pid);
     while (true) {
-        inode_t* inode = path_resolve_entry("/proc/sys/vm");
-        inode_open(inode);
-        cache_config_t config;
-        if (etc_vm_parse(inode, &config) == 0) {
-            pagecache_config.policy = config.policy;
-            pagecache_config.write_back_freq = config.write_back_freq;
-        } else {
-            pretty_logw("etc/vm: parse error, reset to default");
-            etc_vm_reset(inode);
+        if (running) {
+            inode_t* inode = path_resolve_entry("/proc/sys/vm");
+            inode_open(inode);
+            cache_config_t config;
+            if (etc_vm_parse(inode, &config) == 0) {
+                pagecache_config.policy = config.policy;
+                pagecache_config.write_back_freq = config.write_back_freq;
+            } else {
+                pretty_logw("etc/vm: parse error, reset to default");
+                etc_vm_reset(inode);
+            }
+            inode_close(inode);
         }
-        inode_close(inode);
         do_sleep(1);
     }
 }
@@ -202,23 +206,27 @@ static int etc_fs_parse(inode_t* inode) {
 static void etc_fs_daemon() {
     set_process_nice(10, current_running->pid);
     while (true) {
-        inode_t* inode = path_resolve_entry("/proc/sys/fs/dentry");
-        if (!inode) {
-            pretty_logw("etc/fs: dentry config missing");
-            do_sleep(1);
-            continue;
+        if (running) {
+            inode_t* inode = path_resolve_entry("/proc/sys/fs/dentry");
+            if (!inode) {
+                pretty_logw("etc/fs: dentry config missing");
+                do_sleep(1);
+                continue;
+            }
+            inode_open(inode);
+            if (inode->type != FS_TYPE_FILE) {
+                pretty_logw("etc/fs: config is not a file");
+            } else if (etc_fs_parse(inode) != 0) {
+                pretty_logw("etc/fs: parse error, reset to default");
+                etc_fs_reset(inode);
+            }
+            inode_close(inode);
         }
-        inode_open(inode);
-        if (inode->type != FS_TYPE_FILE) {
-            pretty_logw("etc/fs: config is not a file");
-        } else if (etc_fs_parse(inode) != 0) {
-            pretty_logw("etc/fs: parse error, reset to default");
-            etc_fs_reset(inode);
-        }
-        inode_close(inode);
         do_sleep(1);
     }
 }
+
+static pid_t vm_pid, fs_pid;
 
 void init_fs_etc() {
     do_mkdir("/proc");
@@ -238,7 +246,16 @@ void init_fs_etc() {
         etc_fs_reset(fs_node);
         inode_close(fs_node);
     }
-
-    do_exec(NULL, "vm_conf", (uint64_t)etc_vm_daemon, 1, (char*[]){"vm_conf"}, (unsigned)-1);
-    do_exec(NULL, "fs_config", (uint64_t)etc_fs_daemon, 1, (char*[]){"fs_conf"}, (unsigned)-1);
 }
+
+void init_fs_daemon() {
+    vm_pid =
+        do_exec(NULL, "vm_conf", (uint64_t)etc_vm_daemon, 1, (char*[]){"vm_conf"}, (unsigned)-1);
+    fs_pid =
+        do_exec(NULL, "fs_config", (uint64_t)etc_fs_daemon, 1, (char*[]){"fs_conf"}, (unsigned)-1);
+    running = 1;
+}
+
+void pause_fs_daemon() { running = 0; }
+
+void resume_fs_daemon() { running = 1; }

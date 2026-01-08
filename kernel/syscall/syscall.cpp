@@ -429,7 +429,7 @@ long sys_net_recv_stream(void* buffer, int* nbytes) {
 
 /***************** filesystem *****************/
 
-long sys_mkfs(void) { return do_mkfs(); }
+long sys_mkfs(void) { return do_remakefs(); }
 
 long sys_statfs(void) { return do_statfs(); }
 

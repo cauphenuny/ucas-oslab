@@ -48,7 +48,7 @@ int do_mkfs(void) {
     }
     for (uint32_t base = superblock.block_map_offset, offset = 0,
                   total = superblock.datablock_offset - superblock.block_map_offset,
-                  chunk = total / 80;
+                  chunk = total / 50;
          offset < total; offset++) {
         uint32_t bnum = base + offset;
         block_memset(bnum, 0x00);  // clear block map
@@ -56,7 +56,7 @@ int do_mkfs(void) {
             printk(".");
         }
     }
-    screen_clear();
+    printk("\n");
     pretty_logd("block map cleared");
 
     inode_t* root_inode = inode_alloc(FS_TYPE_DIR);
@@ -71,6 +71,44 @@ int do_mkfs(void) {
 
     pretty_logd("root directory created");
     return 0;  // do_mkfs succeeds
+}
+
+int do_cleanfs(void) {
+    for (uint32_t i = superblock.block_map_offset; i < superblock.inode_offset; i++) {
+        block_t* blk = block_open(i);
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            for (int k = 0; k < 8; k++) {
+                if (blk->data[j] & (1 << k)) {
+                    uint32_t bnum = (i - superblock.block_map_offset) * BLOCK_SIZE * 8 + j * 8 + k;
+                    pretty_logd("cleaning block %d", superblock.datablock_offset + bnum);
+                    block_memset(superblock.datablock_offset + bnum, 0x00);
+                }
+            }
+        }
+        block_close(blk);
+    }
+    for (uint32_t base = superblock.block_map_offset, offset = 0,
+                  total = superblock.datablock_offset - superblock.block_map_offset,
+                  chunk = total / 50;
+         offset < total; offset++) {
+        uint32_t bnum = base + offset;
+        block_memset(bnum, 0x00);  // clear block map
+        if (offset % chunk == 0) {
+            printk(".");
+        }
+    }
+    printk("\n");
+    return 0;
+}
+
+int do_remakefs(void) {
+    pause_fs_daemon();
+    do_cleanfs();
+    flush_filesystem();
+    do_mkfs();
+    init_fs_etc();
+    resume_fs_daemon();
+    return 0;
 }
 
 void init_fs() {
@@ -96,6 +134,7 @@ void init_fs() {
     }
 
     init_fs_etc();
+    init_fs_daemon();
 }
 
 superblock_t superblock;

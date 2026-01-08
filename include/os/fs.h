@@ -1,6 +1,8 @@
 #ifndef __INCLUDE_OS_FS_H__
 #define __INCLUDE_OS_FS_H__
 
+#include "os/sched.h"
+
 #include <os/lock.h>
 #include <os/task.h>
 #include <static_assert.h>
@@ -145,6 +147,7 @@ STATIC_ASSERT(
 
 /* fs function declarations */
 extern int do_mkfs(void);
+extern int do_remakefs(void);
 extern int do_statfs(void);
 extern int do_cd(char* path);
 extern int do_mkdir(char* path);
@@ -250,5 +253,10 @@ void cache_routine();
 void flush_filesystem();
 
 void init_fs_etc();
+void init_fs_daemon();
+void pause_fs_daemon();
+void resume_fs_daemon();
+
+void cleanup_fd(pcb_t* proc);
 
 #endif

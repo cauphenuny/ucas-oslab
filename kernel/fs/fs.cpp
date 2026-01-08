@@ -405,6 +405,20 @@ int do_lseek(int fd, int offset, int whence) {
     return target;
 }
 
+void cleanup_fd(pcb_t* proc) {
+    for (int i = 0; i < NUM_MAX_PROC_FD; i++) {
+        fdesc_t* fd = proc->fd_table[i];
+        if (fd) {
+            if (fd->inode->lock.acquired) {
+                inode_unlock(fd->inode);
+            }
+            inode_deref(fd->inode);
+            fd->valid = 0;
+            proc->fd_table[i] = NULL;
+        }
+    }
+}
+
 void flush_filesystem() {
     bios_sd_write((kva_t)&superblock, 1, FS_START_SECTOR);
     flush_block_cache();

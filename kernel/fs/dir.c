@@ -45,6 +45,7 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
     inode_t* child = dir_lookup(dir, filename, NULL);
     if (child != NULL) {
         inode_deref(child);
+        pretty_logw("file %s already exists in directory inode %d", filename, dir->inode_num);
         return ERR_FILE_EXISTS;
     }
 
@@ -66,7 +67,7 @@ int dir_link(inode_t* dir, const char* filename, int inode_num) {
 
     int n = inode_write(dir, &dentry, 0, offset, sizeof(dentry_t));
     if (n != sizeof(dentry_t)) {
-        pretty_logw("failed to write directory entry");
+        pretty_logw("failed to write directory entry %s", filename);
         return ERR_OPERATION_FAILED;
     }
     dcache_put(dir->inode_num, &dentry, offset);

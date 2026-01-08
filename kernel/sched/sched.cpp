@@ -6,6 +6,7 @@ extern "C" {
 #include <assert.h>
 #include <breakpoint.h>
 #include <logger.h>
+#include <os/fs.h>
 #include <os/list.h>
 #include <os/lock.h>
 #include <os/mm.h>
@@ -322,6 +323,7 @@ void cleanup_proc(pcb_t* pcb) {
     cleanup_semaphores(pid);
     cleanup_mailboxes(pid);
     cleanup_pipe(pid);
+    cleanup_fd(pcb);
     list_node_destruct(&pcb->sched_node);
     list_node_destruct(&pcb->relation_node);
     cleanup_vm(pcb);
